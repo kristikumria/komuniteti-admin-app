@@ -1,0 +1,9 @@
+
+> komuniteti-admin@1.0.0 web
+> expo start --web
+
+Starting project at /Users/kristi/Documents/personal_dev/komuniteti-admin-app
+Starting Metro Bundler
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+Web Bundled 554ms index.ts (3008 modules)
