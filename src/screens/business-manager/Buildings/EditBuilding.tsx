@@ -4,7 +4,6 @@ import { useTheme, Text } from 'react-native-paper';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { BuildingForm, BuildingFormData } from '../../../components/BuildingForm';
 import { Header } from '../../../components/Header';
-import { SideMenu } from '../../../components/SideMenu';
 import { buildingService } from '../../../services/buildingService';
 import { useAppSelector } from '../../../store/hooks';
 import { BusinessManagerStackParamList } from '../../../navigation/types';
@@ -21,26 +20,27 @@ export const EditBuilding = () => {
   const [building, setBuilding] = useState<BuildingFormData | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
   
   useEffect(() => {
     const fetchBuilding = async () => {
       try {
         const data = await buildingService.getBuildingById(buildingId);
         
-        // Convert the building data to the form data format
-        setBuilding({
-          name: data.name,
-          address: data.address,
-          propertyType: data.propertyType,
-          units: data.units,
-          floors: data.units / 4, // Assuming 4 units per floor as an example
-          totalArea: data.units * 85, // Assuming 85 square meters per unit as an example
-          yearBuilt: data.yearBuilt,
-          description: `${data.propertyType} building with ${data.units} units.`,
-          hasParking: data.amenities.includes('Parking'),
-          hasSecurity: data.amenities.includes('Security'),
-        });
+        if (data) {
+          // Convert the building data to the form data format
+          setBuilding({
+            name: data.name,
+            address: data.address,
+            propertyType: data.propertyType || 'Residential', // Default value if not available
+            units: data.units,
+            floors: Math.ceil(data.units / 4), // Assuming 4 units per floor as an example
+            totalArea: data.units * 85, // Assuming 85 square meters per unit as an example
+            yearBuilt: data.buildYear || 2020, // Adapt to match available fields
+            description: `${data.propertyType || 'Residential'} building with ${data.units} units.`,
+            hasParking: data.propertyManager?.includes('Parking') || false,
+            hasSecurity: data.propertyManager?.includes('Security') || false,
+          });
+        }
       } catch (error) {
         console.error('Error fetching building:', error);
         Alert.alert('Error', 'Failed to load building details.');
@@ -59,13 +59,13 @@ export const EditBuilding = () => {
       await buildingService.updateBuilding(buildingId, {
         name: data.name,
         address: data.address,
-        propertyType: data.propertyType,
+        // Add all necessary fields that match the Building type
         units: data.units,
-        yearBuilt: data.yearBuilt,
-        amenities: [
-          data.hasParking ? 'Parking' : null,
-          data.hasSecurity ? 'Security' : null
-        ].filter(Boolean) as string[]
+        buildYear: data.yearBuilt,
+        propertyManager: [
+          data.hasParking ? 'Parking' : '',
+          data.hasSecurity ? 'Security' : ''
+        ].filter(Boolean).join(', ')
       });
       Alert.alert('Success', 'Building updated successfully.', [
         { text: 'OK', onPress: () => navigation.goBack() }
@@ -84,8 +84,6 @@ export const EditBuilding = () => {
         <Header 
           title="Edit Building" 
           showBack={true}
-          showMenu={true}
-          onMenuPress={() => setMenuVisible(true)}
         />
         <View style={[styles.loadingContainer, { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }]}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -93,10 +91,6 @@ export const EditBuilding = () => {
             Loading building details...
           </Text>
         </View>
-        <SideMenu
-          isVisible={menuVisible}
-          onClose={() => setMenuVisible(false)}
-        />
       </>
     );
   }
@@ -106,40 +100,20 @@ export const EditBuilding = () => {
       <Header 
         title="Edit Building" 
         showBack={true}
-        showMenu={true}
-        onMenuPress={() => setMenuVisible(true)}
       />
-      
-      <View 
-        style={[
-          styles.container,
-          { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }
-        ]}
-      >
-        {building && (
-          <BuildingForm 
-            initialData={building}
-            onSubmit={handleSubmit}
-            isLoading={submitting}
-          />
-        )}
-      </View>
-      
-      <SideMenu
-        isVisible={menuVisible}
-        onClose={() => setMenuVisible(false)}
+      <BuildingForm 
+        initialData={building || undefined} 
+        onSubmit={handleSubmit}
+        isLoading={submitting}
       />
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-}); 
+});

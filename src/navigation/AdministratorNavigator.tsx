@@ -10,8 +10,11 @@ import {
   MessageSquare,
   MoreHorizontal 
 } from 'lucide-react-native';
-import { AdministratorStackParamList } from './types';
+import { AdministratorStackParamList, AdministratorTabParamList } from './types';
 import { BlurView } from 'expo-blur';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store/store';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Import screens
 import { Dashboard } from '../screens/administrator/Dashboard';
@@ -29,17 +32,14 @@ import { ReportDetails } from '../screens/administrator/Reports/ReportDetails';
 import { NotificationsScreen } from '../screens/shared/Notifications/NotificationsScreen';
 import { NotificationDetails } from '../screens/shared/Notifications/NotificationDetails';
 import { NotificationSettings } from '../screens/shared/Settings/NotificationSettings';
-import ChatListScreen from '../screens/administrator/Chat/ChatListScreen';
-import ChatConversationScreen from '../screens/administrator/Chat/ChatConversationScreen';
+import { ChatListScreen, ChatConversationScreen, NewConversationScreen } from '../screens/shared/Chat';
 import { InfoPointsScreen } from '../screens/shared/InfoPoints/InfoPointsScreen';
 import { PollsScreen } from '../screens/shared/Polls/PollsScreen';
+import { PollDetailsScreen } from '../screens/shared/Polls/PollDetailsScreen';
 import { SettingsScreen } from '../screens/shared/Settings/SettingsScreen';
 import { MoreScreen } from '../screens/shared/More/MoreScreen';
-import { useSelector } from 'react-redux';
-import { RootState } from '../store/store';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<AdministratorTabParamList>();
 const Stack = createNativeStackNavigator<AdministratorStackParamList>();
 const RootStack = createNativeStackNavigator<AdministratorStackParamList>();
 
@@ -84,6 +84,10 @@ const ChatStack = () => {
         name="ChatConversation" 
         component={ChatConversationScreen}
       />
+      <Stack.Screen 
+        name="NewConversation" 
+        component={NewConversationScreen}
+      />
     </Stack.Navigator>
   );
 };
@@ -95,10 +99,14 @@ const MoreStack = () => {
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="InfoPointsScreen" component={InfoPointsScreen} />
       <Stack.Screen name="PollsScreen" component={PollsScreen} />
+      <Stack.Screen name="PollDetails" component={PollDetailsScreen} />
       <Stack.Screen name="ReportsStack" component={ReportsStack} />
       <Stack.Screen name="NotificationsTab" component={NotificationsScreen} />
       <Stack.Screen name="NotificationDetails" component={NotificationDetails} />
       <Stack.Screen name="NotificationSettings" component={NotificationSettings} />
+      <Stack.Screen name="Messages" component={ChatListScreen} />
+      <Stack.Screen name="ChatConversation" component={ChatConversationScreen} />
+      <Stack.Screen name="NewConversation" component={NewConversationScreen} />
     </Stack.Navigator>
   );
 };
@@ -120,6 +128,9 @@ const BottomTabNavigator = () => {
   // For iOS, we'll use a blur effect
   const isIOS = Platform.OS === 'ios';
 
+  // Create a wrapper component for Dashboard to ensure it's properly typed
+  const DashboardScreen = () => <Dashboard />;
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -127,7 +138,8 @@ const BottomTabNavigator = () => {
         tabBarStyle: {
           backgroundColor: tabBarBackgroundColor,
           borderTopWidth: 0,
-          elevation: 8,
+          elevation: 3,
+          zIndex: 8,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.1,
@@ -135,7 +147,6 @@ const BottomTabNavigator = () => {
           height: 60 + insets.bottom,
           paddingBottom: insets.bottom,
           paddingTop: 6,
-          position: 'absolute',
           ...(isIOS && {
             backgroundColor: 'transparent',
             elevation: 0,
@@ -192,7 +203,7 @@ const BottomTabNavigator = () => {
     >
       <Tab.Screen
         name="DashboardTab"
-        component={Dashboard}
+        component={DashboardScreen}
         options={{
           tabBarLabel: 'Home',
         }}
@@ -241,6 +252,8 @@ export const AdministratorNavigator = () => {
       <RootStack.Screen name="MainTabs" component={BottomTabNavigator} />
       <RootStack.Screen name="NotificationsScreen" component={NotificationsScreen} />
       <RootStack.Screen name="NotificationDetails" component={NotificationDetails} />
+      <RootStack.Screen name="NewConversation" component={NewConversationScreen} />
+      <RootStack.Screen name="ChatConversation" component={ChatConversationScreen} />
     </RootStack.Navigator>
   );
 };

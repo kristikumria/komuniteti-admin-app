@@ -33,6 +33,7 @@ import { Service } from '../../../types/serviceTypes';
 import { MoreVertical, Plus, Edit, Trash2, Bookmark, Eye, Power, Filter } from 'lucide-react-native';
 import { Header } from '../../../components/Header';
 import { ServiceForm } from './ServiceForm';
+import { commonStyles } from '../../../styles/commonStyles';
 
 type Props = NativeStackScreenProps<BusinessManagerStackParamList, 'Services'>;
 
@@ -385,7 +386,7 @@ export const ServicesScreen = ({ navigation }: Props) => {
       {/* FAB for adding new service */}
       <FAB
         icon={() => <Plus size={24} color="#fff" />}
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+        style={[commonStyles.fab, { backgroundColor: theme.colors.primary }]}
         onPress={handleCreate}
       />
       
@@ -498,11 +499,6 @@ const styles = StyleSheet.create({
   price: {
     fontWeight: 'bold',
     fontSize: 16,
-  },
-  fab: {
-    position: 'absolute',
-    right: 16,
-    bottom: 16,
   },
   loadingContainer: {
     flex: 1,

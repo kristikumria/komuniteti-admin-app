@@ -54,6 +54,7 @@ import {
 } from 'lucide-react-native';
 import { Header } from '../../../components/Header';
 import { InfoPointForm } from './InfoPointForm';
+import { commonStyles } from '../../../styles/commonStyles';
 
 // Mock buildings data until we fix imports
 const MOCK_BUILDINGS: Building[] = [
@@ -583,7 +584,7 @@ export const InfoPointsScreen = () => {
       {/* FAB for adding new info point */}
       <FAB
         icon={() => <Plus size={24} color="#fff" />}
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+        style={[commonStyles.fab, { backgroundColor: theme.colors.primary }]}
         onPress={handleCreate}
       />
       
@@ -708,11 +709,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
     gap: 8,
-  },
-  fab: {
-    position: 'absolute',
-    right: 16,
-    bottom: 16,
   },
   loadingContainer: {
     flex: 1,

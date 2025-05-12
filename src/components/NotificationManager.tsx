@@ -86,4 +86,4 @@ export const NotificationManager: React.FC<NotificationManagerProps> = ({ childr
       {children}
     </>
   );
-}; 
+};

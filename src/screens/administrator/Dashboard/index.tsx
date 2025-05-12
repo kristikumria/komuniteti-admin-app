@@ -10,13 +10,13 @@ import { Header } from '../../../components/Header';
 import { InfoCard } from '../../../components/InfoCard';
 import { ListItem } from '../../../components/ListItem';
 import { residentService } from '../../../services/residentService';
-import { Resident, AdministratorStackParamList } from '../../../navigation/types';
+import { Resident, AdministratorStackParamList, AdministratorTabParamList } from '../../../navigation/types';
 import { useAppSelector } from '../../../store/hooks';
 import { STATUS_COLORS } from '../../../utils/constants';
 
 // Define a proper navigation type for the administrator dashboard
 type DashboardNavigationProp = CompositeNavigationProp<
-  BottomTabNavigationProp<any, 'DashboardTab'>,
+  BottomTabNavigationProp<AdministratorTabParamList>,
   NativeStackNavigationProp<AdministratorStackParamList>
 >;
 
@@ -70,7 +70,9 @@ export const Dashboard = () => {
   };
   
   const navigateToReports = () => {
-    navigation.navigate('ReportsTab');
+    navigation.navigate('MoreTab', {
+      screen: 'ReportsStack'
+    });
   };
 
   const navigateToMessages = () => {
@@ -139,6 +141,7 @@ export const Dashboard = () => {
           <Text style={[styles.sectionTitle, { color: textColor }]}>Quick Actions</Text>
           
           <Surface style={[styles.quickActionsRow, { backgroundColor: cardBackground }]} elevation={1}>
+            <View style={styles.quickActionsRowContent}>
             <TouchableOpacity style={styles.quickAction} onPress={navigateToResidents}>
               <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.primary + '20' }]}>
                 <Users size={20} color={theme.colors.primary} />
@@ -172,6 +175,7 @@ export const Dashboard = () => {
               </View>
               <Text style={[styles.quickActionText, { color: textColor }]}>Messages</Text>
             </TouchableOpacity>
+            </View>
           </Surface>
         </View>
         
@@ -180,43 +184,51 @@ export const Dashboard = () => {
           <Text style={[styles.sectionTitle, { color: textColor }]}>Overview</Text>
           <View style={styles.overviewCards}>
             <Surface style={[styles.overviewCard, { backgroundColor: cardBackground }]} elevation={1}>
+              <View style={styles.overviewCardContent}>
               <Text style={[styles.overviewLabel, { color: secondaryTextColor }]}>Total Residents</Text>
               <View style={styles.overviewValue}>
                 <Text style={[styles.overviewNumber, { color: textColor }]}>{totalResidents}</Text>
                 <View style={styles.indicatorContainer}>
                   <TrendingUp size={12} color={theme.colors.primary} />
                   <Text style={[styles.indicatorText, { color: theme.colors.primary }]}>Active</Text>
+                  </View>
                 </View>
               </View>
             </Surface>
             
             <Surface style={[styles.overviewCard, { backgroundColor: cardBackground }]} elevation={1}>
+              <View style={styles.overviewCardContent}>
               <Text style={[styles.overviewLabel, { color: secondaryTextColor }]}>Owners</Text>
               <View style={styles.overviewValue}>
                 <Text style={[styles.overviewNumber, { color: textColor }]}>{owners}</Text>
                 <View style={styles.indicatorContainer}>
                   <Text style={[styles.indicatorText, { color: '#00897b' }]}>{ownersPercentage}%</Text>
+                  </View>
                 </View>
               </View>
             </Surface>
             
             <Surface style={[styles.overviewCard, { backgroundColor: cardBackground }]} elevation={1}>
+              <View style={styles.overviewCardContent}>
               <Text style={[styles.overviewLabel, { color: secondaryTextColor }]}>Revenue</Text>
               <View style={styles.overviewValue}>
                 <Text style={[styles.overviewNumber, { color: textColor }]}>€8,500</Text>
                 <View style={styles.indicatorContainer}>
                   <TrendingUp size={12} color="#43a047" />
                   <Text style={[styles.indicatorText, { color: '#43a047' }]}>+12%</Text>
+                  </View>
                 </View>
               </View>
             </Surface>
             
             <Surface style={[styles.overviewCard, { backgroundColor: cardBackground }]} elevation={1}>
+              <View style={styles.overviewCardContent}>
               <Text style={[styles.overviewLabel, { color: secondaryTextColor }]}>Overdue</Text>
               <View style={styles.overviewValue}>
                 <Text style={[styles.overviewNumber, { color: textColor }]}>{overdue}</Text>
                 <View style={styles.indicatorContainer}>
                   <Text style={[styles.indicatorText, { color: '#e53935' }]}>{overduePercentage}%</Text>
+                  </View>
                 </View>
               </View>
             </Surface>
@@ -234,6 +246,7 @@ export const Dashboard = () => {
           </View>
           
           <Surface style={[styles.recentListCard, { backgroundColor: cardBackground }]} elevation={1}>
+            <View style={styles.recentListCardContent}>
             {residents.slice(0, 3).map((resident) => (
               <ListItem
                 key={resident.id}
@@ -260,6 +273,7 @@ export const Dashboard = () => {
             >
               Add New Resident
             </Button>
+            </View>
           </Surface>
         </View>
         
@@ -274,6 +288,7 @@ export const Dashboard = () => {
           </View>
           
           <Surface style={[styles.recentListCard, { backgroundColor: cardBackground }]} elevation={1}>
+            <View style={styles.recentListCardContent}>
             <ListItem
               title="Alexsander Meti"
               subtitle="Monthly Maintenance • Due June 5"
@@ -308,6 +323,7 @@ export const Dashboard = () => {
             >
               Process New Payment
             </Button>
+            </View>
           </Surface>
         </View>
       </ScrollView>
@@ -358,10 +374,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   quickActionsRow: {
-    flexDirection: 'row',
     borderRadius: 12,
     marginTop: 8,
     padding: 0,
+  },
+  quickActionsRowContent: {
+    flexDirection: 'row',
     overflow: 'hidden',
   },
   quickAction: {
@@ -402,6 +420,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 16,
     height: 90,
+  },
+  overviewCardContent: {
+    overflow: 'hidden',
+    flex: 1,
   },
   overviewLabel: {
     fontSize: 13,
@@ -445,6 +467,8 @@ const styles = StyleSheet.create({
   },
   recentListCard: {
     borderRadius: 12,
+  },
+  recentListCardContent: {
     overflow: 'hidden',
   },
   addButton: {

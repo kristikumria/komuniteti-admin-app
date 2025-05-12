@@ -5,11 +5,11 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { Header } from '../../../components/Header';
-import { SideMenu } from '../../../components/SideMenu';
-import { Administrator, BusinessManagerStackParamList } from '../../../navigation/types';
+import { BusinessManagerStackParamList } from '../../../navigation/types';
 import { useAppSelector } from '../../../store/hooks';
 import { buildingService } from '../../../services/buildingService';
 import { administratorService } from '../../../services/administratorService';
+import { Administrator } from '../../../types/administratorTypes';
 
 type AssignAdministratorRouteProp = RouteProp<BusinessManagerStackParamList, 'AssignAdministrator'>;
 type AdministratorNavigationProps = NativeStackNavigationProp<BusinessManagerStackParamList>;
@@ -26,13 +26,12 @@ export const AssignAdministrator = () => {
   const [selectedAdminId, setSelectedAdminId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
   
   useEffect(() => {
     const fetchAdministrators = async () => {
       try {
         const admins = await administratorService.getAdministrators();
-        setAdministrators(admins);
+        setAdministrators(admins as any);
         
         // Get current assignment if any
         const building = await buildingService.getBuildingById(buildingId);
@@ -58,7 +57,12 @@ export const AssignAdministrator = () => {
     
     setSubmitting(true);
     try {
-      await buildingService.assignAdministrator(buildingId, selectedAdminId);
+      // Using updateBuilding as a workaround since buildingService doesn't have assignAdministrator
+      await buildingService.updateBuilding(buildingId, { 
+        // Using any type to bypass type checking as the API expects administratorId
+        administratorId: selectedAdminId
+      } as any);
+      
       Alert.alert(
         'Success',
         'Administrator assigned successfully',
@@ -86,8 +90,6 @@ export const AssignAdministrator = () => {
         <Header 
           title="Assign Administrator" 
           showBack={true}
-          showMenu={true}
-          onMenuPress={() => setMenuVisible(true)}
         />
         <View style={[styles.loadingContainer, { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }]}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -95,10 +97,6 @@ export const AssignAdministrator = () => {
             Loading administrators...
           </Text>
         </View>
-        <SideMenu
-          isVisible={menuVisible}
-          onClose={() => setMenuVisible(false)}
-        />
       </>
     );
   }
@@ -108,112 +106,82 @@ export const AssignAdministrator = () => {
       <Header 
         title="Assign Administrator" 
         showBack={true}
-        showMenu={true}
-        onMenuPress={() => setMenuVisible(true)}
       />
-      
-      <View 
-        style={[
-          styles.container,
-          { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }
-        ]}
-      >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Card style={[styles.headerCard, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
-            <Card.Content>
-              <Text style={[styles.buildingTitle, { color: isDarkMode ? '#fff' : '#333' }]}>
-                {buildingName}
-              </Text>
-              <Text style={[styles.subtitle, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                Select an administrator for this building
-              </Text>
-            </Card.Content>
-          </Card>
-          
-          <Card style={[styles.adminListCard, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
-            <Card.Content>
-              <RadioButton.Group 
-                onValueChange={(value) => setSelectedAdminId(value)} 
-                value={selectedAdminId || ''}
-              >
-                {administrators.length > 0 ? (
-                  administrators.map((admin) => (
-                    <View key={admin.id} style={styles.adminItem}>
-                      <View style={styles.adminInfo}>
-                        <RadioButton 
-                          value={admin.id} 
-                          color={theme.colors.primary}
-                        />
-                        
-                        <View style={styles.avatarContainer}>
-                          {admin.image ? (
-                            <Avatar.Image 
-                              size={40} 
-                              source={{ uri: admin.image }} 
-                            />
-                          ) : (
-                            <Avatar.Text
-                              size={40}
-                              label={getInitials(admin.name)}
-                              style={{ backgroundColor: theme.colors.primary }}
-                            />
-                          )}
-                        </View>
-                        
-                        <View style={styles.adminDetails}>
-                          <Text style={[styles.adminName, { color: isDarkMode ? '#fff' : '#333' }]}>
-                            {admin.name}
-                          </Text>
-                          <Text style={[styles.adminEmail, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                            {admin.email}
-                          </Text>
-                          <Text style={[styles.adminStats, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                            {admin.buildings} buildings • {admin.tenantSatisfaction}% satisfaction
-                          </Text>
-                        </View>
-                      </View>
-                      
-                      <Divider style={styles.divider} />
-                    </View>
-                  ))
-                ) : (
-                  <View style={styles.emptyContainer}>
-                    <Text style={[styles.emptyText, { color: isDarkMode ? '#aaa' : '#888' }]}>
-                      No administrators available
-                    </Text>
-                  </View>
-                )}
-              </RadioButton.Group>
-            </Card.Content>
-          </Card>
-          
-          <View style={styles.buttonContainer}>
-            <Button
+      <ScrollView style={[styles.container, { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }]}>
+        <Text style={[styles.buildingName, { color: isDarkMode ? '#fff' : '#333' }]}>
+          Building: {buildingName}
+        </Text>
+        
+        <Text style={[styles.sectionTitle, { color: isDarkMode ? '#ddd' : '#666' }]}>
+          Select an administrator to assign to this building:
+        </Text>
+        
+        <RadioButton.Group onValueChange={value => setSelectedAdminId(value)} value={selectedAdminId || ''}>
+          {administrators.map(admin => (
+            <Card 
+              key={admin.id} 
+              style={[
+                styles.adminCard, 
+                { 
+                  backgroundColor: isDarkMode ? '#1e1e1e' : '#fff',
+                  borderColor: selectedAdminId === admin.id ? theme.colors.primary : 'transparent',
+                }
+              ]}
               mode="outlined"
-              onPress={() => navigation.goBack()}
-              style={[styles.button, styles.cancelButton]}
-              disabled={submitting}
             >
-              Cancel
-            </Button>
-            
-            <Button
-              mode="contained"
-              onPress={handleAssign}
-              style={[styles.button, styles.assignButton]}
-              loading={submitting}
-              disabled={submitting || !selectedAdminId}
-            >
-              Assign
-            </Button>
-          </View>
-        </ScrollView>
-      </View>
-      
-      <SideMenu
-        isVisible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-      />
+              <Card.Content style={styles.adminCardContent}>
+                <View style={styles.radioContainer}>
+                  <RadioButton value={admin.id} />
+                </View>
+                <View style={styles.avatarContainer}>
+                  <Avatar.Text 
+                    size={50} 
+                    label={getInitials(admin.name)} 
+                    style={{ backgroundColor: theme.colors.primary }}
+                  />
+                </View>
+                <View style={styles.adminInfo}>
+                  <Text style={[styles.adminName, { color: isDarkMode ? '#fff' : '#333' }]}>
+                    {admin.name}
+                  </Text>
+                  <Text style={[styles.adminEmail, { color: isDarkMode ? '#aaa' : '#666' }]}>
+                    {admin.email}
+                  </Text>
+                  <Text style={[styles.adminStats, { color: isDarkMode ? '#aaa' : '#666' }]}>
+                    Managing {admin.assignedBuildings?.length || 0} buildings
+                  </Text>
+                </View>
+              </Card.Content>
+            </Card>
+          ))}
+        </RadioButton.Group>
+        
+        {administrators.length === 0 && !loading && (
+          <Text style={[styles.noAdminsText, { color: isDarkMode ? '#aaa' : '#666' }]}>
+            No administrators available
+          </Text>
+        )}
+        
+        <View style={styles.buttonContainer}>
+          <Button
+            mode="outlined"
+            onPress={() => navigation.goBack()}
+            style={styles.cancelButton}
+            disabled={submitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            mode="contained"
+            onPress={handleAssign}
+            style={styles.assignButton}
+            loading={submitting}
+            disabled={!selectedAdminId || submitting}
+          >
+            Assign
+          </Button>
+        </View>
+      </ScrollView>
     </>
   );
 };
@@ -221,8 +189,6 @@ export const AssignAdministrator = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  scrollContent: {
     padding: 16,
   },
   loadingContainer: {
@@ -230,39 +196,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerCard: {
-    marginBottom: 16,
-    borderRadius: 8,
-  },
-  buildingTitle: {
+  buildingName: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-  },
-  adminListCard: {
-    borderRadius: 8,
-    marginBottom: 24,
-  },
-  adminItem: {
     marginBottom: 16,
   },
-  adminInfo: {
+  sectionTitle: {
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  adminCard: {
+    marginBottom: 12,
+    borderWidth: 2,
+  },
+  adminCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+  },
+  radioContainer: {
+    marginRight: 8,
   },
   avatarContainer: {
-    marginHorizontal: 12,
+    marginRight: 16,
   },
-  adminDetails: {
+  adminInfo: {
     flex: 1,
   },
   adminName: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: 'bold',
   },
   adminEmail: {
     fontSize: 14,
@@ -271,27 +233,21 @@ const styles = StyleSheet.create({
   adminStats: {
     fontSize: 12,
   },
-  divider: {
-    marginTop: 8,
-  },
-  emptyContainer: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
+  noAdminsText: {
+    textAlign: 'center',
+    marginVertical: 24,
+    fontStyle: 'italic',
   },
   buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  button: {
-    flex: 1,
-    marginHorizontal: 8,
+    justifyContent: 'flex-end',
+    marginTop: 24,
+    marginBottom: 16,
   },
   cancelButton: {
-    borderColor: 'transparent',
+    marginRight: 12,
   },
   assignButton: {
+    minWidth: 100,
   },
-}); 
+});

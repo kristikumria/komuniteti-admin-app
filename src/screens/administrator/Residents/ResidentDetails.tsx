@@ -20,11 +20,11 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { Header } from '../../../components/Header';
 import { ListItem } from '../../../components/ListItem';
-import { SideMenu } from '../../../components/SideMenu';
 import { residentService } from '../../../services/residentService';
 import { Resident, AdministratorStackParamList } from '../../../navigation/types';
 import { useAppSelector } from '../../../store/hooks';
 import { STATUS_COLORS } from '../../../utils/constants';
+import { commonStyles } from '../../../styles/commonStyles';
 
 type ResidentDetailsRouteProps = RouteProp<AdministratorStackParamList, 'ResidentDetails'>;
 type NavigationProp = NativeStackNavigationProp<AdministratorStackParamList>;
@@ -39,7 +39,6 @@ export const ResidentDetails = () => {
   const [resident, setResident] = useState<Resident | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
   const [selectedTab, setSelectedTab] = useState('info');
   
   useEffect(() => {
@@ -102,8 +101,6 @@ export const ResidentDetails = () => {
         <Header 
           title="Resident Details" 
           showBack={true}
-          showMenu={true}
-          onMenuPress={() => setMenuVisible(true)}
         />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -111,10 +108,6 @@ export const ResidentDetails = () => {
             Loading resident details...
           </Text>
         </View>
-        <SideMenu
-          isVisible={menuVisible}
-          onClose={() => setMenuVisible(false)}
-        />
       </>
     );
   }
@@ -126,8 +119,6 @@ export const ResidentDetails = () => {
         <Header 
           title="Resident Details" 
           showBack={true}
-          showMenu={true}
-          onMenuPress={() => setMenuVisible(true)}
         />
         <View style={styles.notFoundContainer}>
           <AlertCircle size={50} color={theme.colors.error} />
@@ -147,10 +138,6 @@ export const ResidentDetails = () => {
             Go Back
           </Button>
         </View>
-        <SideMenu
-          isVisible={menuVisible}
-          onClose={() => setMenuVisible(false)}
-        />
       </>
     );
   }
@@ -166,8 +153,6 @@ export const ResidentDetails = () => {
       <Header 
         title={resident.name} 
         showBack={true}
-        showMenu={true}
-        onMenuPress={() => setMenuVisible(true)}
       />
       
       <ScrollView
@@ -824,17 +809,9 @@ export const ResidentDetails = () => {
       
       <FAB
         icon={props => <Edit3 {...props} />}
-        style={[
-          styles.fab,
-          { backgroundColor: theme.colors.primary }
-        ]}
+        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
         onPress={handleEdit}
         color="white"
-      />
-      
-      <SideMenu
-        isVisible={menuVisible}
-        onClose={() => setMenuVisible(false)}
       />
     </>
   );
@@ -979,8 +956,19 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
+    bottom: 100,
+    right: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    zIndex: 9999,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.5,
   },
 }); 

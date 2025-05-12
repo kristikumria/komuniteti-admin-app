@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, FlatList, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
-import { Text, useTheme, ActivityIndicator, Searchbar, SegmentedButtons, Chip, Card, Title, Paragraph, Divider } from 'react-native-paper';
+import { Text, useTheme, ActivityIndicator, Searchbar, SegmentedButtons, Chip, Card, Title, Paragraph, Divider, IconButton } from 'react-native-paper';
 import { BarChart, Receipt, Calendar, Filter, ArrowUpRight, ArrowDownRight } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { Header } from '../../../components/Header';
-import { SideMenu } from '../../../components/SideMenu';
 import { FilterModal, FilterConfig } from '../../../components/FilterModal';
 import { Payment, AdministratorStackParamList } from '../../../navigation/types';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
@@ -65,7 +64,6 @@ export const PaymentHistory = ({ navigation }: Props) => {
   
   const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedView, setSelectedView] = useState('list');
@@ -476,8 +474,6 @@ export const PaymentHistory = ({ navigation }: Props) => {
         <Header 
           title="Payment History" 
           showBack={true}
-          showMenu={true}
-          onMenuPress={() => setMenuVisible(true)}
         />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -485,84 +481,41 @@ export const PaymentHistory = ({ navigation }: Props) => {
             Loading payment history...
           </Text>
         </View>
-        <SideMenu
-          isVisible={menuVisible}
-          onClose={() => setMenuVisible(false)}
-        />
       </>
     );
   }
-  
-  // Count active filters for badge
-  const activeFilterCount = Object.values(activeFilters)
-    .reduce((count, options) => count + options.length, 0) + (activeSort.field ? 1 : 0);
   
   return (
     <>
       <Header 
         title="Payment History" 
         showBack={true}
-        showMenu={true}
-        onMenuPress={() => setMenuVisible(true)}
       />
-      
-      <View 
-        style={[
-          styles.container,
-          { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }
-        ]}
-      >
-        <View style={styles.searchContainer}>
+
+      <View style={[styles.container, { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }]}>
+        <View style={styles.headerActionsContainer}>
           <Searchbar
             placeholder="Search payments..."
             onChangeText={onChangeSearch}
             value={searchQuery}
-            style={[
-              styles.searchBar,
-              { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }
-            ]}
-            iconColor={isDarkMode ? '#aaa' : '#666'}
-            inputStyle={{ color: isDarkMode ? '#fff' : '#333' }}
-            placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
+            style={styles.searchBar}
+            iconColor={theme.colors.primary}
           />
-          
-          <TouchableOpacity 
-            style={[
-              styles.filterButton,
-              { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }
-            ]}
+          <IconButton
+            icon="filter"
             onPress={handleOpenFilterModal}
-          >
-            <Filter size={20} color={theme.colors.primary} />
-            {activeFilterCount > 0 && (
-              <View style={[
-                styles.filterBadge, 
-                { backgroundColor: theme.colors.primary }
-              ]}>
-                <Text style={styles.filterBadgeText}>
-                  {activeFilterCount}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
+            style={styles.filterButton}
+          />
         </View>
         
         <SegmentedButtons
           value={selectedView}
           onValueChange={setSelectedView}
-          style={styles.segmentedButtons}
           buttons={[
-            {
-              value: 'list',
-              label: 'History',
-              icon: 'receipt',
-            },
-            {
-              value: 'report',
-              label: 'Reports',
-              icon: 'chart-bar',
-            },
+            { value: 'list', label: 'List', icon: 'view-list' },
+            { value: 'summary', label: 'Summary', icon: 'chart-bar' },
           ]}
+          style={styles.segmentedButtons}
         />
         
         {selectedView === 'list' ? (
@@ -570,20 +523,19 @@ export const PaymentHistory = ({ navigation }: Props) => {
             data={filteredPayments}
             renderItem={renderPaymentItem}
             keyExtractor={item => item.id}
+            contentContainerStyle={
+              filteredPayments.length === 0 ? 
+                { flex: 1, justifyContent: 'center' } : 
+                { paddingBottom: 20 }
+            }
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
                 colors={[theme.colors.primary]}
-                tintColor={theme.colors.primary}
               />
             }
             ListEmptyComponent={renderEmptyList}
-            contentContainerStyle={
-              filteredPayments.length === 0
-                ? { flex: 1, justifyContent: 'center' }
-                : { paddingBottom: 80 }
-            }
           />
         ) : (
           renderSummaryView()
@@ -598,11 +550,6 @@ export const PaymentHistory = ({ navigation }: Props) => {
         activeFilters={activeFilters}
         activeSort={activeSort}
       />
-      
-      <SideMenu
-        isVisible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-      />
     </>
   );
 };
@@ -611,71 +558,45 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  searchBar: {
+    flex: 1,
+    borderRadius: 8,
+    margin: 0,
+  },
+  segmentedButtons: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  searchContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  searchBar: {
-    flex: 1,
-    borderRadius: 8,
-    elevation: 2,
-  },
-  filterButton: {
-    width: 48,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-    borderRadius: 8,
-    elevation: 2,
-    position: 'relative',
-  },
-  filterBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  filterBadgeText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  segmentedButtons: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 16,
   },
   emptyText: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginTop: 16,
+    marginBottom: 8,
   },
   emptySubText: {
     fontSize: 14,
-    marginTop: 8,
+    textAlign: 'center',
+    maxWidth: '80%',
   },
   paymentItem: {
-    padding: 16,
     marginHorizontal: 16,
     marginBottom: 8,
     borderRadius: 8,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
     elevation: 2,
   },
   paymentHeader: {
@@ -688,8 +609,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   paymentName: {
+    fontWeight: 'bold',
     fontSize: 16,
-    fontWeight: '500',
     marginBottom: 4,
   },
   paymentSubtitle: {
@@ -699,8 +620,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   amountText: {
-    fontSize: 16,
     fontWeight: 'bold',
+    fontSize: 16,
   },
   paymentFooter: {
     flexDirection: 'row',
@@ -713,8 +634,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dateText: {
-    fontSize: 12,
     marginLeft: 4,
+    fontSize: 12,
   },
   methodChip: {
     height: 24,
@@ -738,14 +659,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   cardContent: {
-    marginTop: 8,
+    alignItems: 'flex-start',
   },
   cardValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
+    marginBottom: 4,
   },
   cardSubValue: {
-    marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   breakdownCard: {
     marginBottom: 16,
@@ -753,7 +676,6 @@ const styles = StyleSheet.create({
   breakdownItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     paddingVertical: 12,
   },
   breakdownInfo: {
@@ -767,6 +689,15 @@ const styles = StyleSheet.create({
   },
   chartPlaceholder: {
     alignItems: 'center',
-    padding: 20,
+    justifyContent: 'center',
+    padding: 32,
   },
-}); 
+  headerActionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    margin: 16,
+  },
+  filterButton: {
+    marginLeft: 8,
+  },
+});

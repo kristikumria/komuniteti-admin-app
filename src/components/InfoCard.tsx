@@ -26,7 +26,7 @@ export const InfoCard: React.FC<InfoCardProps> = ({
   trendLabel,
 }) => {
   const theme = useTheme();
-  const isDarkMode = useAppSelector((state) => state.settings.darkMode);
+  const isDarkMode = useAppSelector((state) => state.settings?.darkMode) ?? false;
   
   const cardBgColor = isDarkMode ? '#1e1e1e' : '#ffffff';
   const iconBgColor = color || theme.colors.primary;
@@ -39,6 +39,7 @@ export const InfoCard: React.FC<InfoCardProps> = ({
         style={styles.card}
         elevation={2}
       >
+        <View style={styles.cardInnerWrapper}>
         <CardWrapper
           style={[styles.cardContent, { backgroundColor: cardBgColor }]}
           onPress={onPress}
@@ -95,6 +96,7 @@ export const InfoCard: React.FC<InfoCardProps> = ({
             )}
           </View>
         </CardWrapper>
+        </View>
       </Card>
     </View>
   );
@@ -107,6 +109,8 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 12,
+  },
+  cardInnerWrapper: {
     overflow: 'hidden',
   },
   cardContent: {

@@ -178,7 +178,7 @@ export const MoreScreen = () => {
             
             <Divider style={{ backgroundColor: isDarkMode ? '#333' : '#eee' }} />
             
-            <TouchableOpacity onPress={() => navigateTo('Reports')}>
+            <TouchableOpacity onPress={() => navigateTo('ReportsStack')}>
               <List.Item
                 title="Reports"
                 description="View and manage reports"

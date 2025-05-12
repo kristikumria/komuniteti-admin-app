@@ -25,21 +25,40 @@ export type BusinessManagerStackParamList = {
   ProcessPayment: { paymentId: string };
   Reports: undefined;
   ReportDetails: { reportId: string };
+  ReportsStack: undefined;
   Notifications: undefined;
   NotificationsScreen: undefined;
   NotificationsTab: undefined;
   NotificationDetails: { notificationId: string };
   NotificationSettings: undefined;
   Messages: undefined;
+  Chat: undefined;
+  ChatConversation: { conversationId: string };
+  NewConversation: undefined;
   InfoPoints: undefined;
   InfoPointsScreen: undefined;
   Polls: undefined;
   PollsScreen: undefined;
+  PollDetails: { pollId: string };
   Organigram: undefined;
   Analytics: undefined;
   Settings: undefined;
   Services: undefined;
   MoreMain: undefined;
+  MainTabs: undefined;
+};
+
+// Administrator Tab Navigator
+export type AdministratorTabParamList = {
+  DashboardTab: undefined;
+  ResidentsTab: NavigatorScreenParams<AdministratorStackParamList> | undefined;
+  PaymentsTab: NavigatorScreenParams<AdministratorStackParamList> | undefined;
+  ChatTab: NavigatorScreenParams<{
+    Chat: undefined;
+    ChatConversation: { conversationId: string };
+    NewConversation: undefined;
+  }> | undefined;
+  MoreTab: NavigatorScreenParams<AdministratorStackParamList> | undefined;
   MainTabs: undefined;
 };
 
@@ -68,13 +87,16 @@ export type AdministratorStackParamList = {
   NoticeDetails: { noticeId: string };
   Chat: undefined;
   ChatConversation: { conversationId: string };
+  NewConversation: undefined;
   InfoPoints: undefined;
   Polls: undefined;
+  PollDetails: { pollId: string };
   Settings: undefined;
   MoreMain: undefined;
   InfoPointsScreen: undefined;
   PollsScreen: undefined;
   ReportsStack: undefined;
+  Messages: undefined;
   MainTabs: undefined;
 };
 
@@ -200,7 +222,13 @@ export interface ChatMessage {
   timestamp: string;
   readBy: string[];
   attachments?: ChatAttachment[];
-  status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
+  status?: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
+  replyTo?: {
+    id: string;
+    senderId: string;
+    senderName: string;
+    content: string;
+  };
 }
 
 export interface ChatConversation {
@@ -241,4 +269,75 @@ export interface User {
   email: string;
   name: string;
   role: 'business_manager' | 'administrator';
-} 
+}
+
+export interface Poll {
+  id: string;
+  title: string;
+  description: string;
+  createdBy: string;
+  createdAt: string;
+  expiresAt: string;
+  status: 'draft' | 'active' | 'expired' | 'closed';
+  questions: PollQuestion[];
+  targetAudience: {
+    buildings?: string[];
+    roles?: string[];
+    all: boolean;
+  };
+  responseCount: number;
+  isAnonymous: boolean;
+}
+
+export interface PollQuestion {
+  id: string;
+  type: 'multiple_choice' | 'single_choice' | 'rating' | 'text';
+  text: string;
+  options?: string[];
+  required: boolean;
+}
+
+export interface PollResponse {
+  id: string;
+  pollId: string;
+  userId: string;
+  userName: string;
+  createdAt: string;
+  answers: PollAnswer[];
+}
+
+export interface PollAnswer {
+  questionId: string;
+  answer: string | string[] | number;
+}
+
+export interface PollSummary {
+  pollId: string;
+  totalResponses: number;
+  questionSummaries: {
+    questionId: string;
+    questionText: string;
+    type: 'multiple_choice' | 'single_choice' | 'rating' | 'text';
+    answers: {
+      option?: string;
+      count: number;
+      percentage: number;
+      textAnswers?: string[];
+      averageRating?: number;
+    }[];
+  }[];
+}
+
+// Update BusinessManager tab params too
+export type BusinessManagerTabParamList = {
+  DashboardTab: undefined;
+  BuildingsTab: NavigatorScreenParams<BusinessManagerStackParamList> | undefined;
+  AdminsTab: NavigatorScreenParams<BusinessManagerStackParamList> | undefined;
+  ChatTab: NavigatorScreenParams<{
+    Chat: undefined;
+    ChatConversation: { conversationId: string };
+    NewConversation: undefined;
+  }> | undefined;
+  MoreTab: NavigatorScreenParams<BusinessManagerStackParamList> | undefined;
+  MainTabs: undefined;
+}; 

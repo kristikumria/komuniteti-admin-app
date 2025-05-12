@@ -6,7 +6,6 @@ import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { Header } from '../../../components/Header';
-import { SideMenu } from '../../../components/SideMenu';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { fetchNotificationById, markAsRead, deleteNotification } from '../../../store/slices/notificationsSlice';
 import { Notification, AdministratorStackParamList } from '../../../navigation/types';
@@ -90,7 +89,6 @@ export const NotificationDetails = () => {
         <Header 
           title="Notification Details" 
           showBack={true}
-          showMenu={true}
         />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -107,7 +105,6 @@ export const NotificationDetails = () => {
       <Header 
         title="Notification Details" 
         showBack={true}
-        showMenu={true}
       />
       
       <ScrollView 

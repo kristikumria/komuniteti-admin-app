@@ -7,9 +7,10 @@ import {
   BarChart3, 
   Building, 
   UserCheck, 
-  MoreHorizontal
+  MoreHorizontal,
+  MessageSquare
 } from 'lucide-react-native';
-import { BusinessManagerStackParamList } from './types';
+import { BusinessManagerStackParamList, BusinessManagerTabParamList } from './types';
 import { BlurView } from 'expo-blur';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store/store';
@@ -29,16 +30,17 @@ import { ReportDetails } from '../screens/business-manager/Reports/ReportDetails
 import { NotificationsScreen } from '../screens/shared/Notifications/NotificationsScreen';
 import { NotificationDetails } from '../screens/shared/Notifications/NotificationDetails';
 import { NotificationSettings } from '../screens/shared/Settings/NotificationSettings';
-import { MessagesScreen } from '../screens/shared/Messages/MessagesScreen';
+import { ChatListScreen, ChatConversationScreen, NewConversationScreen } from '../screens/shared/Chat';
 import { InfoPointsScreen } from '../screens/shared/InfoPoints/InfoPointsScreen';
 import { PollsScreen } from '../screens/shared/Polls/PollsScreen';
+import { PollDetailsScreen } from '../screens/shared/Polls/PollDetailsScreen';
 import { OrganigramScreen } from '../screens/business-manager/Organigram/OrganigramScreen';
 import { AnalyticsScreen } from '../screens/business-manager/Analytics/AnalyticsScreen';
 import { SettingsScreen } from '../screens/shared/Settings/SettingsScreen';
 import { ServicesScreen } from '../screens/business-manager/Services/ServicesScreen';
 import { MoreScreen } from '../screens/shared/More/MoreScreen';
 
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<BusinessManagerTabParamList>();
 const Stack = createNativeStackNavigator<BusinessManagerStackParamList>();
 const RootStack = createNativeStackNavigator<BusinessManagerStackParamList>();
 
@@ -73,15 +75,37 @@ const ReportsStack = () => {
   );
 };
 
+const PollsStack = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Polls" component={PollsScreen} />
+      <Stack.Screen name="PollDetails" component={PollDetailsScreen} />
+    </Stack.Navigator>
+  );
+};
+
+const ChatStack = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Chat" component={ChatListScreen} />
+      <Stack.Screen name="ChatConversation" component={ChatConversationScreen} />
+      <Stack.Screen name="NewConversation" component={NewConversationScreen} />
+    </Stack.Navigator>
+  );
+};
+
 const MoreStack = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MoreMain" component={MoreScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="InfoPointsScreen" component={InfoPointsScreen} />
-      <Stack.Screen name="PollsScreen" component={PollsScreen} />
       <Stack.Screen name="NotificationsTab" component={NotificationsScreen} />
-      <Stack.Screen name="Messages" component={MessagesScreen} />
+      <Stack.Screen name="Messages" component={ChatListScreen} />
+      <Stack.Screen name="ChatConversation" component={ChatConversationScreen} />
+      <Stack.Screen name="NewConversation" component={NewConversationScreen} />
+      <Stack.Screen name="PollsScreen" component={PollsScreen} />
+      <Stack.Screen name="ReportsStack" component={ReportsStack} />
       <Stack.Screen name="Organigram" component={OrganigramScreen} />
       <Stack.Screen name="Analytics" component={AnalyticsScreen} />
       <Stack.Screen name="Services" component={ServicesScreen} />
@@ -94,6 +118,7 @@ const BottomTabNavigator = () => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const isDarkMode = useSelector((state: RootState) => state.settings.darkMode);
+  const unreadChatCount = useSelector((state: RootState) => state.chat.unreadCount);
   
   // Colors based on dark/light mode
   const tabBarBackgroundColor = isDarkMode ? '#121212' : '#ffffff';
@@ -112,7 +137,8 @@ const BottomTabNavigator = () => {
         tabBarStyle: {
           backgroundColor: tabBarBackgroundColor,
           borderTopWidth: 0,
-          elevation: 8,
+          elevation: 3,
+          zIndex: 8,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.1,
@@ -120,7 +146,6 @@ const BottomTabNavigator = () => {
           height: 60 + insets.bottom,
           paddingBottom: insets.bottom,
           paddingTop: 6,
-          position: 'absolute',
           ...(isIOS && {
             backgroundColor: 'transparent',
             elevation: 0,
@@ -154,6 +179,20 @@ const BottomTabNavigator = () => {
             return <Building size={iconSize} color={iconColor} />;
           } else if (route.name === 'AdminsTab') {
             return <UserCheck size={iconSize} color={iconColor} />;
+          } else if (route.name === 'ChatTab') {
+            return (
+              <View style={{ position: 'relative' }}>
+                <MessageSquare color={iconColor} size={iconSize} />
+                {unreadChatCount > 0 && (
+                  <Badge 
+                    style={styles.badge}
+                    size={16}
+                  >
+                    {unreadChatCount > 99 ? '99+' : unreadChatCount}
+                  </Badge>
+                )}
+              </View>
+            );
           } else if (route.name === 'MoreTab') {
             return <MoreHorizontal size={iconSize} color={iconColor} />;
           }
@@ -183,6 +222,14 @@ const BottomTabNavigator = () => {
         }}
       />
       <Tab.Screen 
+        name="ChatTab"
+        component={ChatStack}
+        options={{
+          tabBarLabel: 'Messages',
+          tabBarBadge: unreadChatCount > 0 ? unreadChatCount : undefined,
+        }}
+      />
+      <Tab.Screen 
         name="MoreTab"
         component={MoreStack}
         options={{
@@ -200,6 +247,12 @@ export const BusinessManagerNavigator = () => {
       <RootStack.Screen name="MainTabs" component={BottomTabNavigator} />
       <RootStack.Screen name="NotificationsScreen" component={NotificationsScreen} />
       <RootStack.Screen name="NotificationDetails" component={NotificationDetails} />
+      <RootStack.Screen name="NotificationSettings" component={NotificationSettings} />
+      <RootStack.Screen name="Messages" component={ChatListScreen} />
+      <RootStack.Screen name="ChatConversation" component={ChatConversationScreen} />
+      <RootStack.Screen name="NewConversation" component={NewConversationScreen} />
+      <RootStack.Screen name="PollDetails" component={PollDetailsScreen} />
+      <RootStack.Screen name="Organigram" component={OrganigramScreen} />
     </RootStack.Navigator>
   );
 };

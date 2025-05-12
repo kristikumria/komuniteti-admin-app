@@ -8,7 +8,6 @@ import { useDispatch } from 'react-redux';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { Header } from '../../../components/Header';
-import { SideMenu } from '../../../components/SideMenu';
 import { fetchPaymentById, processPayment } from '../../../store/slices/paymentsSlice';
 import { AdministratorStackParamList, Payment } from '../../../navigation/types';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
@@ -33,7 +32,6 @@ export const ProcessPayment = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [notes, setNotes] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
   
   useEffect(() => {
     fetchPaymentDetails();
@@ -92,8 +90,6 @@ export const ProcessPayment = () => {
         <Header 
           title="Process Payment" 
           showBack={true}
-          showMenu={true}
-          onMenuPress={() => setMenuVisible(true)}
         />
         <View style={styles.loadingContainer}>
           <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>
@@ -107,10 +103,6 @@ export const ProcessPayment = () => {
             Go Back
           </Button>
         </View>
-        <SideMenu
-          isVisible={menuVisible}
-          onClose={() => setMenuVisible(false)}
-        />
       </>
     );
   }
@@ -120,131 +112,91 @@ export const ProcessPayment = () => {
       <Header 
         title="Process Payment" 
         showBack={true}
-        showMenu={true}
-        onMenuPress={() => setMenuVisible(true)}
       />
-      
-      <ScrollView 
-        style={[styles.container, { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }]}
-        contentContainerStyle={styles.contentContainer}
-      >
-        {/* Summary Card */}
-        <View style={{ borderRadius: 8 }}>
-          <View style={{ overflow: 'hidden', borderRadius: 8 }}>
-            <View style={[styles.summaryCard]}>
-              <View style={styles.summaryHeader}>
-                <Text style={styles.summaryTitle}>
-                  Payment Summary
-                </Text>
-              </View>
-              
-              <View style={styles.summaryContent}>
-                <View style={styles.summaryRow}>
-                  <Text style={[styles.summaryLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                    Invoice
-                  </Text>
-                  <Text style={[styles.summaryValue, { color: isDarkMode ? '#fff' : '#333' }]}>
-                    {payment.invoiceNumber}
-                  </Text>
-                </View>
-                
-                <View style={styles.summaryRow}>
-                  <Text style={[styles.summaryLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                    Resident
-                  </Text>
-                  <Text style={[styles.summaryValue, { color: isDarkMode ? '#fff' : '#333' }]}>
-                    {payment.residentName}
-                  </Text>
-                </View>
-                
-                <View style={styles.summaryRow}>
-                  <Text style={[styles.summaryLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                    Building
-                  </Text>
-                  <Text style={[styles.summaryValue, { color: isDarkMode ? '#fff' : '#333' }]}>
-                    {payment.buildingName}
-                  </Text>
-                </View>
-                
-                <View style={styles.summaryRow}>
-                  <Text style={[styles.summaryLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                    Type
-                  </Text>
-                  <Text style={[styles.summaryValue, { color: isDarkMode ? '#fff' : '#333' }]}>
-                    {payment.type.charAt(0).toUpperCase() + payment.type.slice(1)}
-                  </Text>
-                </View>
-                
-                <View style={styles.summaryRow}>
-                  <Text style={[styles.summaryLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                    Due Date
-                  </Text>
-                  <Text style={[styles.summaryValue, { color: isDarkMode ? '#fff' : '#333' }]}>
-                    {formatDate(payment.dueDate)}
-                  </Text>
-                </View>
-                
-                <Divider style={styles.divider} />
-                
-                <View style={styles.amountRow}>
-                  <Text style={[styles.amountLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                    Total Amount
-                  </Text>
-                  <Text style={[styles.amountValue, { color: isDarkMode ? '#fff' : '#333' }]}>
-                    {formatCurrency(payment.amount)}
-                  </Text>
-                </View>
-              </View>
+      <ScrollView style={[styles.container, { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }]}>
+        <View style={[styles.card, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
+          <Text style={[styles.title, { color: isDarkMode ? '#fff' : '#000' }]}>
+            Payment Details
+          </Text>
+          
+          <View style={styles.detailRow}>
+            <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>Invoice:</Text>
+            <Text style={[styles.value, { color: isDarkMode ? '#fff' : '#333' }]}>{payment.invoiceNumber}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>Resident:</Text>
+            <Text style={[styles.value, { color: isDarkMode ? '#fff' : '#333' }]}>{payment.residentName}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>Building:</Text>
+            <Text style={[styles.value, { color: isDarkMode ? '#fff' : '#333' }]}>{payment.buildingName}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>Amount:</Text>
+            <Text style={[styles.amount, { color: theme.colors.primary }]}>{formatCurrency(payment.amount)}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>Due Date:</Text>
+            <Text style={[styles.value, { color: isDarkMode ? '#fff' : '#333' }]}>{formatDate(payment.dueDate)}</Text>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>Status:</Text>
+            <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[payment.status] }]}>
+              <Text style={styles.statusText}>{payment.status.toUpperCase()}</Text>
             </View>
           </View>
         </View>
         
-        {/* Payment Method */}
         <View style={[styles.card, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
-          <Text style={[styles.cardTitle, { color: isDarkMode ? '#fff' : '#333' }]}>
+          <Text style={[styles.title, { color: isDarkMode ? '#fff' : '#000' }]}>
+            Process Payment
+          </Text>
+          
+          <Text style={[styles.sectionTitle, { color: isDarkMode ? '#ddd' : '#555' }]}>
             Payment Method
           </Text>
           
           <RadioButton.Group onValueChange={(value) => setPaymentMethod(value as any)} value={paymentMethod}>
-            <View style={styles.radioItem}>
-              <RadioButton.Android value="creditCard" color={theme.colors.primary} />
+            <View style={styles.radioRow}>
+              <RadioButton value="creditCard" />
               <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>Credit Card</Text>
             </View>
             
-            <View style={styles.radioItem}>
-              <RadioButton.Android value="bankTransfer" color={theme.colors.primary} />
+            <View style={styles.radioRow}>
+              <RadioButton value="bankTransfer" />
               <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>Bank Transfer</Text>
             </View>
             
-            <View style={styles.radioItem}>
-              <RadioButton.Android value="cash" color={theme.colors.primary} />
+            <View style={styles.radioRow}>
+              <RadioButton value="cash" />
               <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>Cash</Text>
             </View>
             
-            <View style={styles.radioItem}>
-              <RadioButton.Android value="other" color={theme.colors.primary} />
+            <View style={styles.radioRow}>
+              <RadioButton value="other" />
               <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>Other</Text>
             </View>
           </RadioButton.Group>
-        </View>
-        
-        {/* Payment Date */}
-        <View style={[styles.card, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
-          <Text style={[styles.cardTitle, { color: isDarkMode ? '#fff' : '#333' }]}>
+          
+          <Divider style={styles.divider} />
+          
+          <Text style={[styles.sectionTitle, { color: isDarkMode ? '#ddd' : '#555' }]}>
             Payment Date
           </Text>
           
-          <TouchableOpacity
-            style={[
-              styles.dateInput,
-              { backgroundColor: isDarkMode ? '#333' : '#f5f5f5' }
-            ]}
+          <TouchableOpacity 
+            style={styles.datePickerButton} 
             onPress={() => setShowDatePicker(true)}
           >
-            <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>
-              {paymentDate.toLocaleDateString()}
-            </Text>
             <Calendar size={20} color={theme.colors.primary} />
+            <Text style={[styles.dateText, { color: isDarkMode ? '#fff' : '#333' }]}>
+              {formatDate(paymentDate.toISOString())}
+            </Text>
           </TouchableOpacity>
           
           {showDatePicker && (
@@ -253,47 +205,43 @@ export const ProcessPayment = () => {
               mode="date"
               display="default"
               onChange={handleDateChange}
-              maximumDate={new Date()}
             />
           )}
-        </View>
-        
-        {/* Additional Notes */}
-        <View style={[styles.card, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
-          <Text style={[styles.cardTitle, { color: isDarkMode ? '#fff' : '#333' }]}>
-            Additional Notes (Optional)
-          </Text>
+          
+          <Divider style={styles.divider} />
           
           <TextInput
-            mode="outlined"
+            label="Notes"
             value={notes}
             onChangeText={setNotes}
-            style={styles.notesInput}
+            mode="outlined"
             multiline
-            numberOfLines={4}
-            placeholder="Enter any additional notes about this payment"
-            placeholderTextColor="#999"
+            numberOfLines={3}
+            style={styles.notesInput}
           />
+          
+          <View style={styles.actionContainer}>
+            <Button
+              mode="outlined"
+              onPress={() => navigation.goBack()}
+              style={styles.cancelButton}
+              disabled={processing}
+            >
+              Cancel
+            </Button>
+            
+            <Button
+              mode="contained"
+              onPress={handleProcessPayment}
+              style={styles.processButton}
+              loading={processing}
+              disabled={processing}
+            >
+              Process Payment
+            </Button>
+          </View>
         </View>
-        
-        {/* Process Button */}
-        <Button
-          mode="contained"
-          icon={props => <CreditCard {...props} />}
-          style={styles.processButton}
-          contentStyle={styles.processButtonContent}
-          onPress={handleProcessPayment}
-          loading={processing}
-          disabled={processing}
-        >
-          Process Payment
-        </Button>
       </ScrollView>
-      
-      <SideMenu
-        isVisible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-      />
     </>
   );
 };
@@ -301,94 +249,93 @@ export const ProcessPayment = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  contentContainer: {
     padding: 16,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-  },
-  summaryCard: {
-    borderRadius: 8,
-    marginBottom: 16,
-    backgroundColor: '#2196F3',
-  },
-  summaryHeader: {
     padding: 16,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  summaryContent: {
-    padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  summaryLabel: {
-    fontSize: 14,
-  },
-  summaryValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  amountRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  amountLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  amountValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  divider: {
-    marginVertical: 8,
   },
   card: {
-    padding: 16,
     borderRadius: 8,
+    padding: 16,
     marginBottom: 16,
     elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
   },
-  cardTitle: {
-    fontSize: 16,
+  title: {
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  radioItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  dateInput: {
+  detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ccc',
+    marginBottom: 12,
+  },
+  label: {
+    fontSize: 14,
+    width: '40%',
+  },
+  value: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'right',
+    flex: 1,
+  },
+  amount: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'right',
+  },
+  statusBadge: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
     borderRadius: 4,
-    padding: 12,
+  },
+  statusText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  radioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  divider: {
+    marginVertical: 16,
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  dateText: {
+    marginLeft: 8,
+    fontSize: 16,
   },
   notesInput: {
-    backgroundColor: 'transparent',
+    marginBottom: 16,
+  },
+  actionContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 16,
+  },
+  cancelButton: {
+    marginRight: 12,
   },
   processButton: {
-    marginVertical: 24,
-    paddingVertical: 8,
+    minWidth: 150,
   },
-  processButtonContent: {
-    paddingVertical: 8,
-  },
-}); 
+});

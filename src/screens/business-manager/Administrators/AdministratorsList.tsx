@@ -6,8 +6,8 @@ import { UserPlus, Plus } from 'lucide-react-native';
 import { BusinessManagerStackParamList, Administrator } from '../../../navigation/types';
 import { Header } from '../../../components/Header';
 import { ListItem } from '../../../components/ListItem';
-import { SideMenu } from '../../../components/SideMenu';
 import { useAppSelector } from '../../../store/hooks';
+import { commonStyles } from '../../../styles/commonStyles';
 
 // Mock data for administrators (replace with actual service later)
 const mockAdministrators: Administrator[] = [
@@ -65,7 +65,6 @@ export const AdministratorsList = ({ navigation }: Props) => {
   const [filteredAdmins, setFilteredAdmins] = useState<Administrator[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [menuVisible, setMenuVisible] = useState(false);
   
   useEffect(() => {
     // Simulate API fetch
@@ -147,10 +146,6 @@ export const AdministratorsList = ({ navigation }: Props) => {
             Loading administrators...
           </Text>
         </View>
-        <SideMenu
-          isVisible={menuVisible}
-          onClose={() => setMenuVisible(false)}
-        />
       </>
     );
   }
@@ -191,14 +186,9 @@ export const AdministratorsList = ({ navigation }: Props) => {
       
       <FAB
         icon={props => <Plus {...props} />}
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+        style={[commonStyles.fab, { backgroundColor: theme.colors.primary }]}
         onPress={() => alert('Add administrator functionality will be implemented soon')}
         color="white"
-      />
-      
-      <SideMenu
-        isVisible={menuVisible}
-        onClose={() => setMenuVisible(false)}
       />
     </>
   );
@@ -247,11 +237,5 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     color: 'white',
     fontWeight: '500',
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
   },
 }); 

@@ -20,11 +20,11 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Header } from '../../../components/Header';
 import { InfoCard } from '../../../components/InfoCard';
 import { ListItem } from '../../../components/ListItem';
-import { SideMenu } from '../../../components/SideMenu';
 import { buildingService } from '../../../services/buildingService';
 import { Building as BuildingType, BusinessManagerStackParamList } from '../../../navigation/types';
 import { useAppSelector } from '../../../store/hooks';
 import { STATUS_COLORS } from '../../../utils/constants';
+import { commonStyles } from '../../../styles/commonStyles';
 
 type BuildingDetailsRouteProps = RouteProp<BusinessManagerStackParamList, 'BuildingDetails'>;
 type BuildingNavigationProps = NativeStackNavigationProp<BusinessManagerStackParamList>;
@@ -48,7 +48,6 @@ export const BuildingDetails = () => {
   const [building, setBuilding] = useState<BuildingType | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
   const [selectedTab, setSelectedTab] = useState('info');
   
   useEffect(() => {
@@ -138,8 +137,6 @@ export const BuildingDetails = () => {
         <Header 
           title="Building Details" 
           showBack={true}
-          showMenu={true}
-          onMenuPress={() => setMenuVisible(true)}
         />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -147,10 +144,6 @@ export const BuildingDetails = () => {
             Loading building details...
           </Text>
         </View>
-        <SideMenu
-          isVisible={menuVisible}
-          onClose={() => setMenuVisible(false)}
-        />
       </>
     );
   }
@@ -162,8 +155,6 @@ export const BuildingDetails = () => {
         <Header 
           title="Building Details" 
           showBack={true}
-          showMenu={true}
-          onMenuPress={() => setMenuVisible(true)}
         />
         <View style={styles.notFoundContainer}>
           <AlertCircle size={50} color={theme.colors.error} />
@@ -183,10 +174,6 @@ export const BuildingDetails = () => {
             Go Back
           </Button>
         </View>
-        <SideMenu
-          isVisible={menuVisible}
-          onClose={() => setMenuVisible(false)}
-        />
       </>
     );
   }
@@ -196,8 +183,6 @@ export const BuildingDetails = () => {
       <Header 
         title={building.name} 
         showBack={true}
-        showMenu={true}
-        onMenuPress={() => setMenuVisible(true)}
       />
       
       <ScrollView
@@ -842,17 +827,9 @@ export const BuildingDetails = () => {
       
       <FAB
         icon={props => <Edit3 {...props} />}
-        style={[
-          styles.fab,
-          { backgroundColor: theme.colors.primary }
-        ]}
+        style={[commonStyles.fab, { backgroundColor: theme.colors.primary }]}
         onPress={handleEdit}
         color="white"
-      />
-      
-      <SideMenu
-        isVisible={menuVisible}
-        onClose={() => setMenuVisible(false)}
       />
     </>
   );
@@ -1017,12 +994,6 @@ const styles = StyleSheet.create({
   },
   analyticsLabel: {
     fontSize: 14,
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
   },
   actionButtonsContainer: {
     flexDirection: 'row',

@@ -8,13 +8,13 @@ import { useDispatch } from 'react-redux';
 
 import { Header } from '../../../components/Header';
 import { ListItem } from '../../../components/ListItem';
-import { SideMenu } from '../../../components/SideMenu';
 import { FilterModal, FilterConfig } from '../../../components/FilterModal';
 import { Payment, AdministratorStackParamList } from '../../../navigation/types';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { fetchPayments } from '../../../store/slices/paymentsSlice';
 import { formatCurrency, formatDate } from '../../../utils/formatters';
 import { STATUS_COLORS } from '../../../utils/constants';
+import { commonStyles } from '../../../styles/commonStyles';
 
 type Props = NativeStackScreenProps<AdministratorStackParamList, 'Payments'>;
 
@@ -305,10 +305,6 @@ export const PaymentsList = ({ navigation }: Props) => {
             Loading payments...
           </Text>
         </View>
-        <SideMenu
-          isVisible={menuVisible}
-          onClose={() => setMenuVisible(false)}
-        />
       </>
     );
   }
@@ -423,10 +419,7 @@ export const PaymentsList = ({ navigation }: Props) => {
       
       <FAB
         icon={props => <Plus {...props} />}
-        style={[
-          styles.fab,
-          { backgroundColor: theme.colors.primary }
-        ]}
+        style={[commonStyles.fab, { backgroundColor: theme.colors.primary }]}
         onPress={handleAddPayment}
         color="white"
       />
@@ -438,11 +431,6 @@ export const PaymentsList = ({ navigation }: Props) => {
         onApplyFilters={handleApplyFilters}
         activeFilters={activeFilters}
         activeSort={activeSort}
-      />
-      
-      <SideMenu
-        isVisible={menuVisible}
-        onClose={() => setMenuVisible(false)}
       />
     </>
   );
@@ -534,12 +522,6 @@ const styles = StyleSheet.create({
   },
   amountChip: {
     alignSelf: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
   },
   actionButtonsContainer: {
     paddingHorizontal: 16,

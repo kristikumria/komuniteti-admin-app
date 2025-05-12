@@ -405,4 +405,4 @@ const styles = StyleSheet.create({
     marginVertical: 24,
     paddingVertical: 8,
   }
-}); 
+});

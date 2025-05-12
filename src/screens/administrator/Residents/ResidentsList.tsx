@@ -7,12 +7,12 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { Header } from '../../../components/Header';
 import { ListItem } from '../../../components/ListItem';
-import { SideMenu } from '../../../components/SideMenu';
 import { FilterModal, FilterConfig } from '../../../components/FilterModal';
 import { residentService } from '../../../services/residentService';
 import { Resident, AdministratorStackParamList } from '../../../navigation/types';
 import { useAppSelector } from '../../../store/hooks';
 import { STATUS_COLORS } from '../../../utils/constants';
+import { commonStyles } from '../../../styles/commonStyles';
 
 type Props = NativeStackScreenProps<AdministratorStackParamList, 'Residents'>;
 
@@ -62,7 +62,6 @@ export const ResidentsList = ({ navigation }: Props) => {
   const [filteredResidents, setFilteredResidents] = useState<Resident[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
@@ -262,10 +261,6 @@ export const ResidentsList = ({ navigation }: Props) => {
             Loading residents...
           </Text>
         </View>
-        <SideMenu
-          isVisible={menuVisible}
-          onClose={() => setMenuVisible(false)}
-        />
       </>
     );
   }
@@ -369,10 +364,7 @@ export const ResidentsList = ({ navigation }: Props) => {
       
       <FAB
         icon={props => <Plus {...props} />}
-        style={[
-          styles.fab,
-          { backgroundColor: theme.colors.primary }
-        ]}
+        style={[commonStyles.fab, { backgroundColor: theme.colors.primary }]}
         onPress={handleAddResident}
         color="white"
       />
@@ -384,11 +376,6 @@ export const ResidentsList = ({ navigation }: Props) => {
         onApplyFilters={handleApplyFilters}
         activeFilters={activeFilters}
         activeSort={activeSort}
-      />
-      
-      <SideMenu
-        isVisible={menuVisible}
-        onClose={() => setMenuVisible(false)}
       />
     </>
   );
@@ -470,11 +457,5 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     color: 'white',
     fontWeight: 'bold',
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
   },
 }); 

@@ -210,4 +210,4 @@ const styles = StyleSheet.create({
   divider: {
     marginLeft: 16,
   },
-}); 
+});

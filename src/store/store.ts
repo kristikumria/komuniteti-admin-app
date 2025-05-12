@@ -1,14 +1,16 @@
 import { configureStore } from '@reduxjs/toolkit';
+
+// Reducers
 import authReducer from './slices/authSlice';
+import chatReducer from './slices/chatSlice';
 import settingsReducer from './slices/settingsSlice';
 import paymentsReducer from './slices/paymentsSlice';
 import notificationsReducer from './slices/notificationsSlice';
-import chatReducer from './slices/chatSlice';
 import servicesReducer from './slices/serviceSlice';
 import infoPointsReducer from './slices/infoPointSlice';
 import buildingsReducer from './slices/buildingSlice';
 import administratorsReducer from './slices/administratorSlice';
-// Additional reducer imports can be added here if needed
+import pollsReducer from './slices/pollsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -21,11 +23,13 @@ export const store = configureStore({
     infoPoints: infoPointsReducer,
     buildings: buildingsReducer,
     administrators: administratorsReducer,
-    // Additional reducers can be added here when created
+    polls: pollsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: false,
+      // Enable thunk middleware
+      thunk: true,
     }),
 });
 

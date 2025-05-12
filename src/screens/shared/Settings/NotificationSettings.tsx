@@ -6,7 +6,6 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { Header } from '../../../components/Header';
-import { SideMenu } from '../../../components/SideMenu';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { pushNotificationService } from '../../../services/pushNotificationService';
 import { setPermissionsRequested, setPermissionsGranted } from '../../../store/slices/notificationsSlice';
@@ -23,7 +22,6 @@ export const NotificationSettings = () => {
   const { permissionsGranted } = useAppSelector(state => state.notifications);
   const { user } = useAppSelector(state => state.auth);
   
-  const [menuVisible, setMenuVisible] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(permissionsGranted);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
@@ -82,8 +80,6 @@ export const NotificationSettings = () => {
       <Header 
         title="Notification Settings" 
         showBack={true}
-        showMenu={true}
-        onMenuPress={() => setMenuVisible(true)}
       />
       
       <ScrollView style={[styles.container, { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }]}>
@@ -265,11 +261,6 @@ export const NotificationSettings = () => {
           </Card.Content>
         </Card>
       </ScrollView>
-      
-      <SideMenu
-        isVisible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-      />
     </>
   );
 };
@@ -282,32 +273,33 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: 16,
     borderRadius: 8,
+    overflow: 'hidden',
   },
   section: {
-    marginVertical: 8,
+    marginBottom: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginLeft: 8,
+    marginLeft: 12,
   },
   settingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
-  },
-  divider: {
-    marginVertical: 16,
+    paddingVertical: 10,
   },
   hint: {
     fontSize: 12,
     marginTop: 4,
     marginBottom: 8,
   },
-}); 
+  divider: {
+    marginVertical: 16,
+  }
+});

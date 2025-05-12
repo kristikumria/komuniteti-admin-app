@@ -8,13 +8,13 @@ import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 import { Header } from '../../../components/Header';
 import { ListItem } from '../../../components/ListItem';
-import { SideMenu } from '../../../components/SideMenu';
 import { FilterModal, FilterConfig } from '../../../components/FilterModal';
 import { buildingService } from '../../../services/buildingService';
 import { Building, BusinessManagerStackParamList } from '../../../navigation/types';
 import { Building as BuildingType } from '../../../types/buildingTypes';
 import { useAppSelector } from '../../../store/hooks';
 import { STATUS_COLORS } from '../../../utils/constants';
+import { commonStyles } from '../../../styles/commonStyles';
 
 // Define a proper navigation type for the buildings list
 type BuildingsNavigationProp = CompositeNavigationProp<
@@ -298,10 +298,6 @@ export const BuildingsList = () => {
             Loading buildings...
           </Text>
         </View>
-        <SideMenu
-          isVisible={menuVisible}
-          onClose={() => setMenuVisible(false)}
-        />
       </>
     );
   }
@@ -406,10 +402,7 @@ export const BuildingsList = () => {
       
       <FAB
         icon={props => <Plus {...props} />}
-        style={[
-          styles.fab,
-          { backgroundColor: theme.colors.primary }
-        ]}
+        style={[commonStyles.fab, { backgroundColor: theme.colors.primary }]}
         onPress={handleAddBuilding}
         color="white"
       />
@@ -421,11 +414,6 @@ export const BuildingsList = () => {
         onApplyFilters={handleApplyFilters}
         activeFilters={activeFilters}
         activeSort={activeSort}
-      />
-      
-      <SideMenu
-        isVisible={menuVisible}
-        onClose={() => setMenuVisible(false)}
       />
     </>
   );
@@ -510,11 +498,5 @@ const styles = StyleSheet.create({
   },
   editButton: {
     padding: 8,
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
   },
 }); 

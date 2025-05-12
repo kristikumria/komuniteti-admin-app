@@ -26,4 +26,4 @@ const styles = StyleSheet.create({
   title: {
     marginBottom: 16,
   },
-}); 
+});

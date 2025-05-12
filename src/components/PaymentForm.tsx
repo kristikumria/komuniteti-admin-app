@@ -646,4 +646,4 @@ const styles = StyleSheet.create({
   submitButton: {
     marginVertical: 24,
   },
-}); 
+});

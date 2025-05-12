@@ -6,7 +6,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useDispatch } from 'react-redux';
 
 import { Header } from '../../../components/Header';
-import { SideMenu } from '../../../components/SideMenu';
 import { PaymentForm, PaymentFormData } from '../../../components/PaymentForm';
 import { buildingService } from '../../../services/buildingService';
 import { residentService } from '../../../services/residentService';
@@ -23,8 +22,7 @@ export const AddPayment = ({ navigation }: Props) => {
   
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
-  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [buildings, setBuildings] = useState<any[]>([]);
   const [residents, setResidents] = useState<Resident[]>([]);
 
   useEffect(() => {
@@ -93,8 +91,6 @@ export const AddPayment = ({ navigation }: Props) => {
         <Header 
           title="Add Payment" 
           showBack={true}
-          showMenu={true}
-          onMenuPress={() => setMenuVisible(true)}
         />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -102,42 +98,36 @@ export const AddPayment = ({ navigation }: Props) => {
             Loading...
           </Text>
         </View>
-        <SideMenu
-          isVisible={menuVisible}
-          onClose={() => setMenuVisible(false)}
-        />
       </>
     );
   }
-
+  
   return (
     <>
       <Header 
         title="Add Payment" 
         showBack={true}
-        showMenu={true}
-        onMenuPress={() => setMenuVisible(true)}
       />
-      
-      <PaymentForm
-        onSubmit={handleSubmit}
-        isSubmitting={submitting}
-        buildings={buildings}
-        residents={residents}
-      />
-      
-      <SideMenu
-        isVisible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-      />
+      <ScrollView style={styles.container}>
+        <PaymentForm 
+          onSubmit={handleSubmit} 
+          buildings={buildings}
+          residents={residents}
+          isSubmitting={submitting}
+        />
+      </ScrollView>
     </>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-}); 
+  }
+});

@@ -5,7 +5,6 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { Header } from '../../../components/Header';
-import { SideMenu } from '../../../components/SideMenu';
 import { ResidentForm, ResidentFormData } from '../../../components/ResidentForm';
 import { residentService } from '../../../services/residentService';
 import { AdministratorStackParamList, Resident } from '../../../navigation/types';
@@ -24,7 +23,6 @@ export const EditResident = () => {
   const [resident, setResident] = useState<Resident | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
   
   useEffect(() => {
     fetchResident();
@@ -49,15 +47,23 @@ export const EditResident = () => {
     setSubmitting(true);
     
     try {
-      const updatedResident = await residentService.updateResident(residentId, {
-        ...data,
-        // Preserve fields not in the form
+      // Create an object with just the fields from the Resident type
+      // to avoid type errors with accountBalance and lastPaymentDate
+      const updateData = {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        unit: data.unit,
+        status: data.status,
+        familyMembers: data.familyMembers,
+        moveInDate: data.moveInDate,
+        // Preserve the building and payment status
         building: resident.building,
         paymentStatus: resident.paymentStatus,
-        accountBalance: resident.accountBalance,
-        lastPaymentDate: resident.lastPaymentDate,
         image: resident.image
-      });
+      };
+      
+      await residentService.updateResident(residentId, updateData);
       
       Alert.alert(
         'Success',
@@ -87,8 +93,6 @@ export const EditResident = () => {
         <Header 
           title="Edit Resident" 
           showBack={true}
-          showMenu={true}
-          onMenuPress={() => setMenuVisible(true)}
         />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -96,100 +100,46 @@ export const EditResident = () => {
             Loading resident details...
           </Text>
         </View>
-        <SideMenu
-          isVisible={menuVisible}
-          onClose={() => setMenuVisible(false)}
-        />
       </>
     );
   }
   
-  if (!resident) {
-    return (
-      <>
-        <Header 
-          title="Edit Resident" 
-          showBack={true}
-          showMenu={true}
-          onMenuPress={() => setMenuVisible(true)}
-        />
-        <View style={styles.loadingContainer}>
-          <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>
-            Resident not found
-          </Text>
-        </View>
-        <SideMenu
-          isVisible={menuVisible}
-          onClose={() => setMenuVisible(false)}
-        />
-      </>
-    );
-  }
-  
-  const initialFormData: ResidentFormData = {
-    name: resident.name,
-    email: resident.email,
-    phone: resident.phone,
-    unit: resident.unit,
-    status: resident.status,
-    moveInDate: resident.moveInDate,
-    familyMembers: resident.familyMembers,
-    pets: resident.pets,
-    communicationPreference: resident.communicationPreference,
+  // Create a custom cancel handler to navigate back
+  const handleCancel = () => {
+    navigation.navigate('Residents');
   };
   
   return (
     <>
       <Header 
-        title={`Edit: ${resident.name}`} 
+        title="Edit Resident" 
         showBack={true}
-        showMenu={true}
-        onMenuPress={() => setMenuVisible(true)}
       />
-      
-      <View 
-        style={[
-          styles.container,
-          { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }
-        ]}
-      >
-        <Text
-          style={[
-            styles.subtitle,
-            { color: isDarkMode ? '#aaa' : '#666' }
-          ]}
-        >
-          Update resident information
-        </Text>
-        
+      {resident && (
         <ResidentForm
-          initialData={initialFormData}
+          initialData={{
+            name: resident.name,
+            email: resident.email,
+            phone: resident.phone,
+            unit: resident.unit,
+            status: resident.status,
+            familyMembers: resident.familyMembers,
+            moveInDate: resident.moveInDate,
+            pets: '', // Add default values for fields not in the Resident type
+            communicationPreference: 'email'
+          }}
           onSubmit={handleSubmit}
           isLoading={submitting}
-          buildingName={resident.building}
         />
-      </View>
-      
-      <SideMenu
-        isVisible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-      />
+      )}
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  subtitle: {
-    fontSize: 16,
-    marginBottom: 16,
-  },
-}); 
+});

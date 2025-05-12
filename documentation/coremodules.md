@@ -3,16 +3,17 @@
 - **Dashboard**
     
     Snapshot of portfolio health:
-    
     - Buildings under management
     - Assigned administrators
     - Active services
     - Total residents
     - Maintenance metrics
+    - add other metrics based on you suggestion.
 - **Buildings**
     - List all managed buildings with “More Details” quick-view.
     - Editable fields: title, description, address, floor area, resident count, country, city, typology
     - Delete existing buildings (creation is restricted to the web back-office).
+    - add other functionalities based on you suggestion.
 - **Administrators**
     - List, create, edit, and remove building administrators.
 - **Services**
@@ -20,13 +21,12 @@
 - **Reports**
     - Generate and export company-wide financial, operational, and resident-engagement reports.
 - **Property Management**
-    
     Create, view, update, and delete property records.
-    
 - **Resident Management**
     - Add, list, edit, and remove residents.
 - **Payments**
-    - Display outstanding invoices • Process resident payments.
+    - Display outstanding invoices
+    - Process resident payments.
 - **Reports**
     - View maintenance and incident reports submitted by residents.
 - **Notifications**
@@ -59,5 +59,4 @@
 - **Polls & Surveys**
     - Create, list, edit, and delete resident polls.
 - **Organigram**
-    
     Visualize the organisational structure for each building (company, administrators, service staff, residents).

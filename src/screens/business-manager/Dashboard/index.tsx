@@ -22,7 +22,6 @@ import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { Header } from '../../../components/Header';
 import { InfoCard } from '../../../components/InfoCard';
 import { ListItem } from '../../../components/ListItem';
-import { SideMenu } from '../../../components/SideMenu';
 import { buildingService } from '../../../services/buildingService';
 import { BusinessManagerStackParamList, RootStackParamList } from '../../../navigation/types';
 import { Building as NavigationBuilding } from '../../../navigation/types';
@@ -45,7 +44,6 @@ export const Dashboard = () => {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
   
   // Get current time for greeting
   const currentHour = new Date().getHours();
@@ -93,7 +91,9 @@ export const Dashboard = () => {
   };
   
   const navigateToReports = () => {
-    navigation.navigate('ReportsTab');
+    navigation.navigate('MoreTab', {
+      screen: 'ReportsStack'
+    });
   };
   
   const navigateToMessages = () => {
@@ -262,6 +262,7 @@ export const Dashboard = () => {
               { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }
             ]}
           >
+            <View style={styles.cardContent}>
             {buildings.length > 0 ? (
               buildings.slice(0, 3).map((building) => (
                 <ListItem
@@ -295,6 +296,7 @@ export const Dashboard = () => {
                 </Button>
               </View>
             )}
+            </View>
           </Card>
         </View>
         
@@ -317,6 +319,7 @@ export const Dashboard = () => {
               { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }
             ]}
           >
+            <View style={styles.cardContent}>
             <View style={styles.emptyState}>
               <AlertCircle size={40} color={isDarkMode ? '#555' : '#ccc'} />
               <Text style={[styles.emptyStateText, { color: isDarkMode ? '#aaa' : '#888' }]}>
@@ -329,6 +332,7 @@ export const Dashboard = () => {
               >
                 View Reports
               </Button>
+              </View>
             </View>
           </Card>
         </View>
@@ -345,11 +349,6 @@ export const Dashboard = () => {
       />
       
       {renderContent()}
-      
-      <SideMenu
-        isVisible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-      />
     </>
   );
 };
@@ -439,6 +438,8 @@ const styles = StyleSheet.create({
   },
   sectionCard: {
     borderRadius: 12,
+  },
+  cardContent: {
     overflow: 'hidden',
   },
   emptyState: {
@@ -461,6 +462,7 @@ const styles = StyleSheet.create({
     margin: 16,
     padding: 12,
     borderRadius: 8,
+    zIndex: 1,
   },
   addButtonText: {
     color: 'white',

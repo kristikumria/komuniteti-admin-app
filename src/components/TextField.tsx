@@ -84,4 +84,4 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginLeft: 5,
   },
-}); 
+});

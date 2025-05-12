@@ -5,7 +5,6 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { Header } from '../../../components/Header';
-import { SideMenu } from '../../../components/SideMenu';
 import { ResidentForm, ResidentFormData } from '../../../components/ResidentForm';
 import { residentService } from '../../../services/residentService';
 import { AdministratorStackParamList } from '../../../navigation/types';
@@ -19,7 +18,6 @@ export const AddResident = () => {
   const isDarkMode = useAppSelector((state) => state.settings.darkMode);
   
   const [loading, setLoading] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
   
   const handleSubmit = async (data: ResidentFormData) => {
     setLoading(true);
@@ -29,8 +27,6 @@ export const AddResident = () => {
         ...data,
         building: 'Not specified', // This would be replaced with actual building selection
         paymentStatus: 'current',
-        accountBalance: '€0.00',
-        lastPaymentDate: new Date().toISOString().split('T')[0],
         image: 'https://randomuser.me/api/portraits/lego/1.jpg' // Default image
       });
       
@@ -61,8 +57,6 @@ export const AddResident = () => {
       <Header 
         title="Add New Resident" 
         showBack={true}
-        showMenu={true}
-        onMenuPress={() => setMenuVisible(true)}
       />
       
       <View 
@@ -85,11 +79,6 @@ export const AddResident = () => {
           isLoading={loading}
         />
       </View>
-      
-      <SideMenu
-        isVisible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-      />
     </>
   );
 };
@@ -103,4 +92,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
   },
-}); 
+});
+
+      

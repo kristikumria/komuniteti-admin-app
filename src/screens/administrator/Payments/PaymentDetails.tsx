@@ -20,7 +20,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useDispatch } from 'react-redux';
 
 import { Header } from '../../../components/Header';
-import { SideMenu } from '../../../components/SideMenu';
 import { fetchPaymentById, deletePayment } from '../../../store/slices/paymentsSlice';
 import { AdministratorStackParamList } from '../../../navigation/types';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
@@ -41,7 +40,6 @@ export const PaymentDetails = () => {
   const { currentPayment: payment, loading } = useAppSelector((state) => state.payments);
   
   const [refreshing, setRefreshing] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
   
   useEffect(() => {
     fetchPayment();
@@ -142,8 +140,6 @@ export const PaymentDetails = () => {
         <Header 
           title="Payment Details" 
           showBack={true}
-          showMenu={true}
-          onMenuPress={() => setMenuVisible(true)}
         />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -151,10 +147,6 @@ export const PaymentDetails = () => {
             Loading payment details...
           </Text>
         </View>
-        <SideMenu
-          isVisible={menuVisible}
-          onClose={() => setMenuVisible(false)}
-        />
       </>
     );
   }
@@ -165,25 +157,19 @@ export const PaymentDetails = () => {
         <Header 
           title="Payment Details" 
           showBack={true}
-          showMenu={true}
-          onMenuPress={() => setMenuVisible(true)}
         />
-        <View style={styles.notFoundContainer}>
+        <View style={styles.loadingContainer}>
           <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>
-            Payment not found or has been deleted.
+            Payment not found
           </Text>
           <Button 
             mode="contained" 
+            onPress={() => navigation.goBack()} 
             style={{ marginTop: 16 }}
-            onPress={() => navigation.goBack()}
           >
             Go Back
           </Button>
         </View>
-        <SideMenu
-          isVisible={menuVisible}
-          onClose={() => setMenuVisible(false)}
-        />
       </>
     );
   }
@@ -193,246 +179,155 @@ export const PaymentDetails = () => {
       <Header 
         title="Payment Details" 
         showBack={true}
-        showMenu={true}
-        onMenuPress={() => setMenuVisible(true)}
       />
       
-      <ScrollView
-        style={[
-          styles.container,
-          { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }
-        ]}
+      <ScrollView 
+        style={[styles.container, { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
             colors={[theme.colors.primary]}
-            tintColor={theme.colors.primary}
           />
         }
       >
-        {/* Header Card */}
-        <View style={{ borderRadius: 12 }}>
-          <View style={{ overflow: 'hidden', borderRadius: 12 }}>
-            <Card 
-              style={[styles.headerCard, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}
-              mode="elevated"
-            >
-              <View style={styles.headerContent}>
-                <View style={styles.idContainer}>
-                  <Receipt size={24} color={theme.colors.primary} style={styles.icon} />
-                  <View>
-                    <Text style={[styles.invoiceNumber, { color: isDarkMode ? '#fff' : '#333' }]}>
-                      {payment.invoiceNumber}
-                    </Text>
-                    <Text style={[styles.idText, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                      ID: {payment.id}
-                    </Text>
-                  </View>
-                </View>
-                
-                <View style={styles.amountContainer}>
-                  <Text style={[styles.amountLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                    Amount
-                  </Text>
-                  <Text style={[styles.amount, { color: isDarkMode ? '#fff' : '#333' }]}>
-                    {formatCurrency(payment.amount)}
-                  </Text>
-                </View>
-              </View>
-              
-              <Divider style={styles.divider} />
-              
-              <View style={styles.statusContainer}>
-                <View style={styles.statusItem}>
-                  <Text style={[styles.statusLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                    Status
-                  </Text>
-                  <View style={styles.statusValue}>
-                    {getStatusIcon(payment.status)}
-                    <Text style={[styles.statusText, { color: getStatusColor(payment.status), marginLeft: 4 }]}>
-                      {getStatusLabel(payment.status)}
-                    </Text>
-                  </View>
-                </View>
-                
-                <View style={styles.statusItem}>
-                  <Text style={[styles.statusLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                    Type
-                  </Text>
-                  <Text style={[styles.statusText, { color: isDarkMode ? '#fff' : '#333' }]}>
-                    {payment.type.charAt(0).toUpperCase() + payment.type.slice(1)}
-                  </Text>
-                </View>
-                
-                <View style={styles.statusItem}>
-                  <Text style={[styles.statusLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                    Due Date
-                  </Text>
-                  <Text style={[styles.statusText, { color: isDarkMode ? '#fff' : '#333' }]}>
-                    {formatDate(payment.dueDate)}
-                  </Text>
-                </View>
-              </View>
-            </Card>
-          </View>
-        </View>
-        
-        {/* Details Section */}
-        <Card 
-          style={[styles.card, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}
-          mode="elevated"
-        >
-          <Card.Title 
-            title="Payment Details" 
-            titleStyle={{ color: isDarkMode ? '#fff' : '#333' }}
-          />
+        {/* Payment Header */}
+        <Card style={[styles.card, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
           <Card.Content>
-            <View style={styles.detailRow}>
-              <View style={styles.detailIconContainer}>
-                <User size={20} color={theme.colors.primary} />
-              </View>
-              <View style={styles.detailContent}>
-                <Text style={[styles.detailLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                  Resident
+            <View style={styles.cardHeader}>
+              <View>
+                <Text style={[styles.invoiceLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
+                  Invoice #{payment.invoiceNumber}
                 </Text>
-                <Text style={[styles.detailValue, { color: isDarkMode ? '#fff' : '#333' }]}>
-                  {payment.residentName}
+                <Text style={[styles.amountText, { color: theme.colors.primary }]}>
+                  {formatCurrency(payment.amount)}
                 </Text>
               </View>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <View style={styles.detailIconContainer}>
-                <Building size={20} color={theme.colors.primary} />
-              </View>
-              <View style={styles.detailContent}>
-                <Text style={[styles.detailLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                  Building
-                </Text>
-                <Text style={[styles.detailValue, { color: isDarkMode ? '#fff' : '#333' }]}>
-                  {payment.buildingName}
-                </Text>
-              </View>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <View style={styles.detailIconContainer}>
-                <FileText size={20} color={theme.colors.primary} />
-              </View>
-              <View style={styles.detailContent}>
-                <Text style={[styles.detailLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                  Description
-                </Text>
-                <Text style={[styles.detailValue, { color: isDarkMode ? '#fff' : '#333' }]}>
-                  {payment.description}
-                </Text>
-              </View>
-            </View>
-            
-            {payment.paymentMethod && (
-              <View style={styles.detailRow}>
-                <View style={styles.detailIconContainer}>
-                  <CreditCard size={20} color={theme.colors.primary} />
-                </View>
-                <View style={styles.detailContent}>
-                  <Text style={[styles.detailLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                    Payment Method
-                  </Text>
-                  <Text style={[styles.detailValue, { color: isDarkMode ? '#fff' : '#333' }]}>
-                    {payment.paymentMethod.charAt(0).toUpperCase() + payment.paymentMethod.slice(1).replace(/([A-Z])/g, ' $1')}
+              
+              <View style={[
+                styles.statusBadge, 
+                { backgroundColor: getStatusColor(payment.status) }
+              ]}>
+                <View style={styles.statusContent}>
+                  {getStatusIcon(payment.status)}
+                  <Text style={styles.statusText}>
+                    {getStatusLabel(payment.status)}
                   </Text>
                 </View>
-              </View>
-            )}
-            
-            {payment.paymentDate && (
-              <View style={styles.detailRow}>
-                <View style={styles.detailIconContainer}>
-                  <Calendar size={20} color={theme.colors.primary} />
-                </View>
-                <View style={styles.detailContent}>
-                  <Text style={[styles.detailLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                    Payment Date
-                  </Text>
-                  <Text style={[styles.detailValue, { color: isDarkMode ? '#fff' : '#333' }]}>
-                    {formatDate(payment.paymentDate)}
-                  </Text>
-                </View>
-              </View>
-            )}
-            
-            <View style={styles.detailRow}>
-              <View style={styles.detailIconContainer}>
-                <Clock size={20} color={theme.colors.primary} />
-              </View>
-              <View style={styles.detailContent}>
-                <Text style={[styles.detailLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                  Created
-                </Text>
-                <Text style={[styles.detailValue, { color: isDarkMode ? '#fff' : '#333' }]}>
-                  {formatDateTime(payment.createdAt)}
-                </Text>
-              </View>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <View style={styles.detailIconContainer}>
-                <Clock size={20} color={theme.colors.primary} />
-              </View>
-              <View style={styles.detailContent}>
-                <Text style={[styles.detailLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>
-                  Last Updated
-                </Text>
-                <Text style={[styles.detailValue, { color: isDarkMode ? '#fff' : '#333' }]}>
-                  {formatDateTime(payment.updatedAt)}
-                </Text>
               </View>
             </View>
           </Card.Content>
         </Card>
         
+        {/* Payment Details */}
+        <Card style={[styles.card, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
+          <Card.Content>
+            <Text style={[styles.sectionTitle, { color: isDarkMode ? '#fff' : '#333' }]}>
+              Payment Details
+            </Text>
+            
+            <View style={styles.detailRow}>
+              <View style={styles.detailIconContainer}>
+                <User size={16} color={isDarkMode ? '#aaa' : '#666'} />
+              </View>
+              <Text style={[styles.detailLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Resident</Text>
+              <Text style={[styles.detailValue, { color: isDarkMode ? '#fff' : '#333' }]}>
+                {payment.residentName}
+              </Text>
+            </View>
+            
+            <View style={styles.detailRow}>
+              <View style={styles.detailIconContainer}>
+                <Building size={16} color={isDarkMode ? '#aaa' : '#666'} />
+              </View>
+              <Text style={[styles.detailLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Building</Text>
+              <Text style={[styles.detailValue, { color: isDarkMode ? '#fff' : '#333' }]}>
+                {payment.buildingName}
+              </Text>
+            </View>
+            
+            <View style={styles.detailRow}>
+              <View style={styles.detailIconContainer}>
+                <Calendar size={16} color={isDarkMode ? '#aaa' : '#666'} />
+              </View>
+              <Text style={[styles.detailLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Due Date</Text>
+              <Text style={[styles.detailValue, { color: isDarkMode ? '#fff' : '#333' }]}>
+                {formatDate(payment.dueDate)}
+              </Text>
+            </View>
+            
+            {payment.paymentDate && (
+              <View style={styles.detailRow}>
+                <View style={styles.detailIconContainer}>
+                  <CreditCard size={16} color={isDarkMode ? '#aaa' : '#666'} />
+                </View>
+                <Text style={[styles.detailLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Payment Date</Text>
+                <Text style={[styles.detailValue, { color: isDarkMode ? '#fff' : '#333' }]}>
+                  {formatDate(payment.paymentDate)}
+                </Text>
+              </View>
+            )}
+            
+            <View style={styles.detailRow}>
+              <View style={styles.detailIconContainer}>
+                <DollarSign size={16} color={isDarkMode ? '#aaa' : '#666'} />
+              </View>
+              <Text style={[styles.detailLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Amount</Text>
+              <Text style={[styles.detailValue, styles.amountValue, { color: theme.colors.primary }]}>
+                {formatCurrency(payment.amount)}
+              </Text>
+            </View>
+            
+            <View style={styles.detailRow}>
+              <View style={styles.detailIconContainer}>
+                <FileText size={16} color={isDarkMode ? '#aaa' : '#666'} />
+              </View>
+              <Text style={[styles.detailLabel, { color: isDarkMode ? '#aaa' : '#666' }]}>Type</Text>
+              <Text style={[styles.detailValue, { color: isDarkMode ? '#fff' : '#333' }]}>
+                {payment.type.charAt(0).toUpperCase() + payment.type.slice(1)}
+              </Text>
+            </View>
+            
+            <Divider style={[styles.divider, { backgroundColor: isDarkMode ? '#444' : '#e0e0e0' }]} />
+            
+            <Text style={[styles.descriptionTitle, { color: isDarkMode ? '#aaa' : '#666' }]}>
+              Description
+            </Text>
+            <Text style={[styles.descriptionText, { color: isDarkMode ? '#fff' : '#333' }]}>
+              {payment.description || 'No description provided'}
+            </Text>
+          </Card.Content>
+        </Card>
+        
         {/* Action Buttons */}
-        <View style={styles.actionButtonsContainer}>
-          {(payment.status === 'pending' || payment.status === 'overdue') && (
-            <Button 
-              mode="contained" 
-              icon={props => <CreditCard {...props} />}
-              style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
-              contentStyle={styles.actionButtonContent}
-              onPress={handleProcessPayment}
-            >
-              Process Payment
-            </Button>
-          )}
-          
-          <Button 
-            mode="outlined" 
-            icon={props => <Edit3 {...props} />}
-            style={styles.actionButton}
-            contentStyle={styles.actionButtonContent}
-            onPress={handleEdit}
-          >
-            Edit
-          </Button>
-          
-          <Button 
-            mode="outlined" 
-            icon={props => <Trash {...props} />}
-            style={[styles.actionButton, { borderColor: theme.colors.error }]}
-            contentStyle={styles.actionButtonContent}
-            textColor={theme.colors.error}
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: 'rgba(255, 0, 0, 0.1)' }]} 
             onPress={handleDelete}
           >
-            Delete
-          </Button>
+            <Trash size={20} color="#e53935" />
+            <Text style={[styles.actionText, { color: '#e53935' }]}>Delete</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: 'rgba(0, 0, 255, 0.1)' }]} 
+            onPress={handleEdit}
+          >
+            <Edit3 size={20} color="#2196f3" />
+            <Text style={[styles.actionText, { color: '#2196f3' }]}>Edit</Text>
+          </TouchableOpacity>
+          
+          {(payment.status === 'pending' || payment.status === 'overdue') && (
+            <TouchableOpacity 
+              style={[styles.actionButton, { backgroundColor: 'rgba(0, 128, 0, 0.1)' }]} 
+              onPress={handleProcessPayment}
+            >
+              <CheckCircle size={20} color="#4caf50" />
+              <Text style={[styles.actionText, { color: '#4caf50' }]}>Process</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
-      
-      <SideMenu
-        isVisible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-      />
     </>
   );
 };
@@ -447,103 +342,96 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  notFoundContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  headerCard: {
+  card: {
+    borderRadius: 12,
     marginBottom: 16,
-    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
   },
-  headerContent: {
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 16,
-  },
-  idContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
   },
-  icon: {
-    marginRight: 8,
-  },
-  invoiceNumber: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  idText: {
-    fontSize: 12,
-  },
-  amountContainer: {
-    alignItems: 'flex-end',
-  },
-  amountLabel: {
-    fontSize: 12,
-  },
-  amount: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  divider: {
-    height: 1,
-    marginVertical: 0,
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 16,
-    flexWrap: 'wrap',
-  },
-  statusItem: {
-    minWidth: '30%',
-  },
-  statusLabel: {
-    fontSize: 12,
+  invoiceLabel: {
+    fontSize: 14,
     marginBottom: 4,
   },
-  statusValue: {
+  amountText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  statusContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   statusText: {
+    color: '#fff',
     fontWeight: 'bold',
+    marginLeft: 4,
   },
-  card: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
     marginBottom: 16,
   },
   detailRow: {
     flexDirection: 'row',
-    marginBottom: 16,
-  },
-  detailIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(33, 150, 243, 0.1)',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-  },
-  detailContent: {
-    flex: 1,
-  },
-  detailLabel: {
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  detailValue: {
-    fontSize: 16,
-  },
-  actionButtonsContainer: {
-    marginBottom: 32,
-    flexDirection: 'column',
-  },
-  actionButton: {
     marginBottom: 12,
   },
-  actionButtonContent: {
-    paddingVertical: 8,
+  detailIconContainer: {
+    width: 24,
+    alignItems: 'center',
+    marginRight: 8,
   },
-}); 
+  detailLabel: {
+    width: 100,
+    fontSize: 14,
+  },
+  detailValue: {
+    flex: 1,
+    fontSize: 14,
+    textAlign: 'right',
+  },
+  amountValue: {
+    fontWeight: 'bold',
+  },
+  divider: {
+    marginVertical: 16,
+  },
+  descriptionTitle: {
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  descriptionText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  actionText: {
+    fontWeight: '500',
+    marginLeft: 8,
+  },
+});

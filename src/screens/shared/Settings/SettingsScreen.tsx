@@ -6,19 +6,21 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Bell, Moon, ChevronRight, LogOut, Shield, User, Globe } from 'lucide-react-native';
 
 import { Header } from '../../../components/Header';
+import { ScreenContainer } from '../../../components/ScreenContainer';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { toggleDarkMode } from '../../../store/slices/settingsSlice';
 import { logout } from '../../../store/slices/authSlice';
 import { AdministratorStackParamList } from '../../../navigation/types';
+import { commonStyles } from '../../../styles/commonStyles';
+import type { AppTheme } from '../../../theme/theme';
 
 type SettingsScreenNavigationProp = NativeStackNavigationProp<AdministratorStackParamList>;
 
 export const SettingsScreen = () => {
-  const theme = useTheme();
+  const theme = useTheme<AppTheme>();
   const navigation = useNavigation<SettingsScreenNavigationProp>();
   const dispatch = useAppDispatch();
   
-  const isDarkMode = useAppSelector(state => state.settings.darkMode);
   const { user } = useAppSelector(state => state.auth);
   
   const handleLogout = () => {
@@ -40,8 +42,8 @@ export const SettingsScreen = () => {
         showBack={true}
       />
       
-      <ScrollView style={[styles.container, { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }]}>
-        <Card style={[styles.card, { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
+      <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <Card style={[commonStyles.card, { backgroundColor: theme.colors.surface }]}>
           <Card.Content>
             <View style={styles.userSection}>
               <View style={[styles.avatarContainer, { backgroundColor: theme.colors.primary + '20' }]}>
@@ -49,10 +51,10 @@ export const SettingsScreen = () => {
               </View>
               
               <View style={styles.userInfo}>
-                <Text style={[styles.userName, { color: isDarkMode ? '#fff' : '#333' }]}>
+                <Text variant="titleMedium" style={styles.userName}>
                   {user?.name || 'User'}
                 </Text>
-                <Text style={[styles.userEmail, { color: isDarkMode ? '#aaa' : '#666' }]}>
+                <Text variant="bodySmall" style={styles.userEmail}>
                   {user?.email || 'user@example.com'}
                 </Text>
               </View>
@@ -60,17 +62,17 @@ export const SettingsScreen = () => {
           </Card.Content>
         </Card>
         
-        <Card style={[styles.card, { marginTop: 16, backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
+        <Card style={[commonStyles.card, commonStyles.mt16, { backgroundColor: theme.colors.surface }]}>
           <Card.Content>
-            <Text style={[styles.sectionTitle, { color: isDarkMode ? '#fff' : '#333' }]}>Preferences</Text>
+            <Text variant="titleSmall" style={styles.sectionTitle}>Preferences</Text>
             
             <View style={styles.settingItem}>
               <View style={styles.settingLabel}>
                 <Moon size={20} color={theme.colors.primary} style={styles.settingIcon} />
-                <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>Dark Mode</Text>
+                <Text variant="bodyMedium">Dark Mode</Text>
               </View>
               <Switch
-                value={isDarkMode}
+                value={theme.dark}
                 onValueChange={handleDarkModeToggle}
                 color={theme.colors.primary}
               />
@@ -82,16 +84,16 @@ export const SettingsScreen = () => {
             >
               <View style={styles.settingLabel}>
                 <Bell size={20} color={theme.colors.primary} style={styles.settingIcon} />
-                <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>Notification Settings</Text>
+                <Text variant="bodyMedium">Notification Settings</Text>
               </View>
-              <ChevronRight size={20} color={isDarkMode ? '#aaa' : '#666'} />
+              <ChevronRight size={20} color={theme.colors.outline} />
             </TouchableOpacity>
           </Card.Content>
         </Card>
         
-        <Card style={[styles.card, { marginTop: 16, backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }]}>
+        <Card style={[commonStyles.card, commonStyles.mt16, { backgroundColor: theme.colors.surface }]}>
           <Card.Content>
-            <Text style={[styles.sectionTitle, { color: isDarkMode ? '#fff' : '#333' }]}>Account</Text>
+            <Text variant="titleSmall" style={styles.sectionTitle}>Account</Text>
             
             <TouchableOpacity 
               style={styles.settingItem}
@@ -99,9 +101,9 @@ export const SettingsScreen = () => {
             >
               <View style={styles.settingLabel}>
                 <Shield size={20} color={theme.colors.primary} style={styles.settingIcon} />
-                <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>Privacy & Security</Text>
+                <Text variant="bodyMedium">Privacy & Security</Text>
               </View>
-              <ChevronRight size={20} color={isDarkMode ? '#aaa' : '#666'} />
+              <ChevronRight size={20} color={theme.colors.outline} />
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -110,9 +112,9 @@ export const SettingsScreen = () => {
             >
               <View style={styles.settingLabel}>
                 <Globe size={20} color={theme.colors.primary} style={styles.settingIcon} />
-                <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>Language</Text>
+                <Text variant="bodyMedium">Language</Text>
               </View>
-              <ChevronRight size={20} color={isDarkMode ? '#aaa' : '#666'} />
+              <ChevronRight size={20} color={theme.colors.outline} />
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -120,8 +122,8 @@ export const SettingsScreen = () => {
               onPress={handleLogout}
             >
               <View style={styles.settingLabel}>
-                <LogOut size={20} color="#e53935" style={styles.settingIcon} />
-                <Text style={{ color: '#e53935' }}>Logout</Text>
+                <LogOut size={20} color={theme.colors.error} style={styles.settingIcon} />
+                <Text style={{ color: theme.colors.error }}>Logout</Text>
               </View>
             </TouchableOpacity>
           </Card.Content>
@@ -135,10 +137,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-  },
-  card: {
-    marginBottom: 16,
-    borderRadius: 8,
   },
   userSection: {
     flexDirection: 'row',
@@ -157,17 +155,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userName: {
-    fontSize: 16,
     fontWeight: 'bold',
   },
   userEmail: {
-    fontSize: 14,
+    opacity: 0.7,
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
     marginBottom: 16,
-    opacity: 0.7,
+    opacity: 0.8,
   },
   settingItem: {
     flexDirection: 'row',

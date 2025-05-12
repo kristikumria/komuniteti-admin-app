@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Button as PaperButton, useTheme } from 'react-native-paper';
+import type { AppTheme } from '../theme/theme';
 
 type ButtonMode = 'text' | 'outlined' | 'contained' | 'elevated' | 'contained-tonal';
 
@@ -14,6 +15,8 @@ interface ButtonProps {
   style?: any;
   labelStyle?: any;
   fullWidth?: boolean;
+  compact?: boolean;
+  uppercase?: boolean;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -26,8 +29,10 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   labelStyle,
   fullWidth = false,
+  compact = false,
+  uppercase = false,
 }) => {
-  const theme = useTheme();
+  const theme = useTheme<AppTheme>();
   
   return (
     <PaperButton
@@ -36,14 +41,37 @@ export const Button: React.FC<ButtonProps> = ({
       disabled={disabled}
       loading={loading}
       icon={icon}
+      compact={compact}
+      uppercase={uppercase}
       style={[
         styles.button,
         fullWidth && styles.fullWidth,
         mode === 'contained' && { backgroundColor: theme.colors.primary },
+        mode === 'contained-tonal' && { backgroundColor: theme.colors.primaryContainer },
+        mode === 'outlined' && { 
+          borderColor: theme.colors.outline,
+          borderWidth: 1,
+        },
+        disabled && { 
+          backgroundColor: mode === 'contained' ? theme.colors.surfaceDisabled : 'transparent',
+          borderColor: mode === 'outlined' ? theme.colors.surfaceDisabled : 'transparent',
+        },
         style,
       ]}
-      labelStyle={[styles.label, labelStyle]}
-      contentStyle={styles.content}
+      labelStyle={[
+        styles.label,
+        mode === 'text' && { color: theme.colors.primary },
+        mode === 'outlined' && { color: theme.colors.primary },
+        mode === 'contained' && { color: theme.colors.onPrimary },
+        mode === 'contained-tonal' && { color: theme.colors.onPrimaryContainer },
+        disabled && { color: theme.colors.onSurfaceDisabled },
+        labelStyle,
+      ]}
+      contentStyle={[
+        styles.content,
+        compact && styles.compact,
+      ]}
+      theme={theme}
     >
       {children}
     </PaperButton>
@@ -52,15 +80,14 @@ export const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 5,
-    paddingVertical: 8,
-    marginVertical: 10,
+    borderRadius: 8,
+    marginVertical: 8,
   },
   fullWidth: {
     width: '100%',
   },
   label: {
-    fontWeight: 'bold',
+    fontWeight: '600',
     fontSize: 16,
     textTransform: 'none',
   },
@@ -69,4 +96,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-}); 
+  compact: {
+    height: 36,
+  },
+});

@@ -5,7 +5,6 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BuildingForm, BuildingFormData } from '../../../components/BuildingForm';
 import { Header } from '../../../components/Header';
-import { SideMenu } from '../../../components/SideMenu';
 import { buildingService } from '../../../services/buildingService';
 import { useAppSelector } from '../../../store/hooks';
 import { BusinessManagerStackParamList } from '../../../navigation/types';
@@ -18,23 +17,26 @@ export const AddBuilding = () => {
   const isDarkMode = useAppSelector(state => state.settings.darkMode);
   
   const [loading, setLoading] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
   
   const handleSubmit = async (data: BuildingFormData) => {
     setLoading(true);
     try {
-      await buildingService.createBuilding({
+      const buildingData = {
         ...data,
-        residents: 0,
-        issues: 0,
-        occupancyRate: 0,
-        maintenanceCost: '€0',
-        amenities: [
-          data.hasParking ? 'Parking' : null,
-          data.hasSecurity ? 'Security' : null
-        ].filter(Boolean) as string[],
+        city: 'Tirana',
+        zipCode: '1001',
+        country: 'Albania',
+        floors: data.floors || 1,
+        buildYear: data.yearBuilt || 2020,
+        totalArea: data.totalArea || 0,
+        propertyManager: [
+          data.hasParking ? 'Parking' : '',
+          data.hasSecurity ? 'Security' : ''
+        ].filter(Boolean).join(', '),
         image: 'https://images.unsplash.com/photo-1665686310429-ee4d8b4c7cbc?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3' // Default image
-      });
+      };
+      
+      await buildingService.createBuilding(buildingData);
       navigation.goBack();
     } catch (error) {
       console.error('Error creating building:', error);
@@ -48,8 +50,6 @@ export const AddBuilding = () => {
       <Header 
         title="Add Building" 
         showBack={true}
-        showMenu={true}
-        onMenuPress={() => setMenuVisible(true)}
       />
       
       <View 
@@ -63,11 +63,6 @@ export const AddBuilding = () => {
           isLoading={loading}
         />
       </View>
-      
-      <SideMenu
-        isVisible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-      />
     </>
   );
 };
@@ -75,5 +70,8 @@ export const AddBuilding = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 16,
   },
-}); 
+});
+
+      

@@ -1,11 +1,12 @@
 import React from 'react';
-import { StyleSheet, View, TouchableOpacity, Platform, Animated } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Platform } from 'react-native';
 import { Appbar, Text, useTheme, Surface } from 'react-native-paper';
 import { ChevronLeft, Bell } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAppSelector } from '../store/hooks';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { AppTheme } from '../theme/theme';
 
 import { NotificationBadge } from './NotificationBadge';
 
@@ -29,9 +30,9 @@ export const Header: React.FC<HeaderProps> = ({
   action,
   showNotifications = false
 }) => {
-  const theme = useTheme();
+  const theme = useTheme<AppTheme>();
   const navigation = useNavigation();
-  const isDarkMode = useAppSelector((state) => state.settings.darkMode);
+  const isDarkMode = theme.dark;
   const userId = useAppSelector(state => state.auth.user?.id || 'admin1');
   const insets = useSafeAreaInsets();
   
@@ -49,34 +50,17 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
   
-  // Shadow properties based on platform
-  const shadowStyle = Platform.select({
-    ios: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDarkMode ? 0.1 : 0.05,
-      shadowRadius: 3,
-    },
-    android: {
-      elevation: 3,
-    }
-  });
-  
-  const backgroundColor = isDarkMode ? '#121212' : '#ffffff';
-  const titleColor = isDarkMode ? '#ffffff' : '#333333';
-  const subtitleColor = isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)';
-  
   return (
     <Surface 
       style={[
         styles.container, 
-        shadowStyle,
         { 
           paddingTop: Math.max(insets.top, Platform.OS === 'ios' ? 44 : 16),
-          backgroundColor,
-          borderBottomColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+          backgroundColor: theme.colors.surface,
+          borderBottomColor: theme.colors.outlineVariant,
         }
       ]}
+      elevation={1}
     >
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <View style={styles.headerContent}>
@@ -98,19 +82,18 @@ export const Header: React.FC<HeaderProps> = ({
         
         <View style={styles.titleContainer}>
           <Text 
+            variant="titleMedium"
             numberOfLines={1} 
-            style={[
-              styles.title, 
-              { color: titleColor }
-            ]}
+            style={styles.title}
           >
             {title}
           </Text>
           
           {subtitle && (
             <Text 
+              variant="bodySmall"
               numberOfLines={1}
-              style={[styles.subtitle, { color: subtitleColor }]}
+              style={styles.subtitle}
             >
               {subtitle}
             </Text>
@@ -174,14 +157,13 @@ const styles = StyleSheet.create({
     width: 60,
   },
   title: {
-    fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 12,
     marginTop: 2,
     textAlign: 'center',
+    opacity: 0.7,
   },
   backButton: {
     padding: 8,

@@ -1,0 +1,1 @@
+export { theme, type AppTheme } from './theme'; 
