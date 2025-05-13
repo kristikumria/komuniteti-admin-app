@@ -2,7 +2,7 @@ import { io, Socket } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { store } from '../store/store';
 import { newMessageReceived } from '../store/slices/chatSlice';
-import { ChatMessage } from '../navigation/types';
+import { ChatMessage, ChatAttachment } from '../navigation/types';
 import NetInfo from '@react-native-community/netinfo';
 import logger from '../utils/logger';
 
@@ -23,6 +23,8 @@ class SocketService {
   private reconnectTimer: NodeJS.Timeout | null = null;
   private networkSubscription: any = null;
   private isConnecting = false;
+  private messageQueue: ChatMessage[] = [];
+  private isProcessingQueue = false;
 
   constructor() {
     // Setup network state listener
@@ -97,6 +99,9 @@ class SocketService {
         });
       });
 
+      // Load pending messages when initializing
+      await this.loadPendingMessages();
+
       return new Promise<boolean>((resolve) => {
         // Handle successful connection
         this.socket?.once('connect', () => {
@@ -111,6 +116,10 @@ class SocketService {
               isInternetReachable: true
             }
           });
+          
+          // Process any queued messages
+          this.processMessageQueue();
+          
           resolve(true);
         });
 
@@ -322,47 +331,135 @@ class SocketService {
     }
   }
 
-  notifyNewMessage(message: ChatMessage) {
-    // For development mode without socket
-    if (isDev && !process.env.SOCKET_URL && !this.socket?.connected) {
-      // Dispatch to store for local state update
-      if (store) {
-        store.dispatch(newMessageReceived(message));
+  // Load pending messages from AsyncStorage
+  async loadPendingMessages() {
+    try {
+      const pendingMessagesJson = await AsyncStorage.getItem('pendingMessages');
+      
+      if (pendingMessagesJson) {
+        this.messageQueue = JSON.parse(pendingMessagesJson);
+        logger.log(`Loaded ${this.messageQueue.length} pending messages from storage`);
+      }
+    } catch (error) {
+      logger.error('Error loading pending messages from storage:', error);
+    }
+  }
+  
+  // Save pending messages to AsyncStorage
+  async savePendingMessages() {
+    try {
+      await AsyncStorage.setItem('pendingMessages', JSON.stringify(this.messageQueue));
+    } catch (error) {
+      logger.error('Error saving pending messages to storage:', error);
+    }
+  }
+  
+  // Add message to queue for offline sending
+  async addMessageToQueue(message: ChatMessage) {
+    this.messageQueue.push(message);
+    await this.savePendingMessages();
+    logger.log(`Added message to queue. Queue size: ${this.messageQueue.length}`);
+  }
+  
+  // Process message queue
+  async processMessageQueue() {
+    if (this.isProcessingQueue || this.messageQueue.length === 0) return;
+    
+    this.isProcessingQueue = true;
+    logger.log(`Processing message queue. ${this.messageQueue.length} messages pending.`);
+    
+    try {
+      // Process messages in order
+      const messagesToProcess = [...this.messageQueue];
+      this.messageQueue = [];
+      
+      for (const message of messagesToProcess) {
+        try {
+          // Skip if we're offline
+          if (!this.socket?.connected) {
+            this.messageQueue.push(message);
+            continue;
+          }
+          
+          // Try to send message
+          await this.notifyNewMessage(message);
+          logger.log(`Successfully sent queued message: ${message.id}`);
+          
+          // Add short delay between messages
+          await new Promise(resolve => setTimeout(resolve, 300));
+        } catch (error) {
+          logger.error(`Failed to send queued message: ${message.id}`, error);
+          this.messageQueue.push(message); // Put back in queue for retry
+        }
       }
       
-      // Simulate message delivery
-      setTimeout(() => {
-        // Update message status to delivered
-        store.dispatch({
-          type: 'chat/updateMessageStatus',
-          payload: {
-            messageId: message.id,
-            status: 'delivered'
-          }
+      // Save any remaining messages
+      await this.savePendingMessages();
+    } catch (error) {
+      logger.error('Error processing message queue:', error);
+    } finally {
+      this.isProcessingQueue = false;
+    }
+    
+    logger.log(`Finished processing queue. ${this.messageQueue.length} messages remaining.`);
+  }
+  
+  // Enhanced notifyNewMessage to handle offline mode
+  async notifyNewMessage(message: ChatMessage): Promise<boolean> {
+    // If not connected, queue message and return
+    if (!this.socket?.connected) {
+      await this.addMessageToQueue(message);
+      return false;
+    }
+    
+    return new Promise((resolve) => {
+      // For development mock functionality
+      if (isDev && !process.env.SOCKET_URL) {
+        this.mockEmitEvent('message_sent', { 
+          messageId: message.id, 
+          status: 'sent',
+          timestamp: new Date().toISOString()
         });
         
-        // Simulate read receipt after some time
+        // Simulate successful send
         setTimeout(() => {
-          store.dispatch({
-            type: 'chat/updateMessageStatus',
-            payload: {
-              messageId: message.id,
-              status: 'read'
-            }
+          this.mockEmitEvent('message_delivered', { 
+            messageId: message.id, 
+            status: 'delivered',
+            timestamp: new Date().toISOString()
           });
-        }, 5000);
-      }, 2000);
+          
+          // Simulate other participants reading the message 
+          setTimeout(() => {
+            this.mockEmitEvent('message_read', { 
+              messageId: message.id, 
+              status: 'read',
+              timestamp: new Date().toISOString(),
+              readBy: message.readBy 
+            });
+          }, 3000);
+        }, 1500);
+        
+        resolve(true);
+        return;
+      }
       
-      return true;
-    }
-    
-    // Emit new message to server
-    this.emit('new_message', message);
-    
-    // Dispatch to store for local state update
-    if (store) {
-      store.dispatch(newMessageReceived(message));
-    }
+      // For real server implementation
+      this.socket?.emit('new_message', message, (response: any) => {
+        if (response && response.success) {
+          resolve(true);
+        } else {
+          logger.error('Failed to send message:', response?.error || 'Unknown error');
+          resolve(false);
+        }
+      });
+      
+      // Set a timeout in case server doesn't respond
+      setTimeout(() => {
+        logger.warn('Message send timed out');
+        resolve(false);
+      }, 5000);
+    });
   }
 
   disconnect() {

@@ -24,7 +24,7 @@ import { buildingService } from '../../../services/buildingService';
 import { Building as BuildingType, BusinessManagerStackParamList } from '../../../navigation/types';
 import { useAppSelector } from '../../../store/hooks';
 import { STATUS_COLORS } from '../../../utils/constants';
-import { commonStyles } from '../../../styles/commonStyles';
+import { useThemedStyles } from '../../../hooks/useThemedStyles';
 
 type BuildingDetailsRouteProps = RouteProp<BusinessManagerStackParamList, 'BuildingDetails'>;
 type BuildingNavigationProps = NativeStackNavigationProp<BusinessManagerStackParamList>;
@@ -44,6 +44,7 @@ export const BuildingDetails = () => {
   const route = useRoute<BuildingDetailsRouteProps>();
   const { buildingId } = route.params;
   const isDarkMode = useAppSelector((state) => state.settings.darkMode);
+  const { commonStyles } = useThemedStyles();
   
   const [building, setBuilding] = useState<BuildingType | null>(null);
   const [loading, setLoading] = useState(true);

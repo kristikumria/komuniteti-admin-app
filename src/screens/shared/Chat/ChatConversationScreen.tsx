@@ -23,7 +23,7 @@ import { Appbar, useTheme, Badge, IconButton, MD3Colors, Portal, Dialog, Button,
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { MessageBubble } from '../../../components/Chat/MessageBubble';
 import { MessageInput } from '../../../components/Chat/MessageInput';
-import { ChatMessage, ChatConversation, ChatParticipant } from '../../../navigation/types';
+import { ChatMessage, ChatConversation, ChatParticipant, ChatAttachment } from '../../../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatDistanceToNow } from 'date-fns';
 import NetInfo from '@react-native-community/netinfo';
@@ -31,6 +31,9 @@ import { useAppSelector } from '../../../store/hooks';
 import { theme } from '../../../theme';
 import { ChatContainer } from '../../../components/Chat/ChatContainer';
 import socketService from '../../../services/socketService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { v4 as uuidv4 } from 'uuid';
+import * as FileSystem from 'expo-file-system';
 
 // Mock data for prototyping
 const MOCK_CONVERSATIONS: Record<string, ChatConversation> = {
@@ -463,6 +466,11 @@ const ChatConversationScreen: React.FC<ChatConversationScreenProps> = ({
   // Queue for messages when offline
   const [messageQueue, setMessageQueue] = useState<{text: string, replyTo?: any}[]>([]);
   
+  // Add these new states
+  const [pendingMessages, setPendingMessages] = useState<ChatMessage[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  
   // Check if screen reader is enabled
   useEffect(() => {
     AccessibilityInfo.isScreenReaderEnabled().then(
@@ -657,118 +665,98 @@ const ChatConversationScreen: React.FC<ChatConversationScreenProps> = ({
     }
   };
   
-  // Handle sending a message
-  const handleSendMessage = (text: string, replyToOverride?: any) => {
-    if (!text.trim() || !conversation) return;
+  // Enhanced handleSendMessage to handle offline scenarios
+  const handleSendMessage = (text: string, attachment?: any) => {
+    if ((!text.trim() && !attachment) || !conversation) return;
     
-    // If offline, add to queue
-    if (!connectionState.isConnected) {
-      setMessageQueue(prev => [...prev, { 
-        text, 
-        replyTo: replyToOverride || replyingTo 
-      }]);
+    // Generate a temporary ID for the message
+    const messageId = uuidv4();
+    
+    // Get current user info
+    const { user } = useAppSelector(state => state.auth);
+    const userId = user?.id || 'current_user';
+    const userName = user?.name || 'Me';
+    const userRole = user?.role || 'administrator';
+    
+    // Create replyTo object if needed
+    let replyToObject = undefined;
+    if (replyingTo) {
+      replyToObject = {
+        id: replyingTo.id,
+        senderId: replyingTo.senderId || '',
+        senderName: replyingTo.senderName,
+        content: replyingTo.content
+      };
+    }
+    
+    // Create a new message with proper typing
+    const newMessage: ChatMessage = {
+      id: messageId,
+      conversationId: conversation.id,
+      senderId: userId,
+      senderName: userName,
+      senderRole: userRole,
+      content: text.trim(),
+      timestamp: new Date().toISOString(),
+      readBy: [userId],
+      status: connectionState.isConnected ? 'sending' : 'failed',
+      replyTo: replyToObject,
+      ...(attachment && { 
+        attachments: Array.isArray(attachment) ? attachment : [attachment] 
+      })
+    };
+
+    // Add the message to the local state
+    setMessageState(prevState => ({
+      ...prevState,
+      messages: [...prevState.messages, newMessage]
+    }));
+
+    // Reset reply state
+    if (replyingTo) {
+      setReplyingTo(null);
+    }
+
+    // Scroll to bottom
+    setTimeout(() => {
+      scrollToBottom();
+    }, 100);
+    
+    // If offline, store message for later and mark as pending
+    if (!connectionState.isConnected || !socketService.isConnected()) {
+      const pendingMessage = { ...newMessage, status: 'failed' };
+      const updatedPendingMessages = [...pendingMessages, pendingMessage];
       
-      // Show feedback to user
-      if (HAPTIC_FEEDBACK_ENABLED) {
-        Vibration.vibrate(100);
-      }
+      setPendingMessages(updatedPendingMessages);
+      // Save to AsyncStorage
+      setTimeout(() => {
+        savePendingMessages();
+      }, 100);
       
-      // Clear reply if present
-      if (replyingTo) {
-        setReplyingTo(null);
-      }
+      // Show offline message
+      Alert.alert(
+        'Offline Mode',
+        'You are currently offline. The message will be sent when you reconnect.',
+        [{ text: 'OK' }]
+      );
       
       return;
     }
     
-    setSending(true);
-    
-    if (HAPTIC_FEEDBACK_ENABLED) {
-      Vibration.vibrate(100);
+    // Handle file uploads for attachments
+    if (attachment && (attachment.type === 'image' || attachment.type === 'document')) {
+      handleFileUpload(newMessage, attachment);
+      return;
     }
     
-    // Trigger typing indicator when sending a message
-    simulateTypingIndicator();
-    
-    // Get reply data
-    const replyData = replyToOverride || replyingTo;
-    
-    // Create new message
-    const newMessage: ChatMessage = {
-      id: `new-${Date.now()}`,
-      conversationId,
-      senderId: CURRENT_USER.id,
-      senderName: CURRENT_USER.name,
-      senderRole: CURRENT_USER.role,
-      content: text,
-      timestamp: new Date().toISOString(),
-      readBy: [CURRENT_USER.id],
-      status: 'sending',
-      replyTo: replyData ? {
-        id: replyData.id,
-        senderId: '',
-        senderName: replyData.senderName,
-        content: replyData.content,
-      } : undefined,
-    };
-    
-    // Add message to state immediately for UI responsiveness
-    setMessageState(prev => ({
-      ...prev,
-      messages: [newMessage, ...prev.messages]
-    }));
-    
-    // Clear reply state if present
-    if (replyingTo) {
-      setReplyingTo(null);
+    // Handle multiple image attachments
+    if (attachment && attachment.type === 'multiple_images') {
+      handleMultipleImagesUpload(newMessage, attachment.attachments);
+      return;
     }
     
-    // Simulate API call delay and update message status
-    setTimeout(() => {
-      setSending(false);
-      setMessageState(prev => ({
-        ...prev,
-        messages: prev.messages.map(msg => 
-          msg.id === newMessage.id 
-            ? { ...msg, status: 'sent' } 
-            : msg
-        )
-      }));
-      
-      // Simulate delivered status after another delay
-      setTimeout(() => {
-        setMessageState(prev => ({
-          ...prev,
-          messages: prev.messages.map(msg => 
-            msg.id === newMessage.id 
-              ? { ...msg, status: 'delivered' } 
-              : msg
-          )
-        }));
-        
-        // After delivery, simulate read receipt after some time
-        setTimeout(() => {
-          // Simulate other participants reading the message
-          if (conversation.participants.length > 0) {
-            setMessageState(prev => ({
-              ...prev,
-              messages: prev.messages.map(msg => 
-                msg.id === newMessage.id 
-                  ? { 
-                      ...msg, 
-                      status: 'read',
-                      readBy: [
-                        ...msg.readBy,
-                        ...conversation.participants.map(p => p.id).filter(id => id !== CURRENT_USER.id)
-                      ]
-                    } 
-                  : msg
-              )
-            }));
-          }
-        }, 3000);
-      }, 1000);
-    }, 1500);
+    // Send regular message through socket
+    socketService.notifyNewMessage(newMessage);
   };
   
   // Simulate typing indicator (in real app would use WebSockets)
@@ -1398,6 +1386,344 @@ const ChatConversationScreen: React.FC<ChatConversationScreenProps> = ({
     return colors[Math.abs(hash) % colors.length];
   };
 
+  // Add a useEffect to load pending messages from AsyncStorage
+  useEffect(() => {
+    if (conversation) {
+      loadPendingMessages();
+    }
+  }, [conversation]);
+
+  // Function to load pending messages
+  const loadPendingMessages = async () => {
+    try {
+      if (!conversation) return;
+      
+      const key = `pendingMessages_${conversation.id}`;
+      const pendingMessagesJson = await AsyncStorage.getItem(key);
+      
+      if (pendingMessagesJson) {
+        const loadedPendingMessages = JSON.parse(pendingMessagesJson) as ChatMessage[];
+        setPendingMessages(loadedPendingMessages);
+        
+        // Add pending messages to the messages state
+        const updatedMessages = [...messageState.messages, ...loadedPendingMessages];
+        setMessageState(prev => ({
+          ...prev,
+          messages: updatedMessages
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading pending messages:', error);
+    }
+  };
+
+  // Function to save pending messages
+  const savePendingMessages = async () => {
+    try {
+      if (!conversation) return;
+      
+      const key = `pendingMessages_${conversation.id}`;
+      await AsyncStorage.setItem(key, JSON.stringify(pendingMessages));
+    } catch (error) {
+      console.error('Error saving pending messages:', error);
+    }
+  };
+
+  // Add function to handle file uploads
+  const handleFileUpload = async (message: ChatMessage, attachment: any) => {
+    try {
+      setIsUploading(true);
+      setUploadProgress(0);
+      
+      // In a real app, this would upload to a server
+      // This is a mock implementation
+      
+      // Simulate upload progress
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 0.1;
+        setUploadProgress(Math.min(progress, 0.95));
+        
+        if (progress >= 1) {
+          clearInterval(interval);
+        }
+      }, 300);
+      
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Update message with "uploaded" attachment
+      const updatedMessage: ChatMessage = {
+        ...message,
+        status: 'sent',
+        attachments: [{
+          id: uuidv4(),
+          type: attachment.type as 'image' | 'document',
+          url: attachment.uri,
+          name: attachment.name,
+          size: attachment.size,
+          mimeType: attachment.mimeType
+        }]
+      };
+      
+      // Update messages in state
+      setMessageState(prev => ({
+        ...prev,
+        messages: prev.messages.map(msg => 
+          msg.id === message.id ? updatedMessage : msg
+        )
+      }));
+      
+      // Send message through socket
+      socketService.notifyNewMessage(updatedMessage);
+      
+      setUploadProgress(1);
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadProgress(0);
+      }, 500);
+      
+      clearInterval(interval);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      setIsUploading(false);
+      setUploadProgress(0);
+      
+      // Mark message as failed
+      setMessageState(prev => ({
+        ...prev,
+        messages: prev.messages.map(msg => 
+          msg.id === message.id ? { ...msg, status: 'failed' } : msg
+        )
+      }));
+      
+      // Add to pending messages
+      const failedMessage = { ...message, status: 'failed' };
+      setPendingMessages([...pendingMessages, failedMessage]);
+      savePendingMessages();
+      
+      Alert.alert(
+        'Upload Failed',
+        'There was a problem uploading your file. It will be retried when you reconnect.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  // Add function to handle multiple image uploads
+  const handleMultipleImagesUpload = async (message: ChatMessage, attachments: any[]) => {
+    try {
+      setIsUploading(true);
+      setUploadProgress(0);
+      
+      // Simulate upload progress for multiple images
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 0.05;
+        setUploadProgress(Math.min(progress, 0.95));
+        
+        if (progress >= 1) {
+          clearInterval(interval);
+        }
+      }, 200);
+      
+      // Simulate network delay (longer for multiple images)
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Create processed attachments
+      const processedAttachments: ChatAttachment[] = attachments.map(attachment => ({
+        id: uuidv4(),
+        type: 'image',
+        url: attachment.uri,
+        name: attachment.name,
+        size: attachment.size,
+        mimeType: attachment.mimeType,
+        width: attachment.width,
+        height: attachment.height
+      }));
+      
+      // Update message with "uploaded" attachments
+      const updatedMessage: ChatMessage = {
+        ...message,
+        status: 'sent',
+        attachments: processedAttachments
+      };
+      
+      // Update messages in state
+      setMessageState(prev => ({
+        ...prev,
+        messages: prev.messages.map(msg => 
+          msg.id === message.id ? updatedMessage : msg
+        )
+      }));
+      
+      // Send message through socket
+      socketService.notifyNewMessage(updatedMessage);
+      
+      setUploadProgress(1);
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadProgress(0);
+      }, 500);
+      
+      clearInterval(interval);
+    } catch (error) {
+      console.error('Error uploading multiple images:', error);
+      setIsUploading(false);
+      setUploadProgress(0);
+      
+      // Mark message as failed
+      setMessageState(prev => ({
+        ...prev,
+        messages: prev.messages.map(msg => 
+          msg.id === message.id ? { ...msg, status: 'failed' } : msg
+        )
+      }));
+      
+      // Add to pending messages
+      const failedMessage = { ...message, status: 'failed' };
+      setPendingMessages([...pendingMessages, failedMessage]);
+      savePendingMessages();
+      
+      Alert.alert(
+        'Upload Failed',
+        'There was a problem uploading your images. They will be retried when you reconnect.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  // Add function to retry sending failed messages
+  const retryFailedMessage = (messageId: string) => {
+    // Find the message in pending messages
+    const failedMessage = pendingMessages.find(msg => msg.id === messageId);
+    
+    if (!failedMessage) return;
+    
+    // Remove from pending messages
+    const updatedPendingMessages = pendingMessages.filter(msg => msg.id !== messageId);
+    setPendingMessages(updatedPendingMessages);
+    savePendingMessages();
+    
+    // If there are attachments, handle as file upload
+    if (failedMessage.attachments && failedMessage.attachments.length > 0) {
+      const attachment = failedMessage.attachments[0];
+      handleFileUpload(failedMessage, attachment);
+      return;
+    }
+    
+    // Mark as sending and retry
+    setMessageState(prev => ({
+      ...prev,
+      messages: prev.messages.map(msg => 
+        msg.id === messageId ? { ...msg, status: 'sending' } : msg
+      )
+    }));
+    
+    // Send through socket
+    socketService.notifyNewMessage({
+      ...failedMessage,
+      status: 'sending'
+    });
+  };
+
+  // Add function to handle message attachments in the render
+  const renderAttachments = (message: ChatMessage) => {
+    if (!message.attachments || message.attachments.length === 0) return null;
+    
+    return (
+      <View style={styles.attachmentsContainer}>
+        {message.attachments.map((attachment, index) => {
+          // Handle image attachments
+          if (attachment.type === 'image') {
+            return (
+              <TouchableOpacity 
+                key={`${message.id}_attachment_${index}`}
+                onPress={() => {
+                  // In a real app, this would open the image in a full-screen viewer
+                  Alert.alert('Image Viewer', 'This would open a full-screen image viewer');
+                }}
+                style={styles.imageAttachment}
+              >
+                <Image 
+                  source={{ uri: attachment.url }} 
+                  style={styles.attachmentImage}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            );
+          }
+          
+          // Handle document attachments
+          if (attachment.type === 'document') {
+            return (
+              <TouchableOpacity
+                key={`${message.id}_attachment_${index}`}
+                onPress={() => {
+                  // In a real app, this would open or download the document
+                  Alert.alert('Document Viewer', 'This would open or download the document');
+                }}
+                style={styles.documentAttachment}
+              >
+                <View style={styles.documentIcon}>
+                  <MaterialIcons name="description" size={24} color="#2196F3" />
+                </View>
+                <View style={styles.documentInfo}>
+                  <Text numberOfLines={1} style={styles.documentName}>{attachment.name}</Text>
+                  <Text style={styles.documentSize}>
+                    {attachment.size ? `${Math.round(attachment.size / 1024)} KB` : 'Unknown size'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          }
+          
+          // Handle location attachments
+          if (attachment.type === 'location') {
+            return (
+              <TouchableOpacity
+                key={`${message.id}_attachment_${index}`}
+                onPress={() => {
+                  // In a real app, this would open the map
+                  Alert.alert('Location Viewer', 'This would open a map view');
+                }}
+                style={styles.locationAttachment}
+              >
+                <View style={styles.locationPreview}>
+                  <MaterialIcons name="location-on" size={32} color="#E53935" />
+                </View>
+                <Text style={styles.locationText}>{attachment.name || 'Shared Location'}</Text>
+              </TouchableOpacity>
+            );
+          }
+          
+          return null;
+        })}
+      </View>
+    );
+  };
+
+  // Add render function for upload progress indicator
+  const renderUploadProgress = () => {
+    if (!isUploading) return null;
+    
+    return (
+      <View style={styles.uploadProgressContainer}>
+        <View style={styles.uploadProgressBar}>
+          <View 
+            style={[
+              styles.uploadProgressFill, 
+              { width: `${uploadProgress * 100}%` }
+            ]} 
+          />
+        </View>
+        <Text style={styles.uploadProgressText}>
+          Uploading... {Math.round(uploadProgress * 100)}%
+        </Text>
+      </View>
+    );
+  };
+
   if (messageState.loading && messageState.messages.length === 0) {
     return (
       <View style={[
@@ -1726,6 +2052,87 @@ const styles = StyleSheet.create({
   },
   dialog: {
     borderRadius: 12,
+  },
+  attachmentsContainer: {
+    marginVertical: 4,
+  },
+  imageAttachment: {
+    borderRadius: 8,
+    marginVertical: 4,
+    overflow: 'hidden',
+  },
+  attachmentImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+  },
+  documentAttachment: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    borderRadius: 8,
+    padding: 12,
+    marginVertical: 4,
+    alignItems: 'center',
+  },
+  documentIcon: {
+    marginRight: 12,
+  },
+  documentInfo: {
+    flex: 1,
+  },
+  documentName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  documentSize: {
+    fontSize: 12,
+    color: 'rgba(0, 0, 0, 0.5)',
+  },
+  locationAttachment: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    borderRadius: 8,
+    padding: 12,
+    marginVertical: 4,
+    alignItems: 'center',
+  },
+  locationPreview: {
+    width: '100%',
+    height: 150,
+    backgroundColor: '#e0e0e0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  locationText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  uploadProgressContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+  },
+  uploadProgressBar: {
+    height: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  uploadProgressFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    backgroundColor: theme.colors.primary,
+  },
+  uploadProgressText: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#ffffff',
   },
 });
 

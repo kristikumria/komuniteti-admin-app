@@ -7,127 +7,43 @@ import { useAppSelector } from '../../../store/hooks';
 import OrgChart from '../../../components/Organigram/OrgChart';
 import { Header } from '../../../components/Header';
 import { ZoomIn, ZoomOut, Share, Download, RefreshCw } from 'lucide-react-native';
+import { organizationService, OrgNode } from '../../../services/organizationService';
+import { useThemedStyles } from '../../../hooks/useThemedStyles';
 
 type Props = NativeStackScreenProps<BusinessManagerStackParamList, 'Organigram'>;
 
-interface OrgNode {
-  id: string;
-  name: string;
-  role: string;
-  image?: string;
-  children?: OrgNode[];
-}
-
 export const OrganigramScreen = ({ navigation }: Props) => {
   const theme = useTheme();
+  const { commonStyles } = useThemedStyles();
   const [loading, setLoading] = useState(true);
   const [organizationData, setOrganizationData] = useState<OrgNode | null>(null);
   const [scale, setScale] = useState(1);
   const [viewMode, setViewMode] = useState<'hierarchy' | 'buildings'>('hierarchy');
   const [viewOptionsVisible, setViewOptionsVisible] = useState(false);
-  const { buildings } = useAppSelector(state => state.buildings);
-  const { administrators } = useAppSelector(state => state.administrators);
   const { user } = useAppSelector(state => state.auth);
   const isDarkMode = useAppSelector(state => state.settings.darkMode);
 
   useEffect(() => {
     generateOrgChart();
-  }, [administrators, buildings, user, viewMode]);
+  }, [viewMode]);
 
   // Create organization chart data structure
-  const generateOrgChart = () => {
+  const generateOrgChart = async () => {
     setLoading(true);
     
-    // In a real implementation, this would be fetched from the API
-    // For now, we'll create a mock structure based on the buildings and administrators
-    
-    // Root node is the business manager
-    const rootNode: OrgNode = {
-      id: user?.id || 'bm1',
-      name: user?.name || 'Business Manager',
-      role: 'Business Manager',
-      image: 'https://randomuser.me/api/portraits/men/32.jpg',
-      children: []
-    };
-
-    // Different view modes
-    if (viewMode === 'hierarchy') {
-      // Hierarchical view: Business Manager -> Administrators -> Buildings
-      administrators.forEach(admin => {
-        const adminNode: OrgNode = {
-          id: admin.id,
-          name: admin.name,
-          role: 'Administrator',
-          image: admin.profileImage || 'https://randomuser.me/api/portraits/men/41.jpg',
-          children: []
-        };
-        
-        // Add buildings for each administrator
-        const adminBuildings = buildings.filter(b => {
-          return 'administratorId' in b && b.administratorId === admin.id;
-        });
-        
-        adminBuildings.forEach(building => {
-          adminNode.children?.push({
-            id: building.id,
-            name: building.name,
-            role: 'Building',
-            image: building.image,
-            children: []
-          });
-        });
-        
-        rootNode.children?.push(adminNode);
-      });
-    } else {
-      // Buildings-focused view: Group by building type or area
-      const buildingsByType: { [key: string]: Building[] } = {};
+    try {
+      // Use the organization service
+      const data = await organizationService.getOrganizationChart(
+        user?.id || 'bm1',
+        viewMode
+      );
       
-      // Group buildings by type (mock data - in real app this would be by actual building type or area)
-      buildings.forEach(building => {
-        const type = 'administratorId' in building ? 'Managed' : 'Unassigned';
-        if (!buildingsByType[type]) {
-          buildingsByType[type] = [];
-        }
-        buildingsByType[type].push(building as any); // Type cast to avoid type errors
-      });
-      
-      // Add building types as first level, then buildings under each type
-      Object.keys(buildingsByType).forEach(type => {
-        const typeNode: OrgNode = {
-          id: `type-${type}`,
-          name: type,
-          role: 'Building Type',
-          children: []
-        };
-        
-        buildingsByType[type].forEach(building => {
-          // Find the administrator for this building
-          const admin = administrators.find(a => 'administratorId' in building && building.administratorId === a.id);
-          
-          typeNode.children?.push({
-            id: building.id,
-            name: building.name,
-            role: 'Building',
-            image: building.image,
-            children: admin ? [{
-              id: admin.id,
-              name: admin.name,
-              role: 'Administrator',
-              image: admin.profileImage || 'https://randomuser.me/api/portraits/men/41.jpg',
-            }] : []
-          });
-        });
-        
-        rootNode.children?.push(typeNode);
-      });
-    }
-    
-    // Wait a short time to simulate loading
-    setTimeout(() => {
-      setOrganizationData(rootNode);
+      setOrganizationData(data);
+    } catch (error) {
+      console.error('Error generating organization chart:', error);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   const handleZoomIn = () => {
@@ -225,39 +141,43 @@ export const OrganigramScreen = ({ navigation }: Props) => {
         <Dialog
           visible={viewOptionsVisible}
           onDismiss={() => setViewOptionsVisible(false)}
-          style={{ backgroundColor: isDarkMode ? '#333' : 'white' }}
+          style={{ backgroundColor: isDarkMode ? '#1E1E1E' : 'white' }}
         >
-          <Dialog.Title style={{ color: isDarkMode ? 'white' : '#333' }}>
+          <Dialog.Title style={{ color: isDarkMode ? 'white' : 'black' }}>
             Select View Mode
           </Dialog.Title>
+          
           <Dialog.Content>
             <RadioButton.Group
-              onValueChange={value => handleChangeViewMode(value as 'hierarchy' | 'buildings')}
+              onValueChange={(value) => handleChangeViewMode(value as 'hierarchy' | 'buildings')} 
               value={viewMode}
             >
               <View style={styles.radioOption}>
                 <RadioButton value="hierarchy" color={theme.colors.primary} />
-                <Text style={{ color: isDarkMode ? 'white' : '#333' }}>Hierarchical View</Text>
-              </View>
-              <View style={styles.radioOptionDescription}>
-                <Text style={{ color: isDarkMode ? '#ccc' : '#666', fontSize: 12, marginLeft: 40 }}>
-                  Shows the management structure from Business Manager to Administrators to Buildings
+                <Text style={{ color: isDarkMode ? 'white' : 'black' }}>
+                  Hierarchical View
                 </Text>
               </View>
               
-              <Divider style={{ marginVertical: 8 }} />
+              <Text style={[styles.optionDescription, { color: isDarkMode ? '#ccc' : '#666' }]}>
+                Shows the organizational structure from Business Manager to Administrators to Buildings
+              </Text>
+              
+              <Divider style={{ marginVertical: 12 }} />
               
               <View style={styles.radioOption}>
                 <RadioButton value="buildings" color={theme.colors.primary} />
-                <Text style={{ color: isDarkMode ? 'white' : '#333' }}>Building-Focused View</Text>
-              </View>
-              <View style={styles.radioOptionDescription}>
-                <Text style={{ color: isDarkMode ? '#ccc' : '#666', fontSize: 12, marginLeft: 40 }}>
-                  Groups buildings by type with their assigned administrators
+                <Text style={{ color: isDarkMode ? 'white' : 'black' }}>
+                  Building-Focused View
                 </Text>
               </View>
+              
+              <Text style={[styles.optionDescription, { color: isDarkMode ? '#ccc' : '#666' }]}>
+                Groups buildings by type with administrators assigned to them
+              </Text>
             </RadioButton.Group>
           </Dialog.Content>
+          
           <Dialog.Actions>
             <Button onPress={() => setViewOptionsVisible(false)}>Cancel</Button>
           </Dialog.Actions>
@@ -278,50 +198,59 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   centered: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollView: {
     flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    minWidth: Dimensions.get('window').width,
-    transformOrigin: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
-  },
-  zoomControls: {
-    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 8,
-  },
-  zoomButton: {
-    padding: 8,
-    borderRadius: 20,
-    elevation: 2,
   },
   viewModeCard: {
-    margin: 16,
-    marginBottom: 0,
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 12,
     borderRadius: 8,
   },
   viewModeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+  },
+  zoomControls: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  zoomButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  scrollView: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  scrollContent: {
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    minWidth: Dimensions.get('window').width * 0.8,
+  },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 16,
   },
   radioOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 4,
   },
-  radioOptionDescription: {
-    marginBottom: 12,
-  },
+  optionDescription: {
+    marginLeft: 36,
+    fontSize: 12,
+    marginBottom: 8,
+  }
 });

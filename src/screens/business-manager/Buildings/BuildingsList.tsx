@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { Text, useTheme, ActivityIndicator, Searchbar, FAB, SegmentedButtons } from 'react-native-paper';
 import { Building2, Plus, Filter } from 'lucide-react-native';
-import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 import { Header } from '../../../components/Header';
 import { ListItem } from '../../../components/ListItem';
@@ -14,12 +13,12 @@ import { Building, BusinessManagerStackParamList } from '../../../navigation/typ
 import { Building as BuildingType } from '../../../types/buildingTypes';
 import { useAppSelector } from '../../../store/hooks';
 import { STATUS_COLORS } from '../../../utils/constants';
-import { commonStyles } from '../../../styles/commonStyles';
+import { useThemedStyles } from '../../../hooks/useThemedStyles';
 
 // Define a proper navigation type for the buildings list
-type BuildingsNavigationProp = CompositeNavigationProp<
-  BottomTabNavigationProp<any, 'BuildingsTab'>,
-  NativeStackNavigationProp<BusinessManagerStackParamList>
+type BuildingsNavigationProp = NativeStackNavigationProp<
+  BusinessManagerStackParamList,
+  'Buildings'
 >;
 
 // Filter and sort configurations
@@ -66,6 +65,7 @@ export const BuildingsList = () => {
   const theme = useTheme();
   const navigation = useNavigation<BuildingsNavigationProp>();
   const isDarkMode = useAppSelector((state) => state.settings.darkMode);
+  const { commonStyles } = useThemedStyles();
   
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [filteredBuildings, setFilteredBuildings] = useState<Building[]>([]);

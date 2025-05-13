@@ -33,12 +33,14 @@ import { Service } from '../../../types/serviceTypes';
 import { MoreVertical, Plus, Edit, Trash2, Bookmark, Eye, Power, Filter } from 'lucide-react-native';
 import { Header } from '../../../components/Header';
 import { ServiceForm } from './ServiceForm';
-import { commonStyles } from '../../../styles/commonStyles';
+import { useThemedStyles } from '../../../hooks/useThemedStyles';
 
 type Props = NativeStackScreenProps<BusinessManagerStackParamList, 'Services'>;
 
 export const ServicesScreen = ({ navigation }: Props) => {
   const theme = useTheme();
+  const isDarkMode = useAppSelector((state) => state.settings.darkMode);
+  const { commonStyles } = useThemedStyles();
   const dispatch = useAppDispatch();
   const services = useAppSelector(selectServices);
   const loading = useAppSelector(selectServicesLoading);

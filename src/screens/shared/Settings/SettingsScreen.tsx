@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text, useTheme, Card, Divider, Switch, IconButton } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
@@ -11,17 +11,52 @@ import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { toggleDarkMode } from '../../../store/slices/settingsSlice';
 import { logout } from '../../../store/slices/authSlice';
 import { AdministratorStackParamList } from '../../../navigation/types';
-import { commonStyles } from '../../../styles/commonStyles';
 import type { AppTheme } from '../../../theme/theme';
+import { useThemedStyles } from '../../../hooks/useThemedStyles';
+import { AccountSwitcher, AccountSwitcherButton } from '../../../components/AccountSwitcher';
+
+interface Account {
+  id: string;
+  name: string;
+  role: string;
+  email?: string;
+  icon?: string;
+}
 
 type SettingsScreenNavigationProp = NativeStackNavigationProp<AdministratorStackParamList>;
 
 export const SettingsScreen = () => {
-  const theme = useTheme<AppTheme>();
+  const theme = useTheme();
   const navigation = useNavigation<SettingsScreenNavigationProp>();
   const dispatch = useAppDispatch();
+  const isDarkMode = useAppSelector((state) => state.settings.darkMode);
+  const { commonStyles } = useThemedStyles();
   
   const { user } = useAppSelector(state => state.auth);
+  const isBusinessManager = user?.role === 'business_manager';
+  
+  const [accountSwitchModalVisible, setAccountSwitchModalVisible] = useState(false);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState<string>(user?.id || '');
+  
+  // Load mock accounts based on user role
+  useEffect(() => {
+    if (isBusinessManager) {
+      // Mock business accounts for Business Manager
+      setAccounts([
+        { id: '1', name: 'MainBusiness LLC', role: 'business_manager', email: 'main@business.com' },
+        { id: '2', name: 'SecondaryBusiness Inc', role: 'business_manager', email: 'secondary@business.com' },
+        { id: '3', name: 'ThirdBusiness Co', role: 'business_manager', email: 'third@business.com' }
+      ]);
+    } else {
+      // Mock buildings for Administrator
+      setAccounts([
+        { id: '1', name: 'Residential Building A', role: 'building', icon: '🏢' },
+        { id: '2', name: 'Residential Building B', role: 'building', icon: '🏘️' },
+        { id: '3', name: 'Commercial Building C', role: 'building', icon: '🏪' }
+      ]);
+    }
+  }, [isBusinessManager]);
   
   const handleLogout = () => {
     dispatch(logout());
@@ -33,6 +68,20 @@ export const SettingsScreen = () => {
   
   const navigateToNotificationSettings = () => {
     navigation.navigate('NotificationSettings');
+  };
+  
+  const handleOpenAccountSwitcher = () => {
+    setAccountSwitchModalVisible(true);
+  };
+  
+  const handleSwitchAccount = (accountId: string) => {
+    setSelectedAccountId(accountId);
+    setAccountSwitchModalVisible(false);
+    
+    // In a real implementation, this would dispatch an action to switch accounts
+    // For demo purposes, we'll just show an alert
+    const selectedAccount = accounts.find(acc => acc.id === accountId);
+    alert(`Switched to ${selectedAccount?.name}`);
   };
   
   return (
@@ -59,6 +108,17 @@ export const SettingsScreen = () => {
                 </Text>
               </View>
             </View>
+          </Card.Content>
+        </Card>
+        
+        {/* Account Switching Card */}
+        <Card style={[commonStyles.card, commonStyles.mt16, { backgroundColor: theme.colors.surface }]}>
+          <Card.Content>
+            <Text variant="titleSmall" style={styles.sectionTitle}>Account Switching</Text>
+            <AccountSwitcherButton 
+              onPress={handleOpenAccountSwitcher}
+              isBusinessManager={isBusinessManager}
+            />
           </Card.Content>
         </Card>
         
@@ -129,6 +189,16 @@ export const SettingsScreen = () => {
           </Card.Content>
         </Card>
       </ScrollView>
+      
+      {/* Account Switching Modal */}
+      <AccountSwitcher
+        visible={accountSwitchModalVisible}
+        onDismiss={() => setAccountSwitchModalVisible(false)}
+        onAccountSwitch={handleSwitchAccount}
+        currentAccountId={selectedAccountId}
+        accounts={accounts}
+        isBusinessManager={isBusinessManager}
+      />
     </>
   );
 };

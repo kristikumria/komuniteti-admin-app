@@ -14,7 +14,7 @@ import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { fetchPayments } from '../../../store/slices/paymentsSlice';
 import { formatCurrency, formatDate } from '../../../utils/formatters';
 import { STATUS_COLORS } from '../../../utils/constants';
-import { commonStyles } from '../../../styles/commonStyles';
+import { useThemedStyles } from '../../../hooks/useThemedStyles';
 
 type Props = NativeStackScreenProps<AdministratorStackParamList, 'Payments'>;
 
@@ -64,6 +64,7 @@ export const PaymentsList = ({ navigation }: Props) => {
   const dispatch = useAppDispatch();
   const isDarkMode = useAppSelector((state) => state.settings.darkMode);
   const { payments, loading } = useAppSelector((state) => state.payments);
+  const { commonStyles } = useThemedStyles();
   
   const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
   const [refreshing, setRefreshing] = useState(false);

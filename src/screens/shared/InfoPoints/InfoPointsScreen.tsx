@@ -50,11 +50,13 @@ import {
   FileQuestion,
   Phone,
   HardHat,
-  Users
+  Users,
+  Pin,
+  GripVertical
 } from 'lucide-react-native';
 import { Header } from '../../../components/Header';
 import { InfoPointForm } from './InfoPointForm';
-import { commonStyles } from '../../../styles/commonStyles';
+import { useThemedStyles } from '../../../hooks/useThemedStyles';
 
 // Mock buildings data until we fix imports
 const MOCK_BUILDINGS: Building[] = [
@@ -161,6 +163,7 @@ export const InfoPointsScreen = () => {
   const theme = useTheme();
   const navigation = useNavigation();
   const dispatch = useAppDispatch();
+  const { commonStyles } = useThemedStyles();
   
   const infoPoints = useAppSelector(selectInfoPoints);
   const loading = useAppSelector(selectInfoPointsLoading);
@@ -298,11 +301,11 @@ export const InfoPointsScreen = () => {
         styles.card, 
         { 
           backgroundColor: theme.colors.surfaceVariant,
-          borderLeftColor: item.pinned ? theme.colors.primary : theme.colors.outline,
-          borderLeftWidth: item.pinned ? 4 : 1,
+          borderColor: item.pinned ? theme.colors.primary : 'transparent',
+          borderWidth: item.pinned ? 1 : 0
         }
       ]}
-      mode="outlined"
+      onPress={() => handleOpenMenu(item.id)}
     >
       <Card.Content>
         <View style={styles.cardHeader}>
@@ -328,47 +331,12 @@ export const InfoPointsScreen = () => {
             </View>
           </View>
           
-          <Menu
-            visible={visibleMenuId === item.id}
-            onDismiss={handleCloseMenu}
-            anchor={
-              <IconButton
-                icon={() => <MoreVertical size={20} color={theme.colors.onSurfaceVariant} />}
-                onPress={() => handleOpenMenu(item.id)}
-              />
-            }
+          <TouchableOpacity 
+            onPress={() => handleOpenMenu(item.id)} 
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Menu.Item 
-              leadingIcon={() => <Eye size={20} color={theme.colors.onSurface} />}
-              onPress={() => {
-                handleCloseMenu();
-                // View details (future implementation)
-              }} 
-              title="View Details" 
-            />
-            <Menu.Item 
-              leadingIcon={() => <Edit size={20} color={theme.colors.onSurface} />}
-              onPress={() => handleEdit(item)} 
-              title="Edit" 
-            />
-            <Menu.Item 
-              leadingIcon={() => <PinIcon size={20} color={theme.colors.onSurface} />}
-              onPress={() => handleTogglePin(item.id)} 
-              title={item.pinned ? "Unpin" : "Pin"} 
-            />
-            <Menu.Item 
-              leadingIcon={() => <Globe size={20} color={theme.colors.onSurface} />}
-              onPress={() => handleTogglePublish(item.id)} 
-              title={item.published ? "Unpublish" : "Publish"} 
-            />
-            <Divider />
-            <Menu.Item 
-              leadingIcon={() => <Trash2 size={20} color={theme.colors.error} />}
-              onPress={() => handleDelete(item.id)} 
-              title="Delete"
-              titleStyle={{ color: theme.colors.error }}
-            />
-          </Menu>
+            <GripVertical size={24} color={theme.colors.onSurfaceVariant} />
+          </TouchableOpacity>
         </View>
         
         <Paragraph 
@@ -382,36 +350,16 @@ export const InfoPointsScreen = () => {
         <View style={styles.statusChips}>
           {item.pinned && (
             <Chip 
-              mode="flat" 
-              style={{ backgroundColor: theme.colors.primaryContainer }}
-              icon={() => <PinIcon size={16} color={theme.colors.primary} />}
+              icon={() => <Pin size={16} color={theme.colors.primary} />}
+              style={{ backgroundColor: `${theme.colors.primary}20` }}
             >
               Pinned
             </Chip>
           )}
           
-          <Chip 
-            mode="flat" 
-            style={{ 
-              backgroundColor: item.published 
-                ? theme.colors.primaryContainer 
-                : theme.colors.surfaceVariant,
-              borderWidth: item.published ? 0 : 1,
-              borderColor: item.published ? 'transparent' : theme.colors.outline
-            }}
-            icon={() => <Globe size={16} color={theme.colors.onSurfaceVariant} />}
-          >
-            {item.published ? 'Published' : 'Draft'}
+          <Chip icon="calendar" style={{ marginLeft: item.pinned ? 8 : 0 }}>
+            Updated {new Date(item.updatedAt).toLocaleDateString()}
           </Chip>
-          
-          {item.attachments && item.attachments.length > 0 && (
-            <Chip 
-              mode="flat"
-              style={{ backgroundColor: theme.colors.surfaceVariant }}
-            >
-              {item.attachments.length} Attachment{item.attachments.length !== 1 ? 's' : ''}
-            </Chip>
-          )}
         </View>
       </Card.Content>
     </Card>
@@ -436,11 +384,11 @@ export const InfoPointsScreen = () => {
             { 
               backgroundColor: (currentCategoryFilter || currentBuildingFilter) 
                 ? theme.colors.primaryContainer 
-                : theme.colors.surfaceVariant 
+                : theme.colors.surfaceVariant
             }
           ]}
         >
-          <Filter size={20} color={theme.colors.onSurfaceVariant} />
+          <Filter size={24} color={theme.colors.onSurfaceVariant} />
         </TouchableOpacity>
       </View>
       
@@ -449,9 +397,9 @@ export const InfoPointsScreen = () => {
         <View style={styles.filterChipsContainer}>
           {currentCategoryFilter && (
             <Chip 
-              mode="flat" 
               onClose={() => handleCategoryFilter(null)}
-              style={{ marginRight: 8, backgroundColor: theme.colors.primaryContainer }}
+              icon={() => getCategoryIcon(currentCategoryFilter, theme.colors.onSurfaceVariant)}
+              style={{ marginRight: 8 }}
             >
               {getCategoryLabel(currentCategoryFilter)}
             </Chip>
@@ -459,31 +407,18 @@ export const InfoPointsScreen = () => {
           
           {currentBuildingFilter && (
             <Chip 
-              mode="flat" 
               onClose={() => handleBuildingFilter(null)}
-              style={{ marginRight: 8, backgroundColor: theme.colors.primaryContainer }}
+              icon="building"
             >
               {buildings.find(b => b.id === currentBuildingFilter)?.name || 'Building'}
             </Chip>
           )}
-          
-          <Button
-            mode="text"
-            onPress={clearFilters}
-            compact
-          >
-            Clear All
-          </Button>
         </View>
       )}
       
       {/* Filter Dialog */}
       <Portal>
-        <Dialog
-          visible={showFilterMenu}
-          onDismiss={() => setShowFilterMenu(false)}
-          style={{ backgroundColor: theme.colors.background }}
-        >
+        <Dialog visible={showFilterMenu} onDismiss={() => setShowFilterMenu(false)}>
           <Dialog.Title>Filter Info Points</Dialog.Title>
           <Dialog.Content>
             <Text variant="titleMedium" style={{ marginBottom: 8 }}>Category</Text>
@@ -522,8 +457,8 @@ export const InfoPointsScreen = () => {
             )}
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={clearFilters}>Clear All</Button>
-            <Button onPress={() => setShowFilterMenu(false)}>Apply</Button>
+            <Button onPress={() => clearFilters()}>Clear All</Button>
+            <Button onPress={() => setShowFilterMenu(false)}>Done</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -542,32 +477,34 @@ export const InfoPointsScreen = () => {
           <Button 
             mode="contained" 
             onPress={() => dispatch(fetchInfoPoints())}
-            style={{ marginTop: 16 }}
+            style={{ marginTop: 12 }}
           >
             Retry
           </Button>
         </View>
       )}
       
-      {/* Info Points list */}
       {!loading && !error && (
         <>
           {filteredInfoPoints.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text variant="titleMedium">No info points found</Text>
               <Text variant="bodyMedium" style={{ textAlign: 'center', marginTop: 8 }}>
-                {searchQuery || currentCategoryFilter || currentBuildingFilter 
-                  ? 'Try adjusting your filters or search query'
-                  : 'Add a new info point to get started'}
+                {searchQuery 
+                  ? "Try adjusting your search or filters"
+                  : "Add your first information point to help residents"
+                }
               </Text>
-              <Button 
-                mode="contained" 
-                onPress={handleCreate}
-                style={{ marginTop: 16 }}
-                icon={() => <Plus size={20} color={theme.colors.onPrimary} />}
-              >
-                Add New Info Point
-              </Button>
+              {!searchQuery && (
+                <Button 
+                  mode="contained" 
+                  icon={() => <Plus size={18} color="white" />}
+                  onPress={handleCreate}
+                  style={{ marginTop: 16 }}
+                >
+                  Add Info Point
+                </Button>
+              )}
             </View>
           ) : (
             <FlatList

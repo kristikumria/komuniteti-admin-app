@@ -7,7 +7,7 @@ import { BusinessManagerStackParamList, Administrator } from '../../../navigatio
 import { Header } from '../../../components/Header';
 import { ListItem } from '../../../components/ListItem';
 import { useAppSelector } from '../../../store/hooks';
-import { commonStyles } from '../../../styles/commonStyles';
+import { useThemedStyles } from '../../../hooks/useThemedStyles';
 
 // Mock data for administrators (replace with actual service later)
 const mockAdministrators: Administrator[] = [
@@ -60,6 +60,7 @@ type Props = NativeStackScreenProps<BusinessManagerStackParamList, 'Administrato
 export const AdministratorsList = ({ navigation }: Props) => {
   const theme = useTheme();
   const isDarkMode = useAppSelector((state) => state.settings.darkMode);
+  const { commonStyles } = useThemedStyles();
   
   const [administrators, setAdministrators] = useState<Administrator[]>([]);
   const [filteredAdmins, setFilteredAdmins] = useState<Administrator[]>([]);

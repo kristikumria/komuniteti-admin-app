@@ -8,7 +8,8 @@ import {
   Keyboard,
   Platform,
   Vibration,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  Alert
 } from 'react-native';
 import { Text, Surface, Menu, useTheme } from 'react-native-paper';
 import { MaterialIcons, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
@@ -177,53 +178,182 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     setEmojiPickerVisible(false);
   };
 
-  // Handle image picking
+  // Handle image picking with multiple image support
   const pickImage = async () => {
     setAttachMenuVisible(false);
     try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        Alert.alert(
+          'Permission Required',
+          'Please allow access to your photo library to attach images.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
+        allowsMultipleSelection: true,
         quality: 0.8,
+        selectionLimit: 5, // Allow up to 5 images at once
       });
       
       if (!result.canceled && result.assets && result.assets.length > 0) {
         if (onAttachmentSelect) {
-          onAttachmentSelect({
-            type: 'image',
-            uri: result.assets[0].uri,
-            name: result.assets[0].uri.split('/').pop() || 'image.jpg',
-          });
+          // If multiple images were selected, process them all
+          if (result.assets.length > 1) {
+            // Process multiple images
+            const attachments = result.assets.map(asset => ({
+              type: 'image',
+              uri: asset.uri,
+              name: asset.uri.split('/').pop() || 'image.jpg',
+              size: asset.fileSize || 0,
+              mimeType: asset.mimeType || 'image/jpeg',
+              width: asset.width,
+              height: asset.height,
+            }));
+            
+            onAttachmentSelect({
+              type: 'multiple_images',
+              attachments
+            });
+          } else {
+            // Process single image
+            const asset = result.assets[0];
+            onAttachmentSelect({
+              type: 'image',
+              uri: asset.uri,
+              name: asset.uri.split('/').pop() || 'image.jpg',
+              size: asset.fileSize || 0,
+              mimeType: asset.mimeType || 'image/jpeg',
+              width: asset.width,
+              height: asset.height,
+            });
+          }
         }
       }
     } catch (error) {
       console.error('Error picking image:', error);
+      Alert.alert(
+        'Failed to Attach Image',
+        'There was a problem selecting the image. Please try again.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
-  // Handle document picking
+  // Handle document picking with improved error handling
   const pickDocument = async () => {
     setAttachMenuVisible(false);
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: '*/*',
         copyToCacheDirectory: true,
+        multiple: false,
       });
       
-      if (result.canceled === false) {
+      if (result.canceled === false && result.assets && result.assets.length > 0) {
         // Handle document picker success
         if (onAttachmentSelect) {
+          const asset = result.assets[0];
+          
+          // Check file size (limit to 20MB)
+          const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB in bytes
+          if (asset.size && asset.size > MAX_FILE_SIZE) {
+            Alert.alert(
+              'File Too Large',
+              'The selected file exceeds the 20MB size limit. Please choose a smaller file.',
+              [{ text: 'OK' }]
+            );
+            return;
+          }
+          
           onAttachmentSelect({
             type: 'document',
-            uri: result.assets[0].uri,
-            name: result.assets[0].name || 'document',
-            size: result.assets[0].size,
-            mimeType: result.assets[0].mimeType
+            uri: asset.uri,
+            name: asset.name || 'document',
+            size: asset.size || 0,
+            mimeType: asset.mimeType || 'application/octet-stream'
           });
         }
       }
     } catch (error) {
       console.error('Error picking document:', error);
+      Alert.alert(
+        'Failed to Attach Document',
+        'There was a problem selecting the document. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  // Add new camera capture function
+  const takePhoto = async () => {
+    setAttachMenuVisible(false);
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        Alert.alert(
+          'Permission Required',
+          'Please allow access to your camera to take photos.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsEditing: true,
+      });
+      
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        if (onAttachmentSelect) {
+          const asset = result.assets[0];
+          onAttachmentSelect({
+            type: 'image',
+            uri: asset.uri,
+            name: `camera_${new Date().getTime()}.jpg`,
+            size: asset.fileSize || 0,
+            mimeType: 'image/jpeg',
+            width: asset.width,
+            height: asset.height,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert(
+        'Failed to Take Photo',
+        'There was a problem capturing the photo. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  // Add location sharing function
+  const shareLocation = async () => {
+    setAttachMenuVisible(false);
+    
+    // In a real app, you would implement actual location picking
+    // This is a placeholder implementation
+    Alert.alert(
+      'Location Sharing',
+      'Location sharing is not fully implemented in this version.',
+      [{ text: 'OK' }]
+    );
+    
+    // Mock data for demonstration
+    if (onAttachmentSelect) {
+      onAttachmentSelect({
+        type: 'location',
+        latitude: 41.3275,  // Example: Tirana, Albania coordinates
+        longitude: 19.8187,
+        name: 'Current Location',
+      });
     }
   };
 
@@ -394,16 +524,12 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 title="Document"
               />
               <Menu.Item
-                onPress={() => {
-                  setAttachMenuVisible(false);
-                  // This would use location picker in a real app
-                  if (onAttachmentSelect) {
-                    onAttachmentSelect({
-                      type: 'location',
-                      name: 'Current Location',
-                    });
-                  }
-                }}
+                onPress={takePhoto}
+                leadingIcon="camera"
+                title="Take Photo"
+              />
+              <Menu.Item
+                onPress={shareLocation}
                 leadingIcon="map-marker"
                 title="Location"
               />

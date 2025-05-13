@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
-import { Text, Card, useTheme, ActivityIndicator, Button } from 'react-native-paper';
+import { Text, Card, Surface, useTheme, ActivityIndicator, Button } from 'react-native-paper';
 import { 
   Building2, 
   Users, 
@@ -28,6 +28,8 @@ import { Building as NavigationBuilding } from '../../../navigation/types';
 import { Building } from '../../../types/buildingTypes';
 import { useAppSelector } from '../../../store/hooks';
 import { STATUS_COLORS } from '../../../utils/constants';
+import { useThemedStyles } from '../../../hooks/useThemedStyles';
+import type { AppTheme } from '../../../theme/theme';
 
 // Define a proper navigation type for the business manager dashboard
 type DashboardNavigationProp = CompositeNavigationProp<
@@ -36,9 +38,8 @@ type DashboardNavigationProp = CompositeNavigationProp<
 >;
 
 export const Dashboard = () => {
-  const theme = useTheme();
+  const { theme, commonStyles } = useThemedStyles();
   const navigation = useNavigation<DashboardNavigationProp>();
-  const isDarkMode = useAppSelector((state) => state.settings.darkMode);
   const { user } = useAppSelector((state) => state.auth);
   
   const [buildings, setBuildings] = useState<Building[]>([]);
@@ -116,9 +117,12 @@ export const Dashboard = () => {
   const renderContent = () => {
     if (loading && !refreshing) {
       return (
-        <View style={styles.loadingContainer}>
+        <View style={styles(theme).loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={{ marginTop: 16, color: isDarkMode ? '#fff' : '#333' }}>
+          <Text 
+            variant="bodyMedium" 
+            style={{ marginTop: theme.spacing.m }}
+          >
             Loading dashboard...
           </Text>
         </View>
@@ -127,11 +131,8 @@ export const Dashboard = () => {
     
     return (
       <ScrollView
-        style={[
-          styles.container,
-          { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }
-        ]}
-        contentContainerStyle={styles.scrollContent}
+        style={styles(theme).container}
+        contentContainerStyle={styles(theme).scrollContent}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -142,55 +143,55 @@ export const Dashboard = () => {
         }
       >
         {/* Welcome Section */}
-        <View style={[styles.welcomeSection, { backgroundColor: theme.colors.primary }]}>
-          <View style={styles.welcomeContent}>
-            <Text style={styles.greeting}>{greeting},</Text>
-            <Text style={styles.userName}>{user?.name || 'Manager'}</Text>
-            <Text style={styles.welcomeSubtitle}>
+        <Surface style={styles(theme).welcomeSection}>
+          <View style={styles(theme).welcomeContent}>
+            <Text style={styles(theme).greeting}>{greeting},</Text>
+            <Text style={styles(theme).userName}>{user?.name || 'Manager'}</Text>
+            <Text style={styles(theme).welcomeSubtitle}>
               Here's what's happening today in your properties
             </Text>
           </View>
-        </View>
+        </Surface>
         
         {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.quickActionButton} onPress={navigateToBuildings}>
-            <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.primary + '20' }]}>
+        <View style={styles(theme).quickActions}>
+          <TouchableOpacity style={styles(theme).quickActionButton} onPress={navigateToBuildings}>
+            <View style={[styles(theme).quickActionIcon, { backgroundColor: theme.colors.primary + '20' }]}>
               <Building2 size={24} color={theme.colors.primary} />
             </View>
-            <Text style={[styles.quickActionText, { color: isDarkMode ? '#fff' : '#333' }]}>Buildings</Text>
+            <Text variant="labelMedium">Buildings</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.quickActionButton} onPress={navigateToReports}>
-            <View style={[styles.quickActionIcon, { backgroundColor: '#e53935' + '20' }]}>
-              <AlertCircle size={24} color="#e53935" />
+          <TouchableOpacity style={styles(theme).quickActionButton} onPress={navigateToReports}>
+            <View style={[styles(theme).quickActionIcon, { backgroundColor: STATUS_COLORS.error + '20' }]}>
+              <AlertCircle size={24} color={STATUS_COLORS.error} />
             </View>
-            <Text style={[styles.quickActionText, { color: isDarkMode ? '#fff' : '#333' }]}>Reports</Text>
+            <Text variant="labelMedium">Reports</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.quickActionButton} onPress={navigateToMessages}>
-            <View style={[styles.quickActionIcon, { backgroundColor: '#00897b' + '20' }]}>
-              <MessageSquare size={24} color="#00897b" />
+          <TouchableOpacity style={styles(theme).quickActionButton} onPress={navigateToMessages}>
+            <View style={[styles(theme).quickActionIcon, { backgroundColor: STATUS_COLORS.success + '20' }]}>
+              <MessageSquare size={24} color={STATUS_COLORS.success} />
             </View>
-            <Text style={[styles.quickActionText, { color: isDarkMode ? '#fff' : '#333' }]}>Messages</Text>
+            <Text variant="labelMedium">Messages</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.quickActionButton} onPress={navigateToInfoPoints}>
-            <View style={[styles.quickActionIcon, { backgroundColor: '#8e24aa' + '20' }]}>
-              <FileText size={24} color="#8e24aa" />
+          <TouchableOpacity style={styles(theme).quickActionButton} onPress={navigateToInfoPoints}>
+            <View style={[styles(theme).quickActionIcon, { backgroundColor: STATUS_COLORS.info + '20' }]}>
+              <FileText size={24} color={STATUS_COLORS.info} />
             </View>
-            <Text style={[styles.quickActionText, { color: isDarkMode ? '#fff' : '#333' }]}>Info</Text>
+            <Text variant="labelMedium">Info</Text>
           </TouchableOpacity>
         </View>
         
         {/* Overview Cards */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionHeaderText, { color: isDarkMode ? '#fff' : '#333' }]}>
+        <View style={styles(theme).sectionHeader}>
+          <Text variant="titleMedium" style={styles(theme).sectionHeaderText}>
             Overview
           </Text>
         </View>
         
-        <View style={styles.statsContainer}>
+        <View style={styles(theme).statsContainer}>
           <InfoCard
             title="Buildings"
             value={buildings.length}
@@ -244,25 +245,20 @@ export const Dashboard = () => {
         </View>
         
         {/* Recent Buildings */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionHeaderText, { color: isDarkMode ? '#fff' : '#333' }]}>
+        <View style={styles(theme).sectionHeader}>
+          <Text variant="titleMedium" style={styles(theme).sectionHeaderText}>
             Recent Buildings
           </Text>
           <TouchableOpacity onPress={navigateToBuildings}>
-            <Text style={[styles.viewAllLink, { color: theme.colors.primary }]}>
+            <Text style={styles(theme).viewAllLink}>
               View All
             </Text>
           </TouchableOpacity>
         </View>
         
-        <View style={styles.cardWrapper}>
-          <Card 
-            style={[
-              styles.sectionCard,
-              { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }
-            ]}
-          >
-            <View style={styles.cardContent}>
+        <View style={styles(theme).cardWrapper}>
+          <Surface elevation={1} style={styles(theme).sectionCard}>
+            <View style={styles(theme).cardContent}>
             {buildings.length > 0 ? (
               buildings.slice(0, 3).map((building) => (
                 <ListItem
@@ -282,14 +278,17 @@ export const Dashboard = () => {
                 />
               ))
             ) : (
-              <View style={styles.emptyState}>
-                <Building2 size={40} color={isDarkMode ? '#555' : '#ccc'} />
-                <Text style={[styles.emptyStateText, { color: isDarkMode ? '#aaa' : '#888' }]}>
+              <View style={styles(theme).emptyState}>
+                <Building2 size={40} color={theme.colors.outlineVariant} />
+                <Text 
+                  variant="bodyMedium" 
+                  style={styles(theme).emptyStateText}
+                >
                   No buildings found
                 </Text>
                 <Button 
                   mode="contained" 
-                  style={[styles.emptyStateButton, { backgroundColor: theme.colors.primary }]}
+                  style={styles(theme).emptyStateButton}
                   onPress={navigateToBuildings}
                 >
                   Add Building
@@ -297,68 +296,67 @@ export const Dashboard = () => {
               </View>
             )}
             </View>
-          </Card>
+          </Surface>
         </View>
         
         {/* Recent Issues */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionHeaderText, { color: isDarkMode ? '#fff' : '#333' }]}>
+        <View style={styles(theme).sectionHeader}>
+          <Text variant="titleMedium" style={styles(theme).sectionHeaderText}>
             Recent Issues
           </Text>
           <TouchableOpacity onPress={navigateToReports}>
-            <Text style={[styles.viewAllLink, { color: theme.colors.primary }]}>
+            <Text style={styles(theme).viewAllLink}>
               View All
             </Text>
           </TouchableOpacity>
         </View>
         
-        <View style={[styles.cardWrapper, { marginBottom: 24 }]}>
-          <Card 
-            style={[
-              styles.sectionCard,
-              { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }
-            ]}
-          >
-            <View style={styles.cardContent}>
-            <View style={styles.emptyState}>
-              <AlertCircle size={40} color={isDarkMode ? '#555' : '#ccc'} />
-              <Text style={[styles.emptyStateText, { color: isDarkMode ? '#aaa' : '#888' }]}>
+        <View style={[styles(theme).cardWrapper, { marginBottom: theme.spacing.xl }]}>
+          <Surface elevation={1} style={styles(theme).sectionCard}>
+            <View style={styles(theme).cardContent}>
+            <View style={styles(theme).emptyState}>
+              <AlertCircle size={40} color={theme.colors.outlineVariant} />
+              <Text 
+                variant="bodyMedium" 
+                style={styles(theme).emptyStateText}
+              >
                 No recent issues
               </Text>
               <Button 
                 mode="contained" 
-                style={[styles.emptyStateButton, { backgroundColor: theme.colors.primary }]}
+                style={styles(theme).emptyStateButton}
                 onPress={navigateToReports}
               >
                 View Reports
               </Button>
               </View>
             </View>
-          </Card>
+          </Surface>
         </View>
       </ScrollView>
     );
   };
   
   return (
-    <>
+    <View style={[commonStyles.screenContainer]}>
       <Header 
-        title="Dashboard" 
+        title="Dashboard"
+        showAccountSwitcher={true}
         showBack={false}
         showNotifications={true}
       />
-      
       {renderContent()}
-    </>
+    </View>
   );
 };
 
-const styles = StyleSheet.create({
+const styles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: theme.colors.background,
   },
   scrollContent: {
-    paddingBottom: 16,
+    paddingBottom: theme.spacing.m,
   },
   loadingContainer: {
     flex: 1,
@@ -366,34 +364,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   welcomeSection: {
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    paddingTop: 24,
-    marginBottom: 16,
+    paddingHorizontal: theme.spacing.xl - 8,
+    paddingVertical: theme.spacing.l - 4,
+    paddingTop: theme.spacing.l,
+    marginBottom: theme.spacing.m,
+    backgroundColor: theme.colors.primary,
   },
   welcomeContent: {
-    paddingHorizontal: 8,
+    paddingHorizontal: theme.spacing.s,
   },
   greeting: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: theme.colors.onPrimary,
+    opacity: 0.9,
     fontWeight: '500',
   },
   userName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: theme.colors.onPrimary,
     marginBottom: 4,
   },
   welcomeSubtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: theme.colors.onPrimary,
+    opacity: 0.8,
   },
   quickActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginBottom: 24,
+    paddingHorizontal: theme.spacing.m,
+    marginBottom: theme.spacing.xl,
   },
   quickActionButton: {
     alignItems: 'center',
@@ -405,39 +406,36 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  quickActionText: {
-    fontSize: 12,
-    textAlign: 'center',
+    marginBottom: theme.spacing.s,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    marginBottom: 12,
+    paddingHorizontal: theme.spacing.xl - 8,
+    marginBottom: theme.spacing.m - 4,
   },
   sectionHeaderText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    color: theme.colors.onBackground,
   },
   viewAllLink: {
     fontSize: 14,
+    color: theme.colors.primary,
   },
   statsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginBottom: 24,
+    paddingHorizontal: theme.spacing.m,
+    marginBottom: theme.spacing.xl,
   },
   cardWrapper: {
-    marginHorizontal: 16,
-    marginBottom: 24,
+    marginHorizontal: theme.spacing.m,
+    marginBottom: theme.spacing.xl,
   },
   sectionCard: {
-    borderRadius: 12,
+    borderRadius: theme.roundness * 1.5,
+    overflow: 'hidden',
   },
   cardContent: {
     overflow: 'hidden',
@@ -445,27 +443,27 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 40,
+    padding: theme.spacing.xl + 8,
   },
   emptyStateText: {
-    fontSize: 16,
-    marginTop: 16,
-    marginBottom: 16,
+    marginTop: theme.spacing.m,
+    marginBottom: theme.spacing.m,
+    color: theme.colors.onSurfaceVariant,
   },
   emptyStateButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: theme.spacing.m,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    margin: 16,
-    padding: 12,
-    borderRadius: 8,
-    zIndex: 1,
+    margin: theme.spacing.m,
+    padding: theme.spacing.m - 4,
+    borderRadius: theme.roundness,
+    backgroundColor: theme.colors.primary,
   },
   addButtonText: {
-    color: 'white',
+    color: theme.colors.onPrimary,
     fontWeight: '500',
   },
 }); 

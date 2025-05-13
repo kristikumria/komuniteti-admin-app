@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AppTheme } from '../theme/theme';
 
 import { NotificationBadge } from './NotificationBadge';
+import { AccountSwitcherHeader } from './AccountSwitcherHeader';
 
 interface ActionProps {
   icon: React.ReactNode;
@@ -21,6 +22,7 @@ interface HeaderProps {
   showBack?: boolean;
   action?: ActionProps;
   showNotifications?: boolean;
+  showAccountSwitcher?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -28,7 +30,8 @@ export const Header: React.FC<HeaderProps> = ({
   subtitle,
   showBack = true,
   action,
-  showNotifications = false
+  showNotifications = false,
+  showAccountSwitcher = false
 }) => {
   const theme = useTheme<AppTheme>();
   const navigation = useNavigation();
@@ -48,6 +51,14 @@ export const Header: React.FC<HeaderProps> = ({
       console.error('Navigation error:', error);
       alert('Notifications feature coming soon');
     }
+  };
+  
+  const handleAccountSwitch = (accountId: string) => {
+    // In a real app, this would dispatch an action to switch accounts
+    console.log('Switching to account:', accountId);
+    // For demo purposes, show an alert
+    const selectedAccount = accountId;
+    alert(`Switched to account ${selectedAccount}`);
   };
   
   return (
@@ -81,22 +92,28 @@ export const Header: React.FC<HeaderProps> = ({
         </View>
         
         <View style={styles.titleContainer}>
-          <Text 
-            variant="titleMedium"
-            numberOfLines={1} 
-            style={styles.title}
-          >
-            {title}
-          </Text>
-          
-          {subtitle && (
-            <Text 
-              variant="bodySmall"
-              numberOfLines={1}
-              style={styles.subtitle}
-            >
-              {subtitle}
-            </Text>
+          {showAccountSwitcher ? (
+            <AccountSwitcherHeader onAccountSwitch={handleAccountSwitch} />
+          ) : (
+            <>
+              <Text 
+                variant="titleMedium"
+                numberOfLines={1} 
+                style={styles.title}
+              >
+                {title}
+              </Text>
+              
+              {subtitle && (
+                <Text 
+                  variant="bodySmall"
+                  numberOfLines={1}
+                  style={styles.subtitle}
+                >
+                  {subtitle}
+                </Text>
+              )}
+            </>
           )}
         </View>
         

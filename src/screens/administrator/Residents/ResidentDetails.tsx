@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, ScrollView, Image, TouchableOpacity, RefreshControl, Alert } from 'react-native';
-import { Text, useTheme, ActivityIndicator, Card, Button, Divider, FAB, Badge as PaperBadge } from 'react-native-paper';
+import { StyleSheet, View, ScrollView, Image, TouchableOpacity, RefreshControl, Alert, Modal, FlatList } from 'react-native';
+import { Text, useTheme, ActivityIndicator, Card, Button, Divider, FAB, Badge as PaperBadge, Searchbar, RadioButton, Avatar } from 'react-native-paper';
 import { 
   UserRound, 
   Building, 
@@ -13,7 +13,10 @@ import {
   MessageSquare,
   AlertCircle, 
   Edit3,
-  Trash2
+  Trash2,
+  Home,
+  MapPin,
+  DoorOpen
 } from 'lucide-react-native';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -24,7 +27,8 @@ import { residentService } from '../../../services/residentService';
 import { Resident, AdministratorStackParamList } from '../../../navigation/types';
 import { useAppSelector } from '../../../store/hooks';
 import { STATUS_COLORS } from '../../../utils/constants';
-import { commonStyles } from '../../../styles/commonStyles';
+import { useThemedStyles } from '../../../hooks/useThemedStyles';
+import { mockProperties, mockBuildings } from '../../../services/mockData';
 
 type ResidentDetailsRouteProps = RouteProp<AdministratorStackParamList, 'ResidentDetails'>;
 type NavigationProp = NativeStackNavigationProp<AdministratorStackParamList>;
@@ -35,14 +39,20 @@ export const ResidentDetails = () => {
   const route = useRoute<ResidentDetailsRouteProps>();
   const { residentId } = route.params;
   const isDarkMode = useAppSelector((state) => state.settings.darkMode);
+  const { commonStyles } = useThemedStyles();
   
   const [resident, setResident] = useState<Resident | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTab, setSelectedTab] = useState('info');
+  const [changePropertyVisible, setChangePropertyVisible] = useState(false);
+  const [availableProperties, setAvailableProperties] = useState<typeof mockProperties>([]);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [propertySearchQuery, setPropertySearchQuery] = useState('');
   
   useEffect(() => {
     fetchResident();
+    fetchAvailableProperties();
   }, [residentId]);
   
   const fetchResident = async () => {
@@ -56,6 +66,34 @@ export const ResidentDetails = () => {
       setRefreshing(false);
     }
   };
+  
+  const fetchAvailableProperties = () => {
+    // Get all vacant properties plus the resident's current property (if any)
+    const properties = mockProperties.filter(p => 
+      p.status === 'Vacant' || 
+      (resident && p.residentId === resident.id)
+    );
+    setAvailableProperties(properties);
+  };
+  
+  // Filter properties based on search query
+  const filteredProperties = propertySearchQuery.length > 0
+    ? availableProperties.filter(p => 
+        p.name.toLowerCase().includes(propertySearchQuery.toLowerCase()) ||
+        getBuildingName(p.buildingId).toLowerCase().includes(propertySearchQuery.toLowerCase())
+      )
+    : availableProperties;
+  
+  // Get building name
+  const getBuildingName = (buildingId: string) => {
+    const building = mockBuildings.find(b => b.id === buildingId);
+    return building ? building.name : 'Unknown Building';
+  };
+  
+  // Get resident's current property
+  const residentProperty = resident
+    ? mockProperties.find(p => p.residentId === resident.id)
+    : null;
   
   const handleRefresh = () => {
     setRefreshing(true);
@@ -93,6 +131,60 @@ export const ResidentDetails = () => {
         },
       ]
     );
+  };
+  
+  const handleChangeProperty = () => {
+    fetchAvailableProperties();
+    setSelectedPropertyId(residentProperty?.id || null);
+    setChangePropertyVisible(true);
+  };
+  
+  const confirmChangeProperty = () => {
+    if (!selectedPropertyId) {
+      Alert.alert('Error', 'Please select a property');
+      return;
+    }
+    
+    // In a real app, you would make an API call here
+    // For now, we'll just show an alert
+    Alert.alert(
+      'Success',
+      'Resident successfully assigned to the new property',
+      [
+        { 
+          text: 'OK', 
+          onPress: () => {
+            setChangePropertyVisible(false);
+            // In a real app, you would refresh the resident data here
+            // For demonstration, we navigate back to refresh the screen
+            navigation.goBack();
+            setTimeout(() => {
+              navigation.navigate('ResidentDetails', { residentId });
+            }, 100);
+          }
+        }
+      ]
+    );
+  };
+  
+  // Placeholder function for communication preferences - will be populated from an API in a real app
+  const getCommunicationPreference = () => {
+    return "Email"; // Default value
+  };
+  
+  // Placeholder function for pets information - will be populated from an API in a real app
+  const getPets = () => {
+    return []; // Default empty array
+  };
+  
+  // Placeholder function for account balance - will be populated from an API in a real app 
+  const getAccountBalance = () => {
+    return 0; // Default value
+  };
+  
+  // Placeholder function for last payment date - will be populated from an API in a real app
+  const getLastPaymentDate = () => {
+    return "Not available"; // Default value
   };
   
   if (loading && !refreshing) {
@@ -439,7 +531,7 @@ export const ResidentDetails = () => {
                         { color: isDarkMode ? '#fff' : '#333' }
                       ]}
                     >
-                      {resident.communicationPreference}
+                      {getCommunicationPreference()}
                     </Text>
                   </View>
                 </View>
@@ -577,7 +669,7 @@ export const ResidentDetails = () => {
                         { color: isDarkMode ? '#fff' : '#333' }
                       ]}
                     >
-                      {resident.pets}
+                      {getPets().join(', ')}
                     </Text>
                   </View>
                 </View>
@@ -650,14 +742,14 @@ export const ResidentDetails = () => {
                       style={[
                         styles.infoValue,
                         { 
-                          color: resident.accountBalance === '€0.00' 
+                          color: getAccountBalance() === 0 
                             ? (isDarkMode ? '#fff' : '#333')
                             : STATUS_COLORS.error,
                           fontWeight: 'bold'
                         }
                       ]}
                     >
-                      {resident.accountBalance}
+                      {getAccountBalance()}
                     </Text>
                   </View>
                 </View>
@@ -681,7 +773,7 @@ export const ResidentDetails = () => {
                         { color: isDarkMode ? '#fff' : '#333' }
                       ]}
                     >
-                      {resident.lastPaymentDate}
+                      {getLastPaymentDate()}
                     </Text>
                   </View>
                 </View>
@@ -804,8 +896,158 @@ export const ResidentDetails = () => {
           </View>
         )}
         
+        {/* Property Information Card */}
+        <Card style={[styles.card, { marginTop: 16 }]}>
+          <Card.Content>
+            <View style={styles.cardHeader}>
+              <Text variant="titleMedium" style={styles.cardTitle}>Property Information</Text>
+              
+              <Button
+                mode="text"
+                compact
+                onPress={handleChangeProperty}
+              >
+                Change
+              </Button>
+            </View>
+            
+            <Divider style={styles.divider} />
+            
+            {residentProperty ? (
+              <View>
+                <View style={styles.propertyRow}>
+                  <Home size={20} color={theme.colors.primary} style={styles.propertyIcon} />
+                  <View>
+                    <Text variant="bodyLarge" style={styles.propertyName}>
+                      {residentProperty.name}
+                    </Text>
+                    <Text variant="bodyMedium" style={styles.propertyDetails}>
+                      {residentProperty.type} • {residentProperty.bedrooms} bed • {residentProperty.bathrooms} bath
+                    </Text>
+                  </View>
+                </View>
+                
+                <View style={styles.propertyRow}>
+                  <Building size={20} color={theme.colors.primary} style={styles.propertyIcon} />
+                  <Text variant="bodyMedium">
+                    {getBuildingName(residentProperty.buildingId)}
+                  </Text>
+                </View>
+                
+                <View style={styles.propertyRow}>
+                  <DoorOpen size={20} color={theme.colors.primary} style={styles.propertyIcon} />
+                  <Text variant="bodyMedium">
+                    Floor {residentProperty.floor} • {residentProperty.floorArea} m²
+                  </Text>
+                </View>
+                
+                <View style={styles.propertyRow}>
+                  <Wallet size={20} color={theme.colors.primary} style={styles.propertyIcon} />
+                  <Text variant="bodyMedium">
+                    Monthly Rent: ${residentProperty.rentAmount}
+                  </Text>
+                </View>
+                
+                <Button
+                  mode="outlined"
+                  style={styles.viewPropertyButton}
+                  onPress={() => navigation.navigate('PropertyDetails', { propertyId: residentProperty.id })}
+                >
+                  View Property Details
+                </Button>
+              </View>
+            ) : (
+              <View style={styles.noPropertyContainer}>
+                <AlertCircle size={24} color={theme.colors.error} style={{ marginBottom: 8 }} />
+                <Text variant="bodyMedium" style={{ textAlign: 'center', marginBottom: 16 }}>
+                  This resident is not assigned to any property.
+                </Text>
+                <Button
+                  mode="contained"
+                  onPress={handleChangeProperty}
+                >
+                  Assign Property
+                </Button>
+              </View>
+            )}
+          </Card.Content>
+        </Card>
+        
         <View style={{ height: 80 }} />
       </ScrollView>
+      
+      {/* Change Property Modal */}
+      <Modal
+        visible={changePropertyVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setChangePropertyVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text variant="headlineSmall" style={styles.modalTitle}>Change Property</Text>
+            
+            <Searchbar
+              placeholder="Search properties..."
+              onChangeText={setPropertySearchQuery}
+              value={propertySearchQuery}
+              style={styles.searchBar}
+            />
+            
+            <FlatList
+              data={filteredProperties}
+              keyExtractor={(item) => item.id}
+              style={styles.propertiesList}
+              ListEmptyComponent={
+                <View style={styles.emptyList}>
+                  <Text>No available properties found</Text>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <View style={styles.propertyItem}>
+                  <View style={styles.propertyItemDetails}>
+                    <View style={[styles.propertyItemIcon, {backgroundColor: theme.colors.primary + '20'}]}>
+                      <Home size={20} color={theme.colors.primary} />
+                    </View>
+                    <View style={styles.propertyItemInfo}>
+                      <Text variant="bodyLarge">{item.name}</Text>
+                      <Text variant="bodySmall">{getBuildingName(item.buildingId)}</Text>
+                      <Text variant="bodySmall">
+                        {item.type} • {item.bedrooms} bed • ${item.rentAmount}/mo
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <RadioButton
+                    value={item.id}
+                    status={selectedPropertyId === item.id ? 'checked' : 'unchecked'}
+                    onPress={() => setSelectedPropertyId(item.id)}
+                  />
+                </View>
+              )}
+            />
+            
+            <View style={styles.modalButtons}>
+              <Button 
+                mode="outlined" 
+                onPress={() => setChangePropertyVisible(false)}
+                style={styles.modalButton}
+              >
+                Cancel
+              </Button>
+              
+              <Button 
+                mode="contained"
+                onPress={confirmChangeProperty}
+                style={styles.modalButton}
+                disabled={!selectedPropertyId}
+              >
+                Confirm
+              </Button>
+            </View>
+          </View>
+        </View>
+      </Modal>
       
       <FAB
         icon={props => <Edit3 {...props} />}
@@ -970,5 +1212,101 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.3,
     shadowRadius: 4.5,
+  },
+  card: {
+    margin: 16,
+    borderRadius: 8,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  cardTitle: {
+    fontWeight: 'bold',
+  },
+  divider: {
+    marginBottom: 16,
+  },
+  propertyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  propertyIcon: {
+    marginRight: 12,
+  },
+  propertyName: {
+    fontWeight: 'bold',
+  },
+  propertyDetails: {
+    opacity: 0.7,
+  },
+  viewPropertyButton: {
+    marginTop: 16,
+  },
+  noPropertyContainer: {
+    alignItems: 'center',
+    padding: 16,
+  },
+  searchBar: {
+    marginVertical: 16,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    width: '90%',
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  propertiesList: {
+    maxHeight: 300,
+  },
+  propertyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  propertyItemDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  propertyItemIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  propertyItemInfo: {
+    flex: 1,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  modalButton: {
+    width: '48%',
+  },
+  emptyList: {
+    alignItems: 'center',
+    padding: 20,
   },
 }); 

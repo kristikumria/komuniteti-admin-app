@@ -90,7 +90,7 @@ This document outlines the comprehensive development plan for the Komuniteti mob
   - Subtask 1.11.2: Implement account switching logic
   - Subtask 1.11.3: Ensure proper data isolation between accounts
   - Status: Completed
-  - Notes: Implemented role selection in login screen to support both user types
+  - Notes: Implemented role selection in login screen to support both user types. Added account/building switching functionality in Settings screen using a reusable AccountSwitcher component that adapts based on user role.
 
 #### Week 5-6: Business Manager Core Modules - Part 1
 
@@ -345,25 +345,55 @@ This document outlines the comprehensive development plan for the Komuniteti mob
 
 #### Week 23-24: Organigram Visualization
 
-- [ ] Task 3.13: Design and implement Organigram System
-  - Subtask 3.13.1: Create organigram models
-  - Subtask 3.13.2: Implement organigram service
-  - Subtask 3.13.3: Add organigram state management
-  - Status: Not started
+- [x] Task 3.13: Design and implement Organigram System
+  - [x] Subtask 3.13.1: Create organigram models
+  - [x] Subtask 3.13.2: Implement organigram service
+  - [x] Subtask 3.13.3: Add organigram state management
+  - Status: Completed
+  - Notes: Created organization chart data structure and service with mock data. Implemented OrgNode interface for consistent modeling of organizational hierarchy.
 
-- [ ] Task 3.14: Create Organigram UI
-  - Subtask 3.14.1: Implement hierarchical visualization
-  - Subtask 3.14.2: Add interactive navigation
-  - Subtask 3.14.3: Create detail views
-  - Status: Not started
+- [x] Task 3.14: Create Organigram UI
+  - [x] Subtask 3.14.1: Implement hierarchical visualization
+  - [x] Subtask 3.14.2: Add interactive navigation
+  - [x] Subtask 3.14.3: Create detail views
+  - Status: Completed
+  - Notes: Implemented OrganigramScreen with interactive visualization. Created reusable OrgChart component with role-based color coding and responsive layouts.
 
-- [ ] Task 3.15: Implement Organigram Features
-  - Subtask 3.15.1: Add building filtering
-  - Subtask 3.15.2: Implement search functionality
-  - Subtask 3.15.3: Create export capabilities
-  - Status: Not started
+- [x] Task 3.15: Implement Organigram Features
+  - [x] Subtask 3.15.1: Add building filtering
+  - [x] Subtask 3.15.2: Implement search functionality
+  - [x] Subtask 3.15.3: Create export capabilities
+  - Status: Completed
+  - Notes: Added ability to switch between hierarchical and building-type views. Implemented interactive zoom controls and responsive node sizing.
 
 ### Phase 4: Polish and Release
+
+#### Week 24-25: Design System Implementation
+
+- [ ] Task 4.0: Implement MD3 Design Token System
+  - [x] Subtask 4.0.1: Create/update design system documentation
+    - Created comprehensive MD3_IMPLEMENTATION.md guide
+    - Documented best practices for component styling using theme tokens
+    - Added examples of properly themed components
+  - [x] Subtask 4.0.2: Refactor common styles
+    - Converted commonStyles.ts to use theme tokens
+    - Created useThemedStyles hook for dynamic theme-aware styles
+    - Removed hardcoded color, spacing, and typography values
+  - [ ] Subtask 4.0.3: Refactor base components
+    - [x] Updated NotificationToast component to use theme tokens
+    - [ ] Update remaining UI components (Button, TextField, Card)
+    - [ ] Implement proper elevation using theme tokens
+    - [ ] Refactor typography to use MD3 type scale
+  - [ ] Subtask 4.0.4: Refactor screen layouts
+    - [x] Updated Dashboard screen to use theme tokens
+    - [ ] Refactor remaining screens
+    - [ ] Ensure proper dark mode support
+  - [ ] Subtask 4.0.5: Ensure consistent elevation model
+    - [ ] Implement consistent shadow hierarchy
+    - [ ] Update modal and dialog components
+    - [ ] Fix inconsistent shadow implementations
+  - Status: In Progress
+  - Notes: Initial implementation has focused on creating the foundation with the useThemedStyles hook, updating common styles to use theme tokens, and refactoring key components like NotificationToast and the Dashboard screen. The remaining components and screens will be updated systematically.
 
 #### Week 25: UI/UX Refinements
 
@@ -551,6 +581,19 @@ This document outlines the comprehensive development plan for the Komuniteti mob
   - Organigram system design and implementation
 - **Blockers**: None
 - **Next Week's Focus**: Begin implementing Organigram module
+
+#### Week 23-24 (2024-12-01 to 2024-12-14)
+- **Completed Tasks**: 
+  - Created MD3_IMPLEMENTATION.md guide for design system standardization
+  - Refactored commonStyles.ts to use theme tokens
+  - Created useThemedStyles hook for consistent theme access
+  - Updated NotificationToast component with theme tokens
+  - Refactored Dashboard screen to follow MD3 design principles
+- **In Progress**: 
+  - MD3 design token implementation for remaining components
+  - Screen layout refactoring for consistent design
+- **Blockers**: None
+- **Next Week's Focus**: Complete refactoring of base UI components and continue screen updates
 
 ## Risk Management
 

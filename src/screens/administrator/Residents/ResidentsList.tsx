@@ -12,7 +12,7 @@ import { residentService } from '../../../services/residentService';
 import { Resident, AdministratorStackParamList } from '../../../navigation/types';
 import { useAppSelector } from '../../../store/hooks';
 import { STATUS_COLORS } from '../../../utils/constants';
-import { commonStyles } from '../../../styles/commonStyles';
+import { useThemedStyles } from '../../../hooks/useThemedStyles';
 
 type Props = NativeStackScreenProps<AdministratorStackParamList, 'Residents'>;
 
@@ -57,6 +57,7 @@ const filterConfig: FilterConfig = {
 export const ResidentsList = ({ navigation }: Props) => {
   const theme = useTheme();
   const isDarkMode = useAppSelector((state) => state.settings.darkMode);
+  const { commonStyles } = useThemedStyles();
   
   const [residents, setResidents] = useState<Resident[]>([]);
   const [filteredResidents, setFilteredResidents] = useState<Resident[]>([]);

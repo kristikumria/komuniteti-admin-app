@@ -140,40 +140,40 @@ export const Dashboard = () => {
         <View style={styles.quickActionsContainer}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>Quick Actions</Text>
           
-          <Surface style={[styles.quickActionsRow, { backgroundColor: cardBackground }]} elevation={1}>
+          <Surface style={[styles.quickActionsRow, { backgroundColor: cardBackground }]} elevation={2}>
             <View style={styles.quickActionsRowContent}>
             <TouchableOpacity style={styles.quickAction} onPress={navigateToResidents}>
-              <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.primary + '20' }]}>
-                <Users size={20} color={theme.colors.primary} />
+              <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.primary + '15' }]}>
+                <Users size={22} color={theme.colors.primary} />
               </View>
-              <Text style={[styles.quickActionText, { color: textColor }]}>Residents</Text>
+              <Text style={[styles.quickActionText, { color: textColor, fontWeight: '600' }]}>Residents</Text>
             </TouchableOpacity>
             
-            <View style={[styles.divider, { backgroundColor: isDarkMode ? '#333' : '#eee' }]} />
+            <View style={[styles.divider, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]} />
             
             <TouchableOpacity style={styles.quickAction} onPress={navigateToPayments}>
-              <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.primary + '20' }]}>
-                <Wallet size={20} color={theme.colors.primary} />
+              <View style={[styles.quickActionIcon, { backgroundColor: '#00897b' + '15' }]}>
+                <Wallet size={22} color="#00897b" />
               </View>
-              <Text style={[styles.quickActionText, { color: textColor }]}>Payments</Text>
+              <Text style={[styles.quickActionText, { color: textColor, fontWeight: '600' }]}>Payments</Text>
             </TouchableOpacity>
             
-            <View style={[styles.divider, { backgroundColor: isDarkMode ? '#333' : '#eee' }]} />
+            <View style={[styles.divider, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]} />
             
             <TouchableOpacity style={styles.quickAction} onPress={navigateToReports}>
-              <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.primary + '20' }]}>
-                <AlertCircle size={20} color={theme.colors.primary} />
+              <View style={[styles.quickActionIcon, { backgroundColor: '#e53935' + '15' }]}>
+                <AlertCircle size={22} color="#e53935" />
               </View>
-              <Text style={[styles.quickActionText, { color: textColor }]}>Reports</Text>
+              <Text style={[styles.quickActionText, { color: textColor, fontWeight: '600' }]}>Reports</Text>
             </TouchableOpacity>
             
-            <View style={[styles.divider, { backgroundColor: isDarkMode ? '#333' : '#eee' }]} />
+            <View style={[styles.divider, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]} />
             
             <TouchableOpacity style={styles.quickAction} onPress={navigateToMessages}>
-              <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.primary + '20' }]}>
-                <CalendarClock size={20} color={theme.colors.primary} />
+              <View style={[styles.quickActionIcon, { backgroundColor: '#6200ea' + '15' }]}>
+                <CalendarClock size={22} color="#6200ea" />
               </View>
-              <Text style={[styles.quickActionText, { color: textColor }]}>Messages</Text>
+              <Text style={[styles.quickActionText, { color: textColor, fontWeight: '600' }]}>Messages</Text>
             </TouchableOpacity>
             </View>
           </Surface>
@@ -183,12 +183,12 @@ export const Dashboard = () => {
         <View style={styles.overviewSection}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>Overview</Text>
           <View style={styles.overviewCards}>
-            <Surface style={[styles.overviewCard, { backgroundColor: cardBackground }]} elevation={1}>
+            <Surface style={[styles.overviewCard, { backgroundColor: cardBackground }]} elevation={2}>
               <View style={styles.overviewCardContent}>
               <Text style={[styles.overviewLabel, { color: secondaryTextColor }]}>Total Residents</Text>
               <View style={styles.overviewValue}>
                 <Text style={[styles.overviewNumber, { color: textColor }]}>{totalResidents}</Text>
-                <View style={styles.indicatorContainer}>
+                <View style={[styles.indicatorContainer, { backgroundColor: theme.colors.primary + '15', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 }]}>
                   <TrendingUp size={12} color={theme.colors.primary} />
                   <Text style={[styles.indicatorText, { color: theme.colors.primary }]}>Active</Text>
                   </View>
@@ -196,24 +196,24 @@ export const Dashboard = () => {
               </View>
             </Surface>
             
-            <Surface style={[styles.overviewCard, { backgroundColor: cardBackground }]} elevation={1}>
+            <Surface style={[styles.overviewCard, { backgroundColor: cardBackground }]} elevation={2}>
               <View style={styles.overviewCardContent}>
               <Text style={[styles.overviewLabel, { color: secondaryTextColor }]}>Owners</Text>
               <View style={styles.overviewValue}>
                 <Text style={[styles.overviewNumber, { color: textColor }]}>{owners}</Text>
-                <View style={styles.indicatorContainer}>
+                <View style={[styles.indicatorContainer, { backgroundColor: '#00897b' + '15', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 }]}>
                   <Text style={[styles.indicatorText, { color: '#00897b' }]}>{ownersPercentage}%</Text>
                   </View>
                 </View>
               </View>
             </Surface>
             
-            <Surface style={[styles.overviewCard, { backgroundColor: cardBackground }]} elevation={1}>
+            <Surface style={[styles.overviewCard, { backgroundColor: cardBackground }]} elevation={2}>
               <View style={styles.overviewCardContent}>
               <Text style={[styles.overviewLabel, { color: secondaryTextColor }]}>Revenue</Text>
               <View style={styles.overviewValue}>
                 <Text style={[styles.overviewNumber, { color: textColor }]}>€8,500</Text>
-                <View style={styles.indicatorContainer}>
+                <View style={[styles.indicatorContainer, { backgroundColor: '#43a047' + '15', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 }]}>
                   <TrendingUp size={12} color="#43a047" />
                   <Text style={[styles.indicatorText, { color: '#43a047' }]}>+12%</Text>
                   </View>
@@ -221,12 +221,12 @@ export const Dashboard = () => {
               </View>
             </Surface>
             
-            <Surface style={[styles.overviewCard, { backgroundColor: cardBackground }]} elevation={1}>
+            <Surface style={[styles.overviewCard, { backgroundColor: cardBackground }]} elevation={2}>
               <View style={styles.overviewCardContent}>
               <Text style={[styles.overviewLabel, { color: secondaryTextColor }]}>Overdue</Text>
               <View style={styles.overviewValue}>
                 <Text style={[styles.overviewNumber, { color: textColor }]}>{overdue}</Text>
-                <View style={styles.indicatorContainer}>
+                <View style={[styles.indicatorContainer, { backgroundColor: '#e53935' + '15', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 }]}>
                   <Text style={[styles.indicatorText, { color: '#e53935' }]}>{overduePercentage}%</Text>
                   </View>
                 </View>
@@ -336,6 +336,7 @@ export const Dashboard = () => {
         title="Home" 
         showBack={false}
         showNotifications={true}
+        showAccountSwitcher={true}
       />
       
       {renderContent()}
@@ -360,23 +361,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 20,
+    marginBottom: 8,
   },
   welcomeText: {
     fontSize: 16,
+    opacity: 0.8,
   },
   nameText: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
+    marginTop: 4,
   },
   quickActionsContainer: {
     paddingHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 24,
   },
   quickActionsRow: {
-    borderRadius: 12,
-    marginTop: 8,
-    padding: 0,
+    borderRadius: 16,
+    marginTop: 12,
+    overflow: 'hidden',
   },
   quickActionsRowContent: {
     flexDirection: 'row',
@@ -386,66 +390,68 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: 16,
   },
   quickActionIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   quickActionText: {
-    fontSize: 12,
+    fontSize: 13,
   },
   divider: {
     width: 1,
-    height: '70%',
+    height: '60%',
     alignSelf: 'center',
   },
   overviewSection: {
     paddingHorizontal: 16,
-    marginBottom: 24,
+    marginBottom: 28,
   },
   overviewCards: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 8,
+    marginTop: 12,
     justifyContent: 'space-between',
   },
   overviewCard: {
     width: cardWidth,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 16,
-    height: 90,
+    height: 100,
   },
   overviewCardContent: {
     overflow: 'hidden',
     flex: 1,
+    justifyContent: 'space-between',
   },
   overviewLabel: {
-    fontSize: 13,
+    fontSize: 14,
     marginBottom: 8,
   },
   overviewValue: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: 'center',
   },
   overviewNumber: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: 'bold',
   },
   indicatorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
   },
   indicatorText: {
     fontSize: 12,
     marginLeft: 4,
+    fontWeight: '600',
   },
   sectionTitle: {
     fontSize: 16,

@@ -1,70 +1,78 @@
 import { StyleSheet } from 'react-native';
+import type { AppTheme } from '../theme/theme';
 
 /**
  * Common styles to be shared across the application
- * Use these styles to maintain design consistency
+ * Uses theme tokens for consistent design
+ * @param theme The app theme from useTheme hook
  */
-export const commonStyles = StyleSheet.create({
+export const getCommonStyles = (theme: AppTheme) => StyleSheet.create({
   /**
    * Container styles
    */
   screenContainer: {
     flex: 1,
+    backgroundColor: theme.colors.background,
   },
   contentContainer: {
-    padding: 16,
+    padding: theme.spacing.m,
   },
   centeredContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: theme.colors.background,
   },
   
   /**
    * Card styles
    */
   card: {
-    marginBottom: 16,
-    borderRadius: 8,
+    marginBottom: theme.spacing.m,
+    borderRadius: theme.roundness,
+    backgroundColor: theme.colors.surface,
   },
   cardTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: theme.spacing.s,
+    color: theme.colors.onSurface,
+    // Use Paper Text component with variants instead where possible
   },
   
   /**
    * Text styles
    */
   heading: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: theme.spacing.m,
+    color: theme.colors.onBackground,
+    // Use Paper Text component with headlineMedium variant instead where possible
   },
   subheading: {
-    fontSize: 18,
-    fontWeight: '500',
-    marginBottom: 8,
+    marginBottom: theme.spacing.s,
+    color: theme.colors.onBackground,
+    // Use Paper Text component with titleMedium variant instead where possible
   },
   paragraph: {
-    fontSize: 14,
-    marginBottom: 8,
+    marginBottom: theme.spacing.s,
     lineHeight: 20,
+    color: theme.colors.onBackground,
+    // Use Paper Text component with bodyMedium variant instead where possible
   },
   caption: {
-    fontSize: 12,
     opacity: 0.7,
+    color: theme.colors.onSurfaceVariant,
+    // Use Paper Text component with labelSmall variant instead where possible
   },
   
   /**
    * Form styles
    */
   formGroup: {
-    marginBottom: 16,
+    marginBottom: theme.spacing.m,
   },
   formLabel: {
-    fontSize: 14,
-    marginBottom: 8,
+    marginBottom: theme.spacing.s,
+    color: theme.colors.onSurface,
+    // Use Paper Text component with labelMedium variant instead where possible
   },
   
   /**
@@ -84,25 +92,26 @@ export const commonStyles = StyleSheet.create({
   fab: {
     position: 'absolute',
     bottom: 100,
-    right: 16,
+    right: theme.spacing.m,
     margin: 0,
     width: 56,
     height: 56,
     borderRadius: 28,
     zIndex: 9999,
+    backgroundColor: theme.colors.primary,
   },
   
   /**
    * Spacing helpers
    */
-  mt8: { marginTop: 8 },
-  mt16: { marginTop: 16 },
-  mb8: { marginBottom: 8 },
-  mb16: { marginBottom: 16 },
-  mv8: { marginVertical: 8 },
-  mv16: { marginVertical: 16 },
-  mh16: { marginHorizontal: 16 },
-  p16: { padding: 16 },
+  mt8: { marginTop: theme.spacing.s },
+  mt16: { marginTop: theme.spacing.m },
+  mb8: { marginBottom: theme.spacing.s },
+  mb16: { marginBottom: theme.spacing.m },
+  mv8: { marginVertical: theme.spacing.s },
+  mv16: { marginVertical: theme.spacing.m },
+  mh16: { marginHorizontal: theme.spacing.m },
+  p16: { padding: theme.spacing.m },
   
   /**
    * List items
@@ -110,8 +119,9 @@ export const commonStyles = StyleSheet.create({
   listItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: theme.spacing.m,
     borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outlineVariant,
   },
   
   /**
@@ -120,6 +130,7 @@ export const commonStyles = StyleSheet.create({
   divider: {
     height: 1,
     width: '100%',
-    marginVertical: 8,
+    marginVertical: theme.spacing.s,
+    backgroundColor: theme.colors.outlineVariant,
   },
 }); 
