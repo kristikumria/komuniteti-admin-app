@@ -8,10 +8,14 @@ import { format } from 'date-fns';
 import { Filter, Calendar, BarChart3, ChevronRight, FileCog, AlertCircle, Building, Home } from 'lucide-react-native';
 import { useAppSelector } from '../../../store/hooks';
 
-type Props = NativeStackScreenProps<AdministratorStackParamList, 'Reports'>;
+// Update Props type to include optional tablet layout properties
+interface Props extends NativeStackScreenProps<AdministratorStackParamList, 'Reports'> {
+  customSelectHandler?: (reportId: string) => void;
+  selectedReportId?: string | null;
+}
 
-// Mock data for reports - administrators see only reports for buildings they manage
-const MOCK_REPORTS: Report[] = [
+// Export the mock data for use in other components
+export const MOCK_REPORTS: Report[] = [
   {
     id: '1',
     title: 'Water Leak in Apartment 3B',
@@ -85,7 +89,7 @@ const MOCK_REPORTS: Report[] = [
   }
 ];
 
-export const ReportsList = ({ navigation }: Props) => {
+export const ReportsList = ({ navigation, customSelectHandler, selectedReportId }: Props) => {
   const theme = useTheme();
   const isDarkMode = useAppSelector(state => state.settings.darkMode);
   const [searchQuery, setSearchQuery] = useState('');
@@ -172,7 +176,13 @@ export const ReportsList = ({ navigation }: Props) => {
   };
 
   const handleReportPress = (reportId: string) => {
-    navigation.navigate('ReportDetails', { reportId });
+    // Use custom handler if provided (for tablet layout)
+    if (customSelectHandler) {
+      customSelectHandler(reportId);
+    } else {
+      // Default navigation behavior
+      navigation.navigate('ReportDetails', { reportId });
+    }
   };
 
   const renderReportCard = ({ item }: { item: Report }) => {
@@ -184,13 +194,15 @@ export const ReportsList = ({ navigation }: Props) => {
     };
 
     const isRecent = isPastDay(item.date, 2);
+    const isSelected = selectedReportId === item.id;
 
     return (
       <TouchableOpacity onPress={() => handleReportPress(item.id)}>
         <Card 
           style={[
             styles.reportCard, 
-            { backgroundColor: isDarkMode ? '#1E1E1E' : 'white' }
+            { backgroundColor: isDarkMode ? '#1E1E1E' : 'white' },
+            isSelected && { borderColor: theme.colors.primary, borderWidth: 2 }
           ]}
           mode="elevated"
         >
@@ -256,6 +268,13 @@ export const ReportsList = ({ navigation }: Props) => {
               </Text>
             </View>
           </Card.Content>
+          
+          {/* Show a chevron only in mobile view */}
+          {!customSelectHandler && (
+            <View style={styles.chevronContainer}>
+              <ChevronRight size={24} color={isDarkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.3)'} />
+            </View>
+          )}
         </Card>
       </TouchableOpacity>
     );
@@ -578,5 +597,11 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     borderRadius: 28,
+  },
+  chevronContainer: {
+    position: 'absolute',
+    right: 16,
+    top: '50%',
+    transform: [{ translateY: -12 }],
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { PushNotificationHandler } from './PushNotificationHandler';
@@ -37,6 +37,11 @@ export const NotificationManager: React.FC<NotificationManagerProps> = ({ childr
     };
   }, [user?.id, dispatch]);
   
+  // Define handleDismissToast with useCallback to ensure it's stable
+  const handleDismissToast = useCallback(() => {
+    setActiveNotification(null);
+  }, []);
+  
   // Set up a mock push notification listener
   useEffect(() => {
     // In a real app, you would use Firebase Messaging or similar
@@ -69,10 +74,6 @@ export const NotificationManager: React.FC<NotificationManagerProps> = ({ childr
       return () => clearInterval(simulateNotificationInterval);
     }
   }, [user?.id, dispatch]);
-  
-  const handleDismissToast = () => {
-    setActiveNotification(null);
-  };
   
   return (
     <>

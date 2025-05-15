@@ -5,7 +5,7 @@ import { ChatConversation, User } from '../navigation/types';
 
 // Mock user data
 const mockUser: User = {
-  id: 'admin-1',
+  id: 'admin1',
   name: 'Admin User',
   email: 'admin@komuniteti.com',
   role: 'administrator'
@@ -25,7 +25,7 @@ const mockConversations: ChatConversation[] = [
         isOnline: true
       },
       {
-        id: 'admin-1',
+        id: 'admin1',
         name: 'Admin User',
         role: 'admin',
         image: 'https://randomuser.me/api/portraits/men/32.jpg',
@@ -66,7 +66,7 @@ const mockConversations: ChatConversation[] = [
         isOnline: true
       },
       {
-        id: 'admin-1',
+        id: 'admin1',
         name: 'Admin User',
         role: 'admin',
         image: 'https://randomuser.me/api/portraits/men/32.jpg',
@@ -76,7 +76,7 @@ const mockConversations: ChatConversation[] = [
     lastMessage: {
       id: 'msg-2',
       conversationId: 'conv2',
-      senderId: 'admin-1',
+      senderId: 'admin1',
       senderName: 'Admin User',
       senderRole: 'admin',
       content: 'The maintenance is scheduled for tomorrow',

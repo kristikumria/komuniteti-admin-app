@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, ScrollView, TouchableOpacity, RefreshControl, Dimensions } from 'react-native';
 import { Text, Card, useTheme, ActivityIndicator, Surface, Button, Avatar } from 'react-native-paper';
-import { Users, AlertCircle, CalendarClock, Wallet, BarChart3, ChevronRight, Plus, ArrowUpRight, TrendingUp } from 'lucide-react-native';
+import { Users, AlertCircle, CalendarClock, Wallet, BarChart3, ChevronRight, Plus, ArrowUpRight, TrendingUp, Building2 } from 'lucide-react-native';
 import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -79,6 +79,10 @@ export const Dashboard = () => {
     navigation.navigate('ChatTab');
   };
   
+  const navigateToUnits = () => {
+    navigation.navigate('UnitsTab');
+  };
+  
   // Calculate stats from resident data
   const totalResidents = residents.length;
   const overdue = residents.filter(resident => resident.paymentStatus === 'overdue').length;
@@ -140,13 +144,22 @@ export const Dashboard = () => {
         <View style={styles.quickActionsContainer}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>Quick Actions</Text>
           
-          <Surface style={[styles.quickActionsRow, { backgroundColor: cardBackground }]} elevation={2}>
+          <Surface style={[styles.quickActionsRow]} elevation={2}>
             <View style={styles.quickActionsRowContent}>
             <TouchableOpacity style={styles.quickAction} onPress={navigateToResidents}>
               <View style={[styles.quickActionIcon, { backgroundColor: theme.colors.primary + '15' }]}>
                 <Users size={22} color={theme.colors.primary} />
               </View>
               <Text style={[styles.quickActionText, { color: textColor, fontWeight: '600' }]}>Residents</Text>
+            </TouchableOpacity>
+            
+            <View style={[styles.divider, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]} />
+            
+            <TouchableOpacity style={styles.quickAction} onPress={navigateToUnits}>
+              <View style={[styles.quickActionIcon, { backgroundColor: '#5C6BC0' + '15' }]}>
+                <Building2 size={22} color="#5C6BC0" />
+              </View>
+              <Text style={[styles.quickActionText, { color: textColor, fontWeight: '600' }]}>Units</Text>
             </TouchableOpacity>
             
             <View style={[styles.divider, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]} />
@@ -184,50 +197,58 @@ export const Dashboard = () => {
           <Text style={[styles.sectionTitle, { color: textColor }]}>Overview</Text>
           <View style={styles.overviewCards}>
             <Surface style={[styles.overviewCard, { backgroundColor: cardBackground }]} elevation={2}>
-              <View style={styles.overviewCardContent}>
-              <Text style={[styles.overviewLabel, { color: secondaryTextColor }]}>Total Residents</Text>
-              <View style={styles.overviewValue}>
-                <Text style={[styles.overviewNumber, { color: textColor }]}>{totalResidents}</Text>
-                <View style={[styles.indicatorContainer, { backgroundColor: theme.colors.primary + '15', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 }]}>
-                  <TrendingUp size={12} color={theme.colors.primary} />
-                  <Text style={[styles.indicatorText, { color: theme.colors.primary }]}>Active</Text>
+              <View style={{overflow: 'hidden'}}>
+                <View style={styles.overviewCardContent}>
+                  <Text style={[styles.overviewLabel, { color: secondaryTextColor }]}>Total Residents</Text>
+                  <View style={styles.overviewValue}>
+                    <Text style={[styles.overviewNumber, { color: textColor }]}>{totalResidents}</Text>
+                    <View style={[styles.indicatorContainer, { backgroundColor: theme.colors.primary + '15', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 }]}>
+                      <TrendingUp size={12} color={theme.colors.primary} />
+                      <Text style={[styles.indicatorText, { color: theme.colors.primary }]}>Active</Text>
+                    </View>
                   </View>
                 </View>
               </View>
             </Surface>
             
             <Surface style={[styles.overviewCard, { backgroundColor: cardBackground }]} elevation={2}>
-              <View style={styles.overviewCardContent}>
-              <Text style={[styles.overviewLabel, { color: secondaryTextColor }]}>Owners</Text>
-              <View style={styles.overviewValue}>
-                <Text style={[styles.overviewNumber, { color: textColor }]}>{owners}</Text>
-                <View style={[styles.indicatorContainer, { backgroundColor: '#00897b' + '15', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 }]}>
-                  <Text style={[styles.indicatorText, { color: '#00897b' }]}>{ownersPercentage}%</Text>
+              <View style={{overflow: 'hidden'}}>
+                <View style={styles.overviewCardContent}>
+                  <Text style={[styles.overviewLabel, { color: secondaryTextColor }]}>Owners</Text>
+                  <View style={styles.overviewValue}>
+                    <Text style={[styles.overviewNumber, { color: textColor }]}>{owners}</Text>
+                    <View style={[styles.indicatorContainer, { backgroundColor: '#00897b' + '15', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 }]}>
+                      <Text style={[styles.indicatorText, { color: '#00897b' }]}>{ownersPercentage}%</Text>
+                    </View>
                   </View>
                 </View>
               </View>
             </Surface>
             
             <Surface style={[styles.overviewCard, { backgroundColor: cardBackground }]} elevation={2}>
-              <View style={styles.overviewCardContent}>
-              <Text style={[styles.overviewLabel, { color: secondaryTextColor }]}>Revenue</Text>
-              <View style={styles.overviewValue}>
-                <Text style={[styles.overviewNumber, { color: textColor }]}>€8,500</Text>
-                <View style={[styles.indicatorContainer, { backgroundColor: '#43a047' + '15', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 }]}>
-                  <TrendingUp size={12} color="#43a047" />
-                  <Text style={[styles.indicatorText, { color: '#43a047' }]}>+12%</Text>
+              <View style={{overflow: 'hidden'}}>
+                <View style={styles.overviewCardContent}>
+                  <Text style={[styles.overviewLabel, { color: secondaryTextColor }]}>Revenue</Text>
+                  <View style={styles.overviewValue}>
+                    <Text style={[styles.overviewNumber, { color: textColor }]}>€8,500</Text>
+                    <View style={[styles.indicatorContainer, { backgroundColor: '#43a047' + '15', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 }]}>
+                      <TrendingUp size={12} color="#43a047" />
+                      <Text style={[styles.indicatorText, { color: '#43a047' }]}>+12%</Text>
+                    </View>
                   </View>
                 </View>
               </View>
             </Surface>
             
             <Surface style={[styles.overviewCard, { backgroundColor: cardBackground }]} elevation={2}>
-              <View style={styles.overviewCardContent}>
-              <Text style={[styles.overviewLabel, { color: secondaryTextColor }]}>Overdue</Text>
-              <View style={styles.overviewValue}>
-                <Text style={[styles.overviewNumber, { color: textColor }]}>{overdue}</Text>
-                <View style={[styles.indicatorContainer, { backgroundColor: '#e53935' + '15', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 }]}>
-                  <Text style={[styles.indicatorText, { color: '#e53935' }]}>{overduePercentage}%</Text>
+              <View style={{overflow: 'hidden'}}>
+                <View style={styles.overviewCardContent}>
+                  <Text style={[styles.overviewLabel, { color: secondaryTextColor }]}>Overdue</Text>
+                  <View style={styles.overviewValue}>
+                    <Text style={[styles.overviewNumber, { color: textColor }]}>{overdue}</Text>
+                    <View style={[styles.indicatorContainer, { backgroundColor: '#e53935' + '15', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4 }]}>
+                      <Text style={[styles.indicatorText, { color: '#e53935' }]}>{overduePercentage}%</Text>
+                    </View>
                   </View>
                 </View>
               </View>
@@ -246,33 +267,35 @@ export const Dashboard = () => {
           </View>
           
           <Surface style={[styles.recentListCard, { backgroundColor: cardBackground }]} elevation={1}>
-            <View style={styles.recentListCardContent}>
-            {residents.slice(0, 3).map((resident) => (
-              <ListItem
-                key={resident.id}
-                title={resident.name}
-                subtitle={`${resident.unit} • ${resident.status === 'owner' ? 'Owner' : 'Tenant'}`}
-                description={`${resident.familyMembers} family members • Moved in: ${new Date(resident.moveInDate).toLocaleDateString()}`}
-                avatar={{
-                  uri: resident.image,
-                }}
-                onPress={() => handleResidentPress(resident.id)}
-                badge={{
-                  text: resident.paymentStatus === 'current' ? 'Current' : 'Overdue',
-                  color: resident.paymentStatus === 'current' ? STATUS_COLORS.success : STATUS_COLORS.error,
-                }}
-                showDivider={resident.id !== residents[Math.min(residents.length - 1, 2)].id}
-              />
-            ))}
-            
-            <Button 
-              mode="outlined"
-              icon="plus"
-              onPress={navigateToResidents}
-              style={styles.addButton}
-            >
-              Add New Resident
-            </Button>
+            <View style={{overflow: 'hidden'}}>
+              <View style={styles.recentListCardContent}>
+                {residents.slice(0, 3).map((resident) => (
+                  <ListItem
+                    key={resident.id}
+                    title={resident.name}
+                    subtitle={`${resident.unit} • ${resident.status === 'owner' ? 'Owner' : 'Tenant'}`}
+                    description={`${resident.familyMembers} family members • Moved in: ${new Date(resident.moveInDate).toLocaleDateString()}`}
+                    avatar={{
+                      uri: resident.image,
+                    }}
+                    onPress={() => handleResidentPress(resident.id)}
+                    badge={{
+                      text: resident.paymentStatus === 'current' ? 'Current' : 'Overdue',
+                      color: resident.paymentStatus === 'current' ? STATUS_COLORS.success : STATUS_COLORS.error,
+                    }}
+                    showDivider={resident.id !== residents[Math.min(residents.length - 1, 2)].id}
+                  />
+                ))}
+                
+                <Button 
+                  mode="outlined"
+                  icon="plus"
+                  onPress={navigateToResidents}
+                  style={styles.addButton}
+                >
+                  Add New Resident
+                </Button>
+              </View>
             </View>
           </Surface>
         </View>
@@ -288,41 +311,43 @@ export const Dashboard = () => {
           </View>
           
           <Surface style={[styles.recentListCard, { backgroundColor: cardBackground }]} elevation={1}>
-            <View style={styles.recentListCardContent}>
-            <ListItem
-              title="Alexsander Meti"
-              subtitle="Monthly Maintenance • Due June 5"
-              description="€350 • Last paid: May 5, 2023"
-              avatar={{
-                uri: 'https://randomuser.me/api/portraits/men/35.jpg',
-              }}
-              badge={{
-                text: 'Pending',
-                color: STATUS_COLORS.pending,
-              }}
-            />
-            
-            <ListItem
-              title="Brikena Prifti"
-              subtitle="Quarterly Service Fee • Due June 15"
-              description="€200 • Last paid: March 15, 2023"
-              avatar={{
-                uri: 'https://randomuser.me/api/portraits/women/32.jpg',
-              }}
-              badge={{
-                text: 'Pending',
-                color: STATUS_COLORS.pending,
-              }}
-            />
-            
-            <Button 
-              mode="outlined"
-              icon="plus"
-              onPress={navigateToPayments}
-              style={styles.addButton}
-            >
-              Process New Payment
-            </Button>
+            <View style={{overflow: 'hidden'}}>
+              <View style={styles.recentListCardContent}>
+                <ListItem
+                  title="Alexsander Meti"
+                  subtitle="Monthly Maintenance • Due June 5"
+                  description="€350 • Last paid: May 5, 2023"
+                  avatar={{
+                    uri: 'https://randomuser.me/api/portraits/men/35.jpg',
+                  }}
+                  badge={{
+                    text: 'Pending',
+                    color: STATUS_COLORS.pending,
+                  }}
+                />
+                
+                <ListItem
+                  title="Brikena Prifti"
+                  subtitle="Quarterly Service Fee • Due June 15"
+                  description="€200 • Last paid: March 15, 2023"
+                  avatar={{
+                    uri: 'https://randomuser.me/api/portraits/women/32.jpg',
+                  }}
+                  badge={{
+                    text: 'Pending',
+                    color: STATUS_COLORS.pending,
+                  }}
+                />
+                
+                <Button 
+                  mode="outlined"
+                  icon="plus"
+                  onPress={navigateToPayments}
+                  style={styles.addButton}
+                >
+                  Process New Payment
+                </Button>
+              </View>
             </View>
           </Surface>
         </View>
@@ -335,7 +360,6 @@ export const Dashboard = () => {
       <Header 
         title="Home" 
         showBack={false}
-        showNotifications={true}
         showAccountSwitcher={true}
       />
       
@@ -380,7 +404,6 @@ const styles = StyleSheet.create({
   quickActionsRow: {
     borderRadius: 16,
     marginTop: 12,
-    overflow: 'hidden',
   },
   quickActionsRowContent: {
     flexDirection: 'row',

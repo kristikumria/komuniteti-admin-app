@@ -25,43 +25,54 @@ export interface FilterConfig {
   sortOptions: SortOption[];
 }
 
-interface FilterModalProps {
-  isVisible: boolean;
-  onClose: () => void;
+export interface FilterModalProps {
+  visible?: boolean;
+  isVisible?: boolean;
+  onDismiss?: () => void;
+  onClose?: () => void;
   config: FilterConfig;
   onApplyFilters: (filters: Record<string, string[]>, sort: { field: string; direction: 'asc' | 'desc' }) => void;
+  initialFilters?: Record<string, string[]>;
+  initialSort?: { field: string; direction: 'asc' | 'desc' };
   activeFilters?: Record<string, string[]>;
   activeSort?: { field: string; direction: 'asc' | 'desc' };
 }
 
 export const FilterModal = ({
+  visible,
   isVisible,
+  onDismiss,
   onClose,
-  config,
+  config = { filterGroups: [], sortOptions: [] },
   onApplyFilters,
-  activeFilters = {},
-  activeSort = { field: '', direction: 'asc' }
+  initialFilters = {},
+  initialSort = { field: '', direction: 'asc' },
+  activeFilters,
+  activeSort
 }: FilterModalProps) => {
   const theme = useTheme();
   const isDarkMode = useAppSelector(state => state.settings.darkMode);
   
-  // Initialize local filter state from activeFilters or empty arrays
+  const isModalVisible = visible || isVisible || false;
+  const handleDismiss = onDismiss || onClose || (() => {});
+  const initialFilterValues = activeFilters || initialFilters;
+  const initialSortValue = activeSort || initialSort;
+  
   const [filters, setFilters] = useState<Record<string, string[]>>(() => {
-    const initialFilters: Record<string, string[]> = {};
-    config.filterGroups.forEach(group => {
-      initialFilters[group.id] = activeFilters[group.id] || [];
+    const initialState: Record<string, string[]> = {};
+    config?.filterGroups?.forEach(group => {
+      initialState[group.id] = initialFilterValues[group.id] || [];
     });
-    return initialFilters;
+    return initialState;
   });
   
-  const [sort, setSort] = useState<{ field: string; direction: 'asc' | 'desc' }>(activeSort);
+  const [sort, setSort] = useState<{ field: string; direction: 'asc' | 'desc' }>(initialSortValue);
   
   const handleToggleFilter = (groupId: string, optionId: string, multiSelect?: boolean) => {
     setFilters(prev => {
       const currentGroup = [...(prev[groupId] || [])];
       
       if (multiSelect) {
-        // For multi-select, toggle the option
         if (currentGroup.includes(optionId)) {
           return {
             ...prev,
@@ -74,7 +85,6 @@ export const FilterModal = ({
           };
         }
       } else {
-        // For single-select, replace the current selection
         if (currentGroup.includes(optionId)) {
           return {
             ...prev,
@@ -93,13 +103,11 @@ export const FilterModal = ({
   const handleSort = (fieldId: string) => {
     setSort(prev => {
       if (prev.field === fieldId) {
-        // Toggle direction if same field
         return {
           field: fieldId,
           direction: prev.direction === 'asc' ? 'desc' : 'asc'
         };
       } else {
-        // Default to ascending for new field
         return {
           field: fieldId,
           direction: 'asc'
@@ -110,7 +118,7 @@ export const FilterModal = ({
   
   const handleReset = () => {
     const resetFilters: Record<string, string[]> = {};
-    config.filterGroups.forEach(group => {
+    config?.filterGroups?.forEach(group => {
       resetFilters[group.id] = [];
     });
     setFilters(resetFilters);
@@ -118,18 +126,20 @@ export const FilterModal = ({
   };
   
   const handleApply = () => {
-    onApplyFilters(filters, sort);
-    onClose();
+    if (typeof onApplyFilters === 'function') {
+      onApplyFilters(filters, sort);
+    }
+    handleDismiss();
   };
   
   const hasActiveFilters = Object.values(filters).some(group => group.length > 0) || sort.field !== '';
   
   return (
     <Modal
-      visible={isVisible}
+      visible={isModalVisible}
       animationType="slide"
       transparent={true}
-      onRequestClose={onClose}
+      onRequestClose={handleDismiss}
     >
       <View 
         style={[
@@ -150,7 +160,7 @@ export const FilterModal = ({
             <Text style={[styles.title, { color: isDarkMode ? '#fff' : '#333' }]}>
               Filters & Sorting
             </Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <TouchableOpacity onPress={handleDismiss} style={styles.closeButton}>
               <X size={24} color={isDarkMode ? '#fff' : '#333'} />
             </TouchableOpacity>
           </View>
@@ -158,8 +168,7 @@ export const FilterModal = ({
           <Divider style={styles.divider} />
           
           <ScrollView style={styles.scrollView}>
-            {/* Filter Groups */}
-            {config.filterGroups.map(group => (
+            {config?.filterGroups?.map(group => (
               <View key={group.id} style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: isDarkMode ? '#fff' : '#333' }]}>
                   {group.name}
@@ -187,13 +196,12 @@ export const FilterModal = ({
               </View>
             ))}
             
-            {/* Sort Options */}
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: isDarkMode ? '#fff' : '#333' }]}>
                 Sort By
               </Text>
               
-              {config.sortOptions.map(option => (
+              {config?.sortOptions?.map(option => (
                 <TouchableOpacity
                   key={option.id}
                   style={[

@@ -8,20 +8,33 @@ import {
   Users, 
   Wallet, 
   MessageSquare,
-  MoreHorizontal 
+  MoreHorizontal,
+  Building2
 } from 'lucide-react-native';
 import { AdministratorStackParamList, AdministratorTabParamList } from './types';
 import { BlurView } from 'expo-blur';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store/store';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 
 // Import screens
-import { Dashboard } from '../screens/administrator/Dashboard';
+import { AdministratorDashboard } from '../screens/administrator/Dashboard';
 import { ResidentsList } from '../screens/administrator/Residents/ResidentsList';
 import { ResidentDetails } from '../screens/administrator/Residents/ResidentDetails';
+import { ResidentsTabletLayout } from '../screens/administrator/Residents/ResidentsTabletLayout';
 import { AddResident } from '../screens/administrator/Residents/AddResident';
 import { EditResident } from '../screens/administrator/Residents/EditResident';
+// Import Units screens
+import { UnitsList } from '../screens/administrator/Units/UnitsList';
+import { UnitsTabletLayout } from '../screens/administrator/Units/UnitsTabletLayout';
+import { ResidentialUnits } from '../screens/administrator/Units/ResidentialUnits';
+import { BusinessUnits } from '../screens/administrator/Units/BusinessUnits';
+import { BuildingUnits } from '../screens/administrator/Units/BuildingUnits';
+import { UnitDetails } from '../screens/administrator/Units/UnitDetails';
+import { AddUnit } from '../screens/administrator/Units/AddUnit';
+import { EditUnit } from '../screens/administrator/Units/EditUnit';
+// Import other screens
 import { PaymentsList } from '../screens/administrator/Payments/PaymentsList';
 import { PaymentDetails } from '../screens/administrator/Payments/PaymentDetails';
 import { AddPayment } from '../screens/administrator/Payments/AddPayment';
@@ -33,20 +46,51 @@ import { NotificationsScreen } from '../screens/shared/Notifications/Notificatio
 import { NotificationDetails } from '../screens/shared/Notifications/NotificationDetails';
 import { NotificationSettings } from '../screens/shared/Settings/NotificationSettings';
 import { ChatListScreen, ChatConversationScreen, NewConversationScreen } from '../screens/shared/Chat';
-import { InfoPointsScreen } from '../screens/shared/InfoPoints/InfoPointsScreen';
+import { InfoPointsScreen, InfoPointsTabletLayout } from '../screens/shared/InfoPoints';
 import { PollsScreen } from '../screens/shared/Polls/PollsScreen';
 import { PollDetailsScreen } from '../screens/shared/Polls/PollDetailsScreen';
-import { SettingsScreen } from '../screens/shared/Settings/SettingsScreen';
+import { SettingsScreen, SettingsTabletLayout } from '../screens/shared/Settings';
 import { MoreScreen } from '../screens/shared/More/MoreScreen';
+import { ProfileScreen } from '../screens/shared/ProfileScreen';
+import { ProfileTabletLayout } from '../screens/shared/ProfileTabletLayout';
+// Import the tablet layouts
+import { PaymentsTabletLayout } from '../screens/administrator/Payments/PaymentsTabletLayout';
+import { ReportsTabletLayout } from '../screens/administrator/Reports/ReportsTabletLayout';
+import { ChatTabletLayout } from '../screens/shared/Chat';
 
 const Tab = createBottomTabNavigator<AdministratorTabParamList>();
 const Stack = createNativeStackNavigator<AdministratorStackParamList>();
 const RootStack = createNativeStackNavigator<AdministratorStackParamList>();
+const MainStack = createBottomTabNavigator<AdministratorTabParamList>();
 
 // Individual Stack Navigators
 const ResidentsStack = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Residents" component={ResidentsList} />
+      <Stack.Screen name="ResidentDetails" component={ResidentDetails} />
+      <Stack.Screen name="AddResident" component={AddResident} />
+      <Stack.Screen name="EditResident" component={EditResident} />
+    </Stack.Navigator>
+  );
+};
+
+// Units Stack Navigator
+const UnitsStack = () => {
+  const { isTablet } = useBreakpoint();
+  
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen 
+        name="Units" 
+        component={isTablet ? UnitsTabletLayout : UnitsList} 
+      />
+      <Stack.Screen name="UnitDetails" component={UnitDetails} />
+      <Stack.Screen name="AddUnit" component={AddUnit} />
+      <Stack.Screen name="EditUnit" component={EditUnit} />
+      <Stack.Screen name="ResidentialUnits" component={ResidentialUnits} />
+      <Stack.Screen name="BusinessUnits" component={BusinessUnits} />
+      <Stack.Screen name="BuildingUnits" component={BuildingUnits} />
       <Stack.Screen name="Residents" component={ResidentsList} />
       <Stack.Screen name="ResidentDetails" component={ResidentDetails} />
       <Stack.Screen name="AddResident" component={AddResident} />
@@ -77,27 +121,34 @@ const ReportsStack = () => {
 };
 
 const ChatStack = () => {
+  const { isTablet } = useBreakpoint();
+  
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Chat" component={ChatListScreen} />
       <Stack.Screen 
-        name="ChatConversation" 
-        component={ChatConversationScreen}
+        name="Chat" 
+        component={isTablet ? ChatTabletLayout : ChatListScreen}
       />
-      <Stack.Screen 
-        name="NewConversation" 
-        component={NewConversationScreen}
-      />
+      <Stack.Screen name="ChatConversation" component={ChatConversationScreen} />
+      <Stack.Screen name="NewConversation" component={NewConversationScreen} />
     </Stack.Navigator>
   );
 };
 
 const MoreStack = () => {
+  const { isTablet } = useBreakpoint();
+  
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MoreMain" component={MoreScreen} />
-      <Stack.Screen name="Settings" component={SettingsScreen} />
-      <Stack.Screen name="InfoPointsScreen" component={InfoPointsScreen} />
+      <Stack.Screen 
+        name="Settings" 
+        component={isTablet ? SettingsTabletLayout : SettingsScreen} 
+      />
+      <Stack.Screen 
+        name="InfoPointsScreen" 
+        component={isTablet ? InfoPointsTabletLayout : InfoPointsScreen} 
+      />
       <Stack.Screen name="PollsScreen" component={PollsScreen} />
       <Stack.Screen name="PollDetails" component={PollDetailsScreen} />
       <Stack.Screen name="ReportsStack" component={ReportsStack} />
@@ -112,11 +163,12 @@ const MoreStack = () => {
 };
 
 // Bottom Tab Navigator
-const BottomTabNavigator = () => {
+const AdministratorTabNavigator = () => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const unreadChatCount = useSelector((state: RootState) => state.chat.unreadCount);
   const isDarkMode = useSelector((state: RootState) => state.settings.darkMode);
+  const { isTablet } = useBreakpoint();
   
   // Colors based on dark/light mode
   const tabBarBackgroundColor = isDarkMode ? '#121212' : '#ffffff';
@@ -128,11 +180,11 @@ const BottomTabNavigator = () => {
   // For iOS, we'll use a blur effect
   const isIOS = Platform.OS === 'ios';
 
-  // Create a wrapper component for Dashboard to ensure it's properly typed
-  const DashboardScreen = () => <Dashboard />;
+  // Create a wrapper component for Dashboard
+  const DashboardScreen = () => <AdministratorDashboard />;
 
   return (
-    <Tab.Navigator
+    <MainStack.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
@@ -176,8 +228,8 @@ const BottomTabNavigator = () => {
           
           if (route.name === 'DashboardTab') {
             return <BarChart3 color={iconColor} size={iconSize} />;
-          } else if (route.name === 'ResidentsTab') {
-            return <Users color={iconColor} size={iconSize} />;
+          } else if (route.name === 'UnitsTab') {
+            return <Building2 color={iconColor} size={iconSize} />;
           } else if (route.name === 'PaymentsTab') {
             return <Wallet color={iconColor} size={iconSize} />;
           } else if (route.name === 'ChatTab') {
@@ -200,24 +252,38 @@ const BottomTabNavigator = () => {
           return null;
         },
       })}
+      initialRouteName="DashboardTab"
     >
-      <Tab.Screen
+      <MainStack.Screen
         name="DashboardTab"
         component={DashboardScreen}
         options={{
-          tabBarLabel: 'Home',
+          tabBarLabel: 'Dashboard',
         }}
       />
 
-      <Tab.Screen
+      <MainStack.Screen
         name="ResidentsTab"
-        component={ResidentsStack}
+        component={ResidentsStackNavigator}
         options={{
-          tabBarLabel: 'Residents',
+          title: 'Residents',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{ position: 'relative' }}>
+              <Users size={24} color={color} />
+            </View>
+          ),
         }}
       />
 
-      <Tab.Screen
+      <MainStack.Screen
+        name="UnitsTab"
+        component={UnitsStack}
+        options={{
+          tabBarLabel: 'Units',
+        }}
+      />
+
+      <MainStack.Screen
         name="PaymentsTab"
         component={PaymentsStack}
         options={{
@@ -225,7 +291,7 @@ const BottomTabNavigator = () => {
         }}
       />
 
-      <Tab.Screen
+      <MainStack.Screen
         name="ChatTab"
         component={ChatStack}
         options={{
@@ -234,27 +300,131 @@ const BottomTabNavigator = () => {
         }}
       />
 
-      <Tab.Screen
+      <MainStack.Screen
         name="MoreTab"
         component={MoreStack}
         options={{
           tabBarLabel: 'More',
         }}
       />
-    </Tab.Navigator>
+    </MainStack.Navigator>
   );
 };
 
 // Root Navigator that includes both tabs and standalone screens
 export const AdministratorNavigator = () => {
+  const theme = useTheme();
+  const { isTablet } = useBreakpoint();
+
+  // Create screen configurations
+  const getScreens = () => (
+    <>
+      {/* Dashboard */}
+      <Stack.Screen name="Dashboard" component={AdministratorDashboard} />
+      
+      {/* ... existing screens ... */}
+      
+      {/* Residents Management - conditional rendering based on device type */}
+      <Stack.Screen 
+        name="Residents" 
+        component={isTablet ? ResidentsTabletLayout : ResidentsList} 
+      />
+      <Stack.Screen name="ResidentDetails" component={ResidentDetails} />
+      <Stack.Screen name="AddResident" component={AddResident} />
+      <Stack.Screen name="EditResident" component={EditResident} />
+      
+      {/* Units Management - conditional rendering based on device type */}
+      <Stack.Screen 
+        name="Units" 
+        component={isTablet ? UnitsTabletLayout : UnitsList} 
+      />
+      <Stack.Screen name="UnitDetails" component={UnitDetails} />
+      <Stack.Screen name="AddUnit" component={AddUnit} />
+      <Stack.Screen name="EditUnit" component={EditUnit} />
+      <Stack.Screen name="ResidentialUnits" component={ResidentialUnits} />
+      <Stack.Screen name="BusinessUnits" component={BusinessUnits} />
+      <Stack.Screen name="BuildingUnits" component={BuildingUnits} />
+      
+      {/* Payments Screens with tablet layout support */}
+      <Stack.Screen 
+        name="Payments" 
+        component={isTablet ? PaymentsTabletLayout : PaymentsList}
+      />
+      <Stack.Screen 
+        name="PaymentDetails" 
+        component={PaymentDetails}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen name="AddPayment" component={AddPayment} />
+      <Stack.Screen name="ProcessPayment" component={ProcessPayment} />
+      <Stack.Screen name="PaymentHistory" component={PaymentHistory} />
+      
+      {/* Reports Screens with tablet layout support */}
+      <Stack.Screen 
+        name="Reports" 
+        component={isTablet ? ReportsTabletLayout : ReportsList}
+      />
+      <Stack.Screen 
+        name="ReportDetails" 
+        component={ReportDetails}
+        options={{ headerShown: false }}
+      />
+      
+      {/* Chat Screens with tablet layout support */}
+      <Stack.Screen 
+        name="Messages" 
+        component={isTablet ? ChatTabletLayout : ChatListScreen} 
+      />
+      <Stack.Screen name="ChatConversation" component={ChatConversationScreen} />
+      <Stack.Screen name="NewConversation" component={NewConversationScreen} />
+      
+      {/* InfoPoints Screens with tablet layout support */}
+      <Stack.Screen 
+        name="InfoPoints" 
+        component={isTablet ? InfoPointsTabletLayout : InfoPointsScreen}
+      />
+    </>
+  );
+
   return (
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
-      <RootStack.Screen name="MainTabs" component={BottomTabNavigator} />
-      <RootStack.Screen name="NotificationsScreen" component={NotificationsScreen} />
-      <RootStack.Screen name="NotificationDetails" component={NotificationDetails} />
-      <RootStack.Screen name="NewConversation" component={NewConversationScreen} />
-      <RootStack.Screen name="ChatConversation" component={ChatConversationScreen} />
+      <RootStack.Screen name="AdministratorTabs" component={AdministratorTabNavigator} />
+      
+      {/* Standalone Screens */}
+      {getScreens()}
+
+      {/* Settings & Profile */}
+      <RootStack.Screen 
+        name="Settings" 
+        component={isTablet ? SettingsTabletLayout : SettingsScreen} 
+      />
+      <RootStack.Screen 
+        name="Profile" 
+        component={isTablet ? ProfileTabletLayout : ProfileScreen} 
+      />
     </RootStack.Navigator>
+  );
+};
+
+// Residents Stack Navigator (inside the tab)
+const ResidentsStackNavigator = () => {
+  const theme = useTheme();
+  const { isTablet } = useBreakpoint();
+  
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen 
+        name="Residents" 
+        component={isTablet ? ResidentsTabletLayout : ResidentsList} 
+      />
+      <Stack.Screen name="ResidentDetails" component={ResidentDetails} />
+      <Stack.Screen name="AddResident" component={AddResident} />
+      <Stack.Screen name="EditResident" component={EditResident} />
+    </Stack.Navigator>
   );
 };
 

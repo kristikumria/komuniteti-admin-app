@@ -1,19 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
-import { Text, useTheme, ActivityIndicator, Searchbar, FAB, SegmentedButtons } from 'react-native-paper';
-import { Building2, Plus, Filter } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, FlatList, TouchableOpacity, ScrollView, SafeAreaView, Dimensions, RefreshControl } from 'react-native';
+import { Text, useTheme, ActivityIndicator, Card, Button, Chip, Badge, Surface, IconButton, Avatar, FAB } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Building2, Briefcase, ChevronRight, Home, Users, LayoutGrid, Plus, ArrowLeft, Grid, Search } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 
-import { Header } from '../../../components/Header';
-import { ListItem } from '../../../components/ListItem';
-import { FilterModal, FilterConfig } from '../../../components/FilterModal';
-import { buildingService } from '../../../services/buildingService';
-import { Building, BusinessManagerStackParamList } from '../../../navigation/types';
-import { Building as BuildingType } from '../../../types/buildingTypes';
-import { useAppSelector } from '../../../store/hooks';
-import { STATUS_COLORS } from '../../../utils/constants';
+import { BusinessManagerStackParamList, BusinessAccount } from '../../../navigation/types';
 import { useThemedStyles } from '../../../hooks/useThemedStyles';
+import { useAppSelector } from '../../../store/hooks';
 
 // Define a proper navigation type for the buildings list
 type BuildingsNavigationProp = NativeStackNavigationProp<
@@ -21,401 +17,310 @@ type BuildingsNavigationProp = NativeStackNavigationProp<
   'Buildings'
 >;
 
-// Filter and sort configurations
-const filterConfig: FilterConfig = {
-  filterGroups: [
-    {
-      id: 'propertyType',
-      name: 'Property Type',
-      options: [
-        { id: 'apartment', label: 'Apartment', value: false },
-        { id: 'commercial', label: 'Commercial', value: false },
-        { id: 'mixed', label: 'Mixed Use', value: false },
-      ],
-    },
-    {
-      id: 'occupancyRange',
-      name: 'Occupancy Range',
-      options: [
-        { id: 'low', label: 'Low (<70%)', value: false },
-        { id: 'medium', label: 'Medium (70-90%)', value: false },
-        { id: 'high', label: 'High (>90%)', value: false },
-      ],
-    },
-    {
-      id: 'location',
-      name: 'Location',
-      options: [
-        { id: 'downtown', label: 'Downtown', value: false },
-        { id: 'suburbs', label: 'Suburbs', value: false },
-        { id: 'industrial', label: 'Industrial Zone', value: false },
-      ],
-      multiSelect: true,
-    },
-  ],
-  sortOptions: [
-    { id: 'name', label: 'Name' },
-    { id: 'units', label: 'Number of Units' },
-    { id: 'residents', label: 'Number of Residents' },
-    { id: 'occupancyRate', label: 'Occupancy Rate' },
-  ],
-};
+// Mock business accounts for the landing page
+const mockBusinessAccounts: Pick<BusinessAccount, 'id' | 'name' | 'type' | 'buildings'>[] = [
+  {
+    id: 'ba-1',
+    name: 'Komuniteti Holdings',
+    type: 'Property Management',
+    buildings: 12
+  },
+  {
+    id: 'ba-2',
+    name: 'Urban Spaces',
+    type: 'Commercial Property',
+    buildings: 5
+  },
+  {
+    id: 'ba-3',
+    name: 'Luxury Residences',
+    type: 'Luxury Residential',
+    buildings: 3
+  }
+];
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export const BuildingsList = () => {
   const theme = useTheme();
   const navigation = useNavigation<BuildingsNavigationProp>();
-  const isDarkMode = useAppSelector((state) => state.settings.darkMode);
   const { commonStyles } = useThemedStyles();
+  const isDarkMode = useAppSelector((state) => state.settings.darkMode);
   
-  const [buildings, setBuildings] = useState<Building[]>([]);
-  const [filteredBuildings, setFilteredBuildings] = useState<Building[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [menuVisible, setMenuVisible] = useState(false);
-  const [filterModalVisible, setFilterModalVisible] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [accounts, setAccounts] = useState<Pick<BusinessAccount, 'id' | 'name' | 'type' | 'buildings'>[]>([]);
   
-  // Advanced filter state
-  const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
-  const [activeSort, setActiveSort] = useState<{ field: string; direction: 'asc' | 'desc' }>({
-    field: '',
-    direction: 'asc'
+  // Summary statistics
+  const [stats, setStats] = useState({
+    totalAccounts: 0,
+    totalBuildings: 0,
+    residentialBuildings: 0,
+    commercialBuildings: 0
   });
   
+  // Load business accounts data and calculate stats
   useEffect(() => {
-    fetchBuildings();
+    fetchData();
   }, []);
   
-  useEffect(() => {
-    filterBuildings();
-  }, [buildings, searchQuery, selectedFilter, activeFilters, activeSort]);
-  
-  const fetchBuildings = async () => {
-    try {
-      const data = await buildingService.getBuildings();
-      // Convert API buildings to UI buildings
-      const mappedBuildings: Building[] = data.map((building: BuildingType) => ({
-        id: building.id,
-        name: building.name,
-        address: building.address,
-        units: building.units,
-        residents: Math.floor(Math.random() * 100) + 50, // Mock data for demo
-        issues: Math.floor(Math.random() * 5), // Mock data for demo
-        occupancyRate: Math.floor(Math.random() * 30) + 70, // Mock data for demo
-        maintenanceCost: `$${Math.floor(Math.random() * 5000) + 1000}`, // Mock data for demo
-        yearBuilt: building.buildYear,
-        propertyType: 'Residential', // Default value
-        amenities: ['Parking', 'Security', 'Elevator'], // Default values
-        image: building.image || 'https://picsum.photos/200/300',
-      }));
+  const fetchData = () => {
+    // Simulate API loading
+    setTimeout(() => {
+      const accountsData = mockBusinessAccounts;
+      setAccounts(accountsData);
       
-      setBuildings(mappedBuildings);
-      setFilteredBuildings(mappedBuildings);
-    } catch (error) {
-      console.error('Error fetching buildings:', error);
-    } finally {
+      // Calculate stats
+      const totalBuildings = accountsData.reduce((sum, account) => sum + account.buildings, 0);
+      setStats({
+        totalAccounts: accountsData.length,
+        totalBuildings,
+        residentialBuildings: Math.round(totalBuildings * 0.65), // Simulated values
+        commercialBuildings: Math.round(totalBuildings * 0.35)
+      });
+      
       setLoading(false);
       setRefreshing(false);
-    }
-  };
-  
-  const filterBuildings = () => {
-    let result = [...buildings];
-    
-    // Apply search filter
-    if (searchQuery) {
-      const lowercasedQuery = searchQuery.toLowerCase();
-      result = result.filter(
-        (building) =>
-          building.name.toLowerCase().includes(lowercasedQuery) ||
-          building.address.toLowerCase().includes(lowercasedQuery) ||
-          building.propertyType.toLowerCase().includes(lowercasedQuery)
-      );
-    }
-    
-    // Apply segment filter
-    if (selectedFilter !== 'all') {
-      if (selectedFilter === 'high_occupancy') {
-        result = result.filter((building) => building.occupancyRate >= 90);
-      } else if (selectedFilter === 'low_occupancy') {
-        result = result.filter((building) => building.occupancyRate < 80);
-      } else if (selectedFilter === 'issues') {
-        result = result.filter((building) => building.issues > 0);
-      }
-    }
-    
-    // Apply advanced filters
-    if (Object.keys(activeFilters).length > 0) {
-      Object.entries(activeFilters).forEach(([groupId, selectedOptions]) => {
-        if (selectedOptions.length > 0) {
-          if (groupId === 'propertyType') {
-            result = result.filter(building => 
-              selectedOptions.includes(building.propertyType.toLowerCase())
-            );
-          } else if (groupId === 'occupancyRange') {
-            result = result.filter(building => {
-              const occupancy = building.occupancyRate;
-              return (
-                (selectedOptions.includes('low') && occupancy < 70) ||
-                (selectedOptions.includes('medium') && occupancy >= 70 && occupancy <= 90) ||
-                (selectedOptions.includes('high') && occupancy > 90)
-              );
-            });
-          } else if (groupId === 'location') {
-            const locationMap: Record<string, string> = {
-              'downtown': 'Downtown',
-              'suburbs': 'Suburbs',
-              'industrial': 'Industrial Zone'
-            };
-            
-            result = result.filter(building => 
-              selectedOptions.some(option => building.address.includes(locationMap[option]))
-            );
-          }
-        }
-      });
-    }
-    
-    // Apply sorting
-    if (activeSort.field) {
-      result.sort((a, b) => {
-        const field = activeSort.field as keyof Building;
-        const direction = activeSort.direction === 'asc' ? 1 : -1;
-        
-        if (typeof a[field] === 'string' && typeof b[field] === 'string') {
-          return (a[field] as string).localeCompare(b[field] as string) * direction;
-        } else if (typeof a[field] === 'number' && typeof b[field] === 'number') {
-          return ((a[field] as number) - (b[field] as number)) * direction;
-        }
-        
-        return 0;
-      });
-    }
-    
-    setFilteredBuildings(result);
+    }, 800);
   };
   
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchBuildings();
+    fetchData();
   };
   
-  const handleBuildingPress = (buildingId: string) => {
-    navigation.navigate('BuildingDetails', { buildingId });
+  const navigateToBusinessAccount = (accountId: string, accountName: string) => {
+    navigation.navigate('BuildingsByBusinessAccount', {
+      businessAccountId: accountId,
+      businessAccountName: accountName
+    });
   };
   
-  const onChangeSearch = (query: string) => {
-    setSearchQuery(query);
+  const navigateToAllBuildings = () => {
+    navigation.navigate('Buildings');
   };
   
-  const handleAddBuilding = () => {
+  const navigateToAllAccounts = () => {
+    navigation.navigate('BusinessAccounts');
+  };
+  
+  const navigateToAddBuilding = () => {
     navigation.navigate('AddBuilding');
   };
   
-  const handleOpenFilterModal = () => {
-    setFilterModalVisible(true);
+  // Helper function to get different colors for account cards
+  const getAccountColor = (index: number) => {
+    const colors = [
+      ['#6772E5', '#4F56BD'], 
+      ['#4CAF50', '#388E3C'], 
+      ['#FF9800', '#F57C00'], 
+      ['#2196F3', '#1976D2'], 
+      ['#E91E63', '#C2185B']
+    ];
+    const colorPair = colors[index % colors.length];
+    return colorPair;
   };
   
-  const handleApplyFilters = (
-    filters: Record<string, string[]>,
-    sort: { field: string; direction: 'asc' | 'desc' }
-  ) => {
-    setActiveFilters(filters);
-    setActiveSort(sort);
-  };
-  
-  const renderEmptyList = () => (
-    <View style={styles.emptyContainer}>
-      <Building2 size={50} color={isDarkMode ? '#555' : '#ccc'} />
-      <Text 
-        style={[
-          styles.emptyText,
-          { color: isDarkMode ? '#aaa' : '#888' }
-        ]}
-      >
-        No buildings found
-      </Text>
-      {searchQuery || Object.values(activeFilters).some(arr => arr.length > 0) ? (
-        <Text 
-          style={[
-            styles.emptySubText,
-            { color: isDarkMode ? '#888' : '#aaa' }
-          ]}
-        >
-          Try adjusting your search or filters
-        </Text>
-      ) : (
-        <TouchableOpacity 
-          style={[
-            styles.emptyButton,
-            { backgroundColor: theme.colors.primary }
-          ]}
-          onPress={handleAddBuilding}
-        >
-          <Plus size={16} color="white" style={{ marginRight: 8 }} />
-          <Text style={styles.emptyButtonText}>Add Building</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-  
-  const renderBuildingItem = ({ item }: { item: Building }) => (
-    <ListItem
-      title={item.name}
-      subtitle={item.address}
-      description={`${item.units} units • ${item.residents} residents • ${item.occupancyRate}% occupied`}
-      avatar={{
-        uri: item.image,
-      }}
-      onPress={() => handleBuildingPress(item.id)}
-      badge={{
-        text: item.issues > 0 ? `${item.issues} issues` : 'No issues',
-        color: item.issues > 0 ? STATUS_COLORS.error : STATUS_COLORS.success,
-      }}
-      rightContent={
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => navigation.navigate('EditBuilding', { buildingId: item.id })}
-        >
-          <Text style={{ color: theme.colors.primary }}>Edit</Text>
-        </TouchableOpacity>
-      }
-    />
-  );
-  
-  if (loading && !refreshing) {
+  const renderAccountItem = ({ item, index }: { item: Pick<BusinessAccount, 'id' | 'name' | 'type' | 'buildings'>, index: number }) => {
+    const [startColor, endColor] = getAccountColor(index);
+    
     return (
-      <>
-        <Header 
-          title="Buildings" 
-          showBack={false}
-          showNotifications={false}
-        />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={{ marginTop: 16, color: isDarkMode ? '#fff' : '#333' }}>
-            Loading buildings...
-          </Text>
-        </View>
-      </>
-    );
-  }
-  
-  // Count active filters for badge
-  const activeFilterCount = Object.values(activeFilters)
-    .reduce((count, options) => count + options.length, 0) + (activeSort.field ? 1 : 0);
-  
-  return (
-    <>
-      <Header 
-        title="Buildings" 
-        showBack={false}
-        showNotifications={false}
-      />
-      
-      <View 
-        style={[
-          styles.container,
-          { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }
-        ]}
+      <TouchableOpacity
+        onPress={() => navigateToBusinessAccount(item.id, item.name)}
+        style={styles.accountCardContainer}
+        activeOpacity={0.8}
       >
-        <View style={styles.searchContainer}>
-          <Searchbar
-            placeholder="Search buildings..."
-            onChangeText={onChangeSearch}
-            value={searchQuery}
-            style={[
-              styles.searchBar,
-              { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }
-            ]}
-            iconColor={isDarkMode ? '#aaa' : '#666'}
-            inputStyle={{ color: isDarkMode ? '#fff' : '#333' }}
-            placeholderTextColor={isDarkMode ? '#666' : '#aaa'}
-          />
-          
-          <TouchableOpacity 
-            style={[
-              styles.filterButton,
-              { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }
-            ]}
-            onPress={handleOpenFilterModal}
-          >
-            <Filter size={20} color={theme.colors.primary} />
-            {activeFilterCount > 0 && (
-              <View style={[
-                styles.filterBadge, 
-                { backgroundColor: theme.colors.primary }
-              ]}>
-                <Text style={styles.filterBadgeText}>
-                  {activeFilterCount}
+        <Card style={styles.accountCard} mode="elevated">
+          <Card.Content style={styles.accountCardContent}>
+            <View style={styles.accountHeader}>
+              <LinearGradient
+                colors={[startColor, endColor]}
+                style={styles.accountIconContainer}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Briefcase size={24} color="#fff" />
+              </LinearGradient>
+              
+              <View style={styles.accountTitleContainer}>
+                <Text variant="titleMedium" style={styles.accountName}>{item.name}</Text>
+                <Text variant="bodySmall" style={styles.accountType}>{item.type}</Text>
+              </View>
+            </View>
+            
+            <View style={styles.accountDetailsContainer}>
+              <View style={styles.buildingsBadge}>
+                <Building2 size={14} color={theme.colors.primary} style={{ marginRight: 6 }} />
+                <Text variant="labelMedium" style={styles.buildingsCount}>
+                  {item.buildings} {item.buildings === 1 ? 'Building' : 'Buildings'}
                 </Text>
               </View>
-            )}
-          </TouchableOpacity>
+              
+              <ChevronRight size={20} color={theme.colors.onSurfaceVariant} />
+            </View>
+          </Card.Content>
+        </Card>
+      </TouchableOpacity>
+    );
+  };
+  
+  const renderStatCards = () => (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.statsCardsContainer}
+    >
+      <LinearGradient
+        colors={['#4A69FF', '#304EFF']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.statCard}
+      >
+        <View style={styles.statIconContainer}>
+          <Briefcase size={24} color="#fff" />
+        </View>
+        <Text style={styles.statValue}>{stats.totalAccounts}</Text>
+        <Text style={styles.statLabel}>Accounts</Text>
+      </LinearGradient>
+      
+      <LinearGradient
+        colors={['#FF6B8A', '#FF5376']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.statCard}
+      >
+        <View style={styles.statIconContainer}>
+          <Building2 size={24} color="#fff" />
+        </View>
+        <Text style={styles.statValue}>{stats.totalBuildings}</Text>
+        <Text style={styles.statLabel}>Buildings</Text>
+      </LinearGradient>
+      
+      <LinearGradient
+        colors={['#50D3B4', '#3BC7A7']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.statCard}
+      >
+        <View style={styles.statIconContainer}>
+          <Home size={24} color="#fff" />
+        </View>
+        <Text style={styles.statValue}>{stats.residentialBuildings}</Text>
+        <Text style={styles.statLabel}>Residential</Text>
+      </LinearGradient>
+      
+      <LinearGradient
+        colors={['#FFBE4F', '#FFA53B']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.statCard}
+      >
+        <View style={styles.statIconContainer}>
+          <Briefcase size={24} color="#fff" />
+        </View>
+        <Text style={styles.statValue}>{stats.commercialBuildings}</Text>
+        <Text style={styles.statLabel}>Commercial</Text>
+      </LinearGradient>
+    </ScrollView>
+  );
+  
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+      
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <IconButton
+            icon={(props) => <ArrowLeft {...props} />}
+            size={24}
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          />
+          <Text variant="headlineMedium" style={styles.title}>Business Accounts</Text>
         </View>
         
-        <SegmentedButtons
-          value={selectedFilter}
-          onValueChange={setSelectedFilter}
-          style={styles.segmentedButtons}
-          buttons={[
-            {
-              value: 'all',
-              label: 'All',
-            },
-            {
-              value: 'high_occupancy',
-              label: 'High Occupancy',
-            },
-            {
-              value: 'low_occupancy',
-              label: 'Low Occupancy',
-            },
-            {
-              value: 'issues',
-              label: 'With Issues',
-            },
-          ]}
-        />
-        
+        <View style={styles.headerRight}>
+          <IconButton
+            icon={(props) => <Grid {...props} />}
+            size={24}
+            mode="contained"
+            onPress={navigateToAllBuildings}
+            style={styles.actionButton}
+          />
+          <IconButton
+            icon={(props) => <Search {...props} />}
+            size={24}
+            mode="contained"
+            onPress={() => {}}
+            style={styles.actionButton}
+          />
+        </View>
+      </View>
+      
+      {loading && !refreshing ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={{ marginTop: 16, color: theme.colors.onBackground }}>
+            Loading accounts...
+          </Text>
+        </View>
+      ) : (
         <FlatList
-          data={filteredBuildings}
-          renderItem={renderBuildingItem}
-          keyExtractor={item => item.id}
+          ListHeaderComponent={
+            <>
+              {renderStatCards()}
+              
+              <View style={styles.sectionHeader}>
+                <Text variant="titleMedium" style={styles.sectionTitle}>
+                  Select Account
+                </Text>
+                <Text variant="bodySmall" style={styles.sectionDescription}>
+                  View buildings by business account
+                </Text>
+              </View>
+            </>
+          }
+          data={accounts}
+          keyExtractor={(item) => item.id}
+          renderItem={renderAccountItem}
+          contentContainerStyle={styles.accountsListContent}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
               colors={[theme.colors.primary]}
-              tintColor={theme.colors.primary}
             />
           }
-          ListEmptyComponent={renderEmptyList}
-          contentContainerStyle={
-            filteredBuildings.length === 0
-              ? { flex: 1, justifyContent: 'center' }
-              : { paddingBottom: 80 }
+          ListEmptyComponent={
+            <Card style={styles.emptyCard}>
+              <Card.Content style={styles.emptyCardContent}>
+                <Briefcase size={40} color={theme.colors.primary} style={{ opacity: 0.5, marginBottom: 12 }} />
+                <Text variant="headlineSmall" style={{ textAlign: 'center', marginBottom: 8 }}>
+                  No Business Accounts
+                </Text>
+                <Text variant="bodyMedium" style={{ textAlign: 'center', color: theme.colors.onSurfaceVariant, marginBottom: 24 }}>
+                  Add your first business account to get started
+                </Text>
+                <Button 
+                  mode="contained" 
+                  onPress={() => {}}
+                >
+                  Add Business Account
+                </Button>
+              </Card.Content>
+            </Card>
           }
         />
-      </View>
+      )}
       
       <FAB
-        icon={props => <Plus {...props} />}
-        style={[commonStyles.fab, { backgroundColor: theme.colors.primary }]}
-        onPress={handleAddBuilding}
-        color="white"
+        icon="plus"
+        style={styles.fab}
+        onPress={navigateToAddBuilding}
+        color="#fff"
       />
-      
-      <FilterModal
-        isVisible={filterModalVisible}
-        onClose={() => setFilterModalVisible(false)}
-        config={filterConfig}
-        onApplyFilters={handleApplyFilters}
-        activeFilters={activeFilters}
-        activeSort={activeSort}
-      />
-    </>
+    </SafeAreaView>
   );
 };
 
@@ -423,80 +328,154 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerRight: {
+    flexDirection: 'row',
+  },
+  backButton: {
+    margin: 0,
+    marginRight: 8,
+  },
+  actionButton: {
+    margin: 0,
+    marginLeft: 8,
+  },
+  title: {
+    fontWeight: '700',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  searchContainer: {
-    flexDirection: 'row',
+  statsCardsContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 16,
+    paddingBottom: 32,
+    gap: 12,
   },
-  searchBar: {
-    flex: 1,
-    borderRadius: 8,
-    elevation: 2,
+  statCard: {
+    borderRadius: 16,
+    padding: 16,
+    width: 140,
+    height: 120,
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  filterButton: {
-    width: 48,
-    height: 48,
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
-    borderRadius: 8,
-    elevation: 2,
-    position: 'relative',
+    marginBottom: 8,
   },
-  filterBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    minWidth: 20,
-    height: 20,
+  statValue: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 24,
+  },
+  statLabel: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12,
+  },
+  sectionHeader: {
+    paddingHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontWeight: '700',
+  },
+  sectionDescription: {
+    opacity: 0.6,
+    marginTop: 4,
+  },
+  accountsListContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 80,
+  },
+  accountCardContainer: {
+    marginBottom: 12,
+  },
+  accountCard: {
+    borderRadius: 12,
+  },
+  accountCardContent: {
+    padding: 16,
+  },
+  accountHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  accountIconContainer: {
+    width: 48,
+    height: 48,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 4,
+    marginRight: 12,
   },
-  filterBadgeText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  segmentedButtons: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-  },
-  emptyContainer: {
+  accountTitleContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
   },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 16,
+  accountName: {
+    fontWeight: '600',
   },
-  emptySubText: {
-    fontSize: 14,
-    marginTop: 8,
+  accountType: {
+    opacity: 0.7,
   },
-  emptyButton: {
+  accountDetailsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 6,
+    justifyContent: 'space-between',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.05)',
   },
-  emptyButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
+  buildingsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: 'rgba(19, 99, 223, 0.1)',
+    borderRadius: 12,
   },
-  editButton: {
-    padding: 8,
+  buildingsCount: {
+    color: '#1363DF',
+  },
+  emptyCard: {
+    marginTop: 32,
+    marginHorizontal: 8,
+    borderRadius: 12,
+    elevation: 2,
+  },
+  emptyCardContent: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  fab: {
+    position: 'absolute',
+    margin: 16,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#1363DF',
   },
 }); 

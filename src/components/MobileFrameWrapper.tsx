@@ -1,5 +1,7 @@
 import React, { ReactNode, useState, useEffect } from 'react';
 import { StyleSheet, View, Platform } from 'react-native';
+import { useThemedStyles } from '../hooks/useThemedStyles';
+import type { AppTheme } from '../theme/theme';
 
 interface MobileFrameWrapperProps {
   children: ReactNode;
@@ -11,6 +13,7 @@ export const MobileFrameWrapper: React.FC<MobileFrameWrapperProps> = ({ children
     return <>{children}</>;
   }
   
+  const { theme } = useThemedStyles();
   const [windowHeight, setWindowHeight] = useState(0);
   
   useEffect(() => {
@@ -32,11 +35,11 @@ export const MobileFrameWrapper: React.FC<MobileFrameWrapperProps> = ({ children
   const phoneHeight = maxPhoneHeight;
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.phoneContainerOuter]}>
-        <View style={[styles.phoneContainer, { width: phoneWidth, height: phoneHeight }]}>
-          <View style={styles.phoneFrame}>
-            <View style={styles.phoneContent}>
+    <View style={styles(theme).container}>
+      <View style={[styles(theme).phoneContainerOuter]}>
+        <View style={[styles(theme).phoneContainer, { width: phoneWidth, height: phoneHeight }]}>
+          <View style={styles(theme).phoneFrame}>
+            <View style={styles(theme).phoneContent}>
               {children}
             </View>
           </View>
@@ -46,35 +49,35 @@ export const MobileFrameWrapper: React.FC<MobileFrameWrapperProps> = ({ children
   );
 };
 
-const styles = StyleSheet.create({
+const styles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
     height: Platform.select({ web: '100vh' as any, default: '100%' }),
-    backgroundColor: '#e0e0e0',
+    backgroundColor: theme.colors.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    padding: theme.spacing.m,
   },
   phoneContainerOuter: {
-    borderRadius: 20,
+    borderRadius: theme.roundness * 2.5,
     backgroundColor: 'transparent',
     ...(Platform.OS === 'web' ? { 
-      boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)'
+      boxShadow: `0 10px 25px ${theme.colors.shadow}40`
     } as any : {}),
   },
   phoneContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.roundness * 2.5,
     position: 'relative',
   },
   phoneFrame: {
     width: '100%',
     height: '100%',
-    borderRadius: 20,
+    borderRadius: theme.roundness * 2.5,
   },
   phoneContent: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 20,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.roundness * 2.5,
   },
 });

@@ -16,7 +16,11 @@ import { formatCurrency, formatDate } from '../../../utils/formatters';
 import { STATUS_COLORS } from '../../../utils/constants';
 import { useThemedStyles } from '../../../hooks/useThemedStyles';
 
-type Props = NativeStackScreenProps<AdministratorStackParamList, 'Payments'>;
+// Update Props type to accept additional props for tablet layout
+type Props = NativeStackScreenProps<AdministratorStackParamList, 'Payments'> & {
+  customSelectHandler?: (paymentId: string) => void;
+  selectedPaymentId?: string | null;
+};
 
 // Filter and sort configurations
 const filterConfig: FilterConfig = {
@@ -59,11 +63,13 @@ const filterConfig: FilterConfig = {
   ],
 };
 
-export const PaymentsList = ({ navigation }: Props) => {
+export const PaymentsList = ({ navigation, customSelectHandler, selectedPaymentId }: Props) => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
-  const isDarkMode = useAppSelector((state) => state.settings.darkMode);
-  const { payments, loading } = useAppSelector((state) => state.payments);
+  const isDarkMode = useAppSelector((state) => state.settings?.darkMode ?? false);
+  const paymentsState = useAppSelector((state) => state.payments);
+  const payments = paymentsState?.payments ?? [];
+  const loading = paymentsState?.loading ?? false;
   const { commonStyles } = useThemedStyles();
   
   const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
@@ -179,7 +185,13 @@ export const PaymentsList = ({ navigation }: Props) => {
   };
   
   const handlePaymentPress = (paymentId: string) => {
-    navigation.navigate('PaymentDetails', { paymentId });
+    // Use custom handler if provided (for tablet layout)
+    if (customSelectHandler) {
+      customSelectHandler(paymentId);
+    } else {
+      // Default navigation behavior
+      navigation.navigate('PaymentDetails', { paymentId });
+    }
   };
   
   const onChangeSearch = (query: string) => {
@@ -267,29 +279,21 @@ export const PaymentsList = ({ navigation }: Props) => {
   
   const renderPaymentItem = ({ item }: { item: Payment }) => (
     <ListItem
-      title={item.residentName}
-      subtitle={`${item.buildingName} • ${formatCurrency(item.amount)}`}
-      description={`Due: ${formatDate(item.dueDate)} • ${item.type.charAt(0).toUpperCase() + item.type.slice(1)}`}
-      leftIcon={() => (
-        <View style={[styles.iconContainer, { backgroundColor: `${getStatusColor(item.status)}20` }]}>
-          <Receipt size={24} color={getStatusColor(item.status)} />
+      title={`Invoice #${item.invoiceNumber}`}
+      subtitle={`${item.residentName} - ${item.buildingName}`}
+      leftIcon={getStatusIcon(item.status)}
+      rightSubtitle={formatDate(item.dueDate)}
+      rightTitle={
+        <View style={styles.amountContainer}>
+          <Text style={styles.amount}>{formatCurrency(item.amount)}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
+            <Text style={styles.statusText}>{item.status}</Text>
+          </View>
         </View>
-      )}
-      onPress={() => handlePaymentPress(item.id)}
-      badge={{
-        text: item.status.charAt(0).toUpperCase() + item.status.slice(1),
-        color: getStatusColor(item.status),
-        icon: getStatusIcon(item.status),
-      }}
-      rightContent={
-        <Chip 
-          mode="flat" 
-          style={[styles.amountChip, { backgroundColor: getStatusColor(item.status) + '20' }]}
-          textStyle={{ color: getStatusColor(item.status), fontWeight: 'bold' }}
-        >
-          {formatCurrency(item.amount)}
-        </Chip>
       }
+      onPress={() => handlePaymentPress(item.id)}
+      showChevron={!customSelectHandler} // Hide chevron on tablet
+      selected={selectedPaymentId === item.id} // Highlight if selected
     />
   );
   
@@ -529,5 +533,23 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   historyButton: {
+  },
+  amountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  amount: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  statusBadge: {
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 }); 

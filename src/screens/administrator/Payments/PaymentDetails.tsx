@@ -29,9 +29,21 @@ import { STATUS_COLORS } from '../../../utils/constants';
 type PaymentDetailsNavigationProp = NativeStackNavigationProp<AdministratorStackParamList, 'PaymentDetails'>;
 type PaymentDetailsRouteProp = RouteProp<AdministratorStackParamList, 'PaymentDetails'>;
 
-export const PaymentDetails = () => {
-  const route = useRoute<PaymentDetailsRouteProp>();
-  const navigation = useNavigation<PaymentDetailsNavigationProp>();
+// Update props to include hideHeader for tablet layout
+interface Props {
+  route?: PaymentDetailsRouteProp;
+  navigation?: PaymentDetailsNavigationProp;
+  hideHeader?: boolean;
+}
+
+export const PaymentDetails = ({ route: propRoute, navigation: propNavigation, hideHeader = false }: Props) => {
+  // Use props or hooks based on what's available
+  const hookRoute = useRoute<PaymentDetailsRouteProp>();
+  const hookNavigation = useNavigation<PaymentDetailsNavigationProp>();
+  
+  const route = propRoute || hookRoute;
+  const navigation = propNavigation || hookNavigation;
+  
   const { paymentId } = route.params;
   const theme = useTheme();
   const dispatch = useAppDispatch();
@@ -137,10 +149,12 @@ export const PaymentDetails = () => {
   if (loading && !refreshing) {
     return (
       <>
-        <Header 
-          title="Payment Details" 
-          showBack={true}
-        />
+        {!hideHeader && (
+          <Header 
+            title="Payment Details" 
+            showBack={true}
+          />
+        )}
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={{ marginTop: 16, color: isDarkMode ? '#fff' : '#333' }}>
@@ -154,10 +168,12 @@ export const PaymentDetails = () => {
   if (!payment) {
     return (
       <>
-        <Header 
-          title="Payment Details" 
-          showBack={true}
-        />
+        {!hideHeader && (
+          <Header 
+            title="Payment Details" 
+            showBack={true}
+          />
+        )}
         <View style={styles.loadingContainer}>
           <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>
             Payment not found
@@ -176,10 +192,12 @@ export const PaymentDetails = () => {
   
   return (
     <>
-      <Header 
-        title="Payment Details" 
-        showBack={true}
-      />
+      {!hideHeader && (
+        <Header 
+          title="Payment Details" 
+          showBack={true}
+        />
+      )}
       
       <ScrollView 
         style={[styles.container, { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }]}

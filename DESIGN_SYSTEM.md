@@ -149,6 +149,119 @@ The app supports light and dark modes. Avoid hardcoding colors, and use theme co
 </View>
 ```
 
+## Responsive Design & Tablet Support
+
+The app is designed to work seamlessly across different screen sizes, with particular focus on tablet optimization for administrator workflows.
+
+### Responsive Grid System
+
+Use the responsive grid components for layouts that adapt to different screen sizes:
+
+```tsx
+import { Grid, Row, Col } from '../components/Grid';
+
+// Basic responsive grid
+<Grid>
+  <Row>
+    <Col size={12} tablet={6} desktop={4}>
+      {/* Content */}
+    </Col>
+    <Col size={12} tablet={6} desktop={4}>
+      {/* Content */}
+    </Col>
+    <Col size={12} tablet={12} desktop={4}>
+      {/* Content */}
+    </Col>
+  </Row>
+</Grid>
+```
+
+### Adaptive Layouts
+
+Use the `useBreakpoint` hook to conditionally render different layouts:
+
+```tsx
+import { useBreakpoint } from '../hooks/useBreakpoint';
+
+const MyComponent = () => {
+  const { isTablet, isDesktop } = useBreakpoint();
+  
+  return (
+    <View>
+      {isTablet ? (
+        <TwoColumnLayout>
+          <SidePanel />
+          <MainContent />
+        </TwoColumnLayout>
+      ) : (
+        <SingleColumnLayout>
+          <MainContent />
+        </SingleColumnLayout>
+      )}
+    </View>
+  );
+};
+```
+
+### Master-Detail Pattern
+
+For tablet interfaces, prefer the master-detail pattern for list-detail views:
+
+```tsx
+import { MasterDetailView } from '../components/MasterDetailView';
+
+const MyScreen = () => {
+  return (
+    <MasterDetailView
+      masterContent={<ItemList />}
+      detailContent={<ItemDetail />}
+      ratio={0.3} // 30% for master, 70% for detail
+    />
+  );
+};
+```
+
+### Touch Targets
+
+Ensure all interactive elements meet minimum touch target sizes:
+
+- Mobile: 44×44 pts minimum
+- Tablet: 48×48 pts recommended
+
+```tsx
+// Proper touch target sizing
+<TouchableOpacity 
+  style={[
+    commonStyles.touchTarget, 
+    isTablet && commonStyles.touchTargetTablet
+  ]}
+  onPress={handlePress}
+>
+  <Icon name="edit" />
+</TouchableOpacity>
+```
+
+### Orientation Support
+
+Implement layouts that work in both portrait and landscape orientations:
+
+```tsx
+import { useOrientation } from '../hooks/useOrientation';
+
+const MyComponent = () => {
+  const { isLandscape } = useOrientation();
+  
+  return (
+    <View style={[
+      styles.container,
+      isLandscape && styles.landscapeContainer
+    ]}>
+      {/* Content */}
+    </View>
+  );
+};
+```
+
 ## Best Practices
 
 1. **Always use theme colors** instead of hardcoded hex values
@@ -158,8 +271,11 @@ The app supports light and dark modes. Avoid hardcoding colors, and use theme co
 5. **Apply consistent elevation** using the Surface component
 6. **Support both light and dark modes** by using theme colors
 7. **Use text variants** instead of custom font styling
-8. **Leverage common styles** where possible
-9. **Ensure proper contrast** between text and backgrounds
+8. **Optimize for tablet interfaces** where administrators will be using the app
+9. **Test on multiple devices** to ensure cross-device compatibility
+10. **Implement responsive patterns** for adaptable UI
+11. **Leverage common styles** where possible
+12. **Ensure proper contrast** between text and backgrounds
 
 ## Component Structure Template
 

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Text, useTheme, Divider, List, Avatar, Button, Switch } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { 
   Info,
   BarChart, 
@@ -16,13 +16,17 @@ import {
   Shield,
   Share2,
   Bookmark,
-  FileText
+  FileText,
+  Briefcase,
+  Building2
 } from 'lucide-react-native';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { toggleDarkMode } from '../../../store/slices/settingsSlice';
 import { logout } from '../../../store/slices/authSlice';
 
 import { Header } from '../../../components/Header';
+import { ContextSwitcher } from '../../../components/ContextSwitcher';
+import { useContextData } from '../../../hooks/useContextData';
 
 export const MoreScreen = () => {
   const theme = useTheme();
@@ -30,7 +34,11 @@ export const MoreScreen = () => {
   const dispatch = useAppDispatch();
   const isDarkMode = useAppSelector((state) => state.settings.darkMode);
   const { user } = useAppSelector((state) => state.auth);
+  const { currentBuilding } = useContextData();
   const isBusinessManager = user?.role === 'business_manager';
+  
+  // Modal for building selection
+  const [buildingSwitcherVisible, setBuildingSwitcherVisible] = useState(false);
   
   const handleLogout = () => {
     Alert.alert(
@@ -54,13 +62,49 @@ export const MoreScreen = () => {
     dispatch(toggleDarkMode());
   };
 
-  const navigateTo = (screenName: string) => {
-    // @ts-ignore
-    navigation.navigate(screenName);
+  // Improved navigation function that properly handles screen navigation
+  const navigateTo = (screenName: string, params?: object) => {
+    // For screens that should be pushed onto the current navigator stack
+    const directNavigationScreens = [
+      'Settings', 
+      'InfoPointsScreen', 
+      'PollsScreen', 
+      'NotificationsScreen',
+      'Organigram',
+      'Analytics',
+      'BusinessAccounts'
+    ];
+    
+    try {
+      if (directNavigationScreens.includes(screenName)) {
+        // @ts-ignore - Direct navigation within the current stack
+        navigation.navigate(screenName, params);
+      } else if (screenName === 'ReportsStack') {
+        // Use a dispatch to avoid any nested navigation issues
+        navigation.dispatch(
+          CommonActions.navigate({
+            name: screenName,
+            params
+          })
+        );
+      } else {
+        // Fallback navigation method
+        // @ts-ignore
+        navigation.navigate(screenName, params);
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+      Alert.alert('Navigation Error', 'Unable to navigate to this screen at the moment.');
+    }
   };
 
   const navigateToSettings = () => {
     navigateTo('Settings');
+  };
+
+  // Show building selection modal
+  const handleBuildingSelection = () => {
+    setBuildingSwitcherVisible(true);
   };
 
   return (
@@ -100,6 +144,31 @@ export const MoreScreen = () => {
             View Settings
           </Button>
         </View>
+
+        {/* Building Selection - Only for Administrators */}
+        {!isBusinessManager && (
+          <List.Section style={[styles.section, { backgroundColor: isDarkMode ? '#1E1E1E' : '#ffffff' }]}>
+            <List.Subheader style={[styles.sectionHeader, { color: isDarkMode ? '#999' : '#666' }]}>
+              BUILDING
+            </List.Subheader>
+            
+            <View style={styles.buildingSelectorContainer}>
+              <View style={styles.buildingInfoContainer}>
+                <Building2 size={24} color={theme.colors.primary} style={styles.buildingIcon} />
+                <View style={styles.buildingDetails}>
+                  <Text style={[styles.buildingName, { color: isDarkMode ? '#fff' : '#333' }]}>
+                    {currentBuilding?.name || 'No building selected'}
+                  </Text>
+                  <Text style={[styles.buildingAddress, { color: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : '#999' }]}>
+                    {currentBuilding?.address || 'Select a building to manage'}
+                  </Text>
+                </View>
+              </View>
+              
+              <ContextSwitcher containerStyle={styles.contextSwitcherContainer} />
+            </View>
+          </List.Section>
+        )}
 
         {/* Community Tools */}
         <List.Section style={[styles.section, { backgroundColor: isDarkMode ? '#1E1E1E' : '#ffffff' }]}>
@@ -183,6 +252,19 @@ export const MoreScreen = () => {
                 title="Reports"
                 description="View and manage reports"
                 left={props => <FileText {...props} size={24} color={theme.colors.primary} />}
+                titleStyle={{ color: isDarkMode ? '#fff' : '#333' }}
+                descriptionStyle={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : '#999' }}
+                right={props => <List.Icon {...props} icon="chevron-right" />}
+              />
+            </TouchableOpacity>
+            
+            <Divider style={{ backgroundColor: isDarkMode ? '#333' : '#eee' }} />
+            
+            <TouchableOpacity onPress={() => navigateTo('BusinessAccounts')}>
+              <List.Item
+                title="Account Settings"
+                description="Manage business account settings"
+                left={props => <Briefcase {...props} size={24} color={theme.colors.primary} />}
                 titleStyle={{ color: isDarkMode ? '#fff' : '#333' }}
                 descriptionStyle={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : '#999' }}
                 right={props => <List.Icon {...props} icon="chevron-right" />}
@@ -345,5 +427,33 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 12,
+  },
+  buildingSelectorContainer: {
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  buildingInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  buildingIcon: {
+    marginRight: 12,
+  },
+  buildingDetails: {
+    flex: 1,
+  },
+  buildingName: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  buildingAddress: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  contextSwitcherContainer: {
+    marginRight: 0,
   },
 }); 

@@ -1,8 +1,20 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, createContext, useContext, useState } from 'react';
 import { Provider as PaperProvider, MD3DarkTheme } from 'react-native-paper';
 import { theme as lightTheme } from './theme';
 import { useColorScheme } from 'react-native';
 import { useAppSelector } from '../store/hooks';
+
+// ADD THIS GLOBAL MOCK to fix "Property 'theme' doesn't exist" error
+// This ensures 'theme' is always available globally
+if (typeof global.theme === 'undefined') {
+  global.theme = {
+    colors: {
+      primary: '#1363DF',
+      secondary: '#9C27B0',
+      error: '#D32F2F'
+    }
+  };
+}
 
 interface ThemeProviderProps {
   children: ReactNode;
@@ -49,7 +61,9 @@ const darkColors = {
 };
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const { darkMode } = useAppSelector((state) => state.settings || { darkMode: undefined });
+  // Get settings state with proper typing
+  const settings = useAppSelector((state) => state.settings);
+  const darkMode = settings?.darkMode;
   const systemColorScheme = useColorScheme();
   
   // Determine if we should use dark mode based on user preference or system setting

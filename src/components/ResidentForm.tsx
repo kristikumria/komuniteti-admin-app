@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { Text, TextInput, useTheme, Button, HelperText, Switch, Divider, RadioButton } from 'react-native-paper';
+import { Text, TextInput, Button, HelperText, Switch, Divider, RadioButton } from 'react-native-paper';
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { Resident } from '../navigation/types';
-import { useAppSelector } from '../store/hooks';
+import { useThemedStyles } from '../hooks/useThemedStyles';
+import type { AppTheme } from '../theme/theme';
 
 export interface ResidentFormData {
   name: string;
@@ -49,8 +50,7 @@ export const ResidentForm = ({
   isLoading,
   buildingName
 }: ResidentFormProps) => {
-  const theme = useTheme();
-  const isDarkMode = useAppSelector(state => state.settings.darkMode);
+  const { theme } = useThemedStyles();
   
   const { control, handleSubmit, formState: { errors } } = useForm<ResidentFormData>({
     defaultValues: {
@@ -76,8 +76,8 @@ export const ResidentForm = ({
   };
   
   return (
-    <ScrollView style={styles.container}>
-      <Text style={[styles.sectionTitle, { color: isDarkMode ? '#fff' : '#333' }]}>
+    <ScrollView style={styles(theme).container}>
+      <Text variant="titleMedium" style={styles(theme).sectionTitle}>
         Basic Information
       </Text>
       
@@ -86,7 +86,7 @@ export const ResidentForm = ({
         control={control}
         name="name"
         render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.inputContainer}>
+          <View style={styles(theme).inputContainer}>
             <TextInput
               label="Full Name"
               value={value}
@@ -94,9 +94,9 @@ export const ResidentForm = ({
               onBlur={onBlur}
               error={!!errors.name}
               mode="outlined"
-              style={styles.input}
+              style={styles(theme).input}
               left={<TextInput.Icon icon="account" />}
-              outlineStyle={{ borderRadius: 8 }}
+              outlineStyle={{ borderRadius: theme.roundness }}
             />
             {errors.name && (
               <HelperText type="error" visible={true}>
@@ -112,7 +112,7 @@ export const ResidentForm = ({
         control={control}
         name="email"
         render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.inputContainer}>
+          <View style={styles(theme).inputContainer}>
             <TextInput
               label="Email Address"
               value={value}
@@ -120,9 +120,9 @@ export const ResidentForm = ({
               onBlur={onBlur}
               error={!!errors.email}
               mode="outlined"
-              style={styles.input}
+              style={styles(theme).input}
               left={<TextInput.Icon icon="email" />}
-              outlineStyle={{ borderRadius: 8 }}
+              outlineStyle={{ borderRadius: theme.roundness }}
               keyboardType="email-address"
               autoCapitalize="none"
             />
@@ -140,7 +140,7 @@ export const ResidentForm = ({
         control={control}
         name="phone"
         render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.inputContainer}>
+          <View style={styles(theme).inputContainer}>
             <TextInput
               label="Phone Number"
               value={value}
@@ -148,9 +148,9 @@ export const ResidentForm = ({
               onBlur={onBlur}
               error={!!errors.phone}
               mode="outlined"
-              style={styles.input}
+              style={styles(theme).input}
               left={<TextInput.Icon icon="phone" />}
-              outlineStyle={{ borderRadius: 8 }}
+              outlineStyle={{ borderRadius: theme.roundness }}
               keyboardType="phone-pad"
             />
             {errors.phone && (
@@ -162,14 +162,14 @@ export const ResidentForm = ({
         )}
       />
       
-      <Divider style={styles.divider} />
+      <Divider style={styles(theme).divider} />
       
-      <Text style={[styles.sectionTitle, { color: isDarkMode ? '#fff' : '#333' }]}>
+      <Text variant="titleMedium" style={styles(theme).sectionTitle}>
         Residence Details
       </Text>
       
       {buildingName && (
-        <Text style={[styles.buildingName, { color: isDarkMode ? '#aaa' : '#666' }]}>
+        <Text variant="bodyMedium" style={styles(theme).buildingName}>
           Building: {buildingName}
         </Text>
       )}
@@ -179,7 +179,7 @@ export const ResidentForm = ({
         control={control}
         name="unit"
         render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.inputContainer}>
+          <View style={styles(theme).inputContainer}>
             <TextInput
               label="Unit Number/ID"
               value={value}
@@ -187,9 +187,9 @@ export const ResidentForm = ({
               onBlur={onBlur}
               error={!!errors.unit}
               mode="outlined"
-              style={styles.input}
+              style={styles(theme).input}
               left={<TextInput.Icon icon="home" />}
-              outlineStyle={{ borderRadius: 8 }}
+              outlineStyle={{ borderRadius: theme.roundness }}
             />
             {errors.unit && (
               <HelperText type="error" visible={true}>
@@ -205,19 +205,19 @@ export const ResidentForm = ({
         control={control}
         name="status"
         render={({ field: { onChange, value } }) => (
-          <View style={styles.inputContainer}>
-            <Text style={[styles.fieldLabel, { color: isDarkMode ? '#fff' : '#333' }]}>
+          <View style={styles(theme).inputContainer}>
+            <Text variant="bodyMedium" style={styles(theme).fieldLabel}>
               Resident Status
             </Text>
             <RadioButton.Group onValueChange={onChange} value={value}>
-              <View style={styles.radioContainer}>
-                <View style={styles.radioOption}>
+              <View style={styles(theme).radioContainer}>
+                <View style={styles(theme).radioOption}>
                   <RadioButton value="owner" color={theme.colors.primary} />
-                  <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>Owner</Text>
+                  <Text variant="bodyMedium">Owner</Text>
                 </View>
-                <View style={styles.radioOption}>
+                <View style={styles(theme).radioOption}>
                   <RadioButton value="tenant" color={theme.colors.primary} />
-                  <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>Tenant</Text>
+                  <Text variant="bodyMedium">Tenant</Text>
                 </View>
               </View>
             </RadioButton.Group>
@@ -235,7 +235,7 @@ export const ResidentForm = ({
         control={control}
         name="moveInDate"
         render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.inputContainer}>
+          <View style={styles(theme).inputContainer}>
             <TextInput
               label="Move-in Date (YYYY-MM-DD)"
               value={value}
@@ -243,9 +243,9 @@ export const ResidentForm = ({
               onBlur={onBlur}
               error={!!errors.moveInDate}
               mode="outlined"
-              style={styles.input}
+              style={styles(theme).input}
               left={<TextInput.Icon icon="calendar" />}
-              outlineStyle={{ borderRadius: 8 }}
+              outlineStyle={{ borderRadius: theme.roundness }}
               placeholder="YYYY-MM-DD"
             />
             {errors.moveInDate && (
@@ -257,9 +257,9 @@ export const ResidentForm = ({
         )}
       />
       
-      <Divider style={styles.divider} />
+      <Divider style={styles(theme).divider} />
       
-      <Text style={[styles.sectionTitle, { color: isDarkMode ? '#fff' : '#333' }]}>
+      <Text variant="titleMedium" style={styles(theme).sectionTitle}>
         Additional Information
       </Text>
       
@@ -268,7 +268,7 @@ export const ResidentForm = ({
         control={control}
         name="familyMembers"
         render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.inputContainer}>
+          <View style={styles(theme).inputContainer}>
             <TextInput
               label="Number of Family Members"
               value={value?.toString()}
@@ -276,9 +276,9 @@ export const ResidentForm = ({
               onBlur={onBlur}
               error={!!errors.familyMembers}
               mode="outlined"
-              style={styles.input}
+              style={styles(theme).input}
               left={<TextInput.Icon icon="account-group" />}
-              outlineStyle={{ borderRadius: 8 }}
+              outlineStyle={{ borderRadius: theme.roundness }}
               keyboardType="numeric"
             />
             {errors.familyMembers && (
@@ -295,7 +295,7 @@ export const ResidentForm = ({
         control={control}
         name="pets"
         render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.inputContainer}>
+          <View style={styles(theme).inputContainer}>
             <TextInput
               label="Pets (type and number)"
               value={value}
@@ -303,9 +303,9 @@ export const ResidentForm = ({
               onBlur={onBlur}
               error={!!errors.pets}
               mode="outlined"
-              style={styles.input}
+              style={styles(theme).input}
               left={<TextInput.Icon icon="paw" />}
-              outlineStyle={{ borderRadius: 8 }}
+              outlineStyle={{ borderRadius: theme.roundness }}
               placeholder="e.g. 1 dog, 2 cats"
             />
             {errors.pets && (
@@ -322,23 +322,23 @@ export const ResidentForm = ({
         control={control}
         name="communicationPreference"
         render={({ field: { onChange, value } }) => (
-          <View style={styles.inputContainer}>
-            <Text style={[styles.fieldLabel, { color: isDarkMode ? '#fff' : '#333' }]}>
+          <View style={styles(theme).inputContainer}>
+            <Text variant="bodyMedium" style={styles(theme).fieldLabel}>
               Preferred Communication Method
             </Text>
             <RadioButton.Group onValueChange={onChange} value={value}>
-              <View style={styles.radioContainer}>
-                <View style={styles.radioOption}>
+              <View style={styles(theme).radioContainer}>
+                <View style={styles(theme).radioOption}>
                   <RadioButton value="email" color={theme.colors.primary} />
-                  <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>Email</Text>
+                  <Text variant="bodyMedium">Email</Text>
                 </View>
-                <View style={styles.radioOption}>
+                <View style={styles(theme).radioOption}>
                   <RadioButton value="phone" color={theme.colors.primary} />
-                  <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>Phone</Text>
+                  <Text variant="bodyMedium">Phone</Text>
                 </View>
-                <View style={styles.radioOption}>
+                <View style={styles(theme).radioOption}>
                   <RadioButton value="app" color={theme.colors.primary} />
-                  <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>App</Text>
+                  <Text variant="bodyMedium">App</Text>
                 </View>
               </View>
             </RadioButton.Group>
@@ -354,7 +354,7 @@ export const ResidentForm = ({
       <Button
         mode="contained"
         onPress={handleSubmit(handleFormSubmit)}
-        style={styles.submitButton}
+        style={styles(theme).submitButton}
         loading={isLoading}
         disabled={isLoading}
       >
@@ -364,45 +364,46 @@ export const ResidentForm = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: theme.spacing.m,
+    backgroundColor: theme.colors.background,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginVertical: 16,
+    marginBottom: theme.spacing.m,
+    color: theme.colors.onBackground,
   },
   buildingName: {
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  fieldLabel: {
-    fontSize: 16,
-    marginBottom: 8,
+    marginBottom: theme.spacing.m,
+    color: theme.colors.onSurfaceVariant,
   },
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: theme.spacing.m,
   },
   input: {
-    backgroundColor: 'transparent',
+    backgroundColor: theme.colors.surfaceVariant,
   },
   divider: {
-    marginVertical: 8,
+    marginVertical: theme.spacing.m,
+    backgroundColor: theme.colors.outlineVariant,
+  },
+  fieldLabel: {
+    marginBottom: theme.spacing.s,
+    color: theme.colors.onBackground,
   },
   radioContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    marginTop: theme.spacing.s,
   },
   radioOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
-    marginBottom: 8,
+    marginRight: theme.spacing.l,
   },
   submitButton: {
-    marginVertical: 24,
-    paddingVertical: 8,
-  }
+    marginTop: theme.spacing.l,
+    marginBottom: theme.spacing.xl,
+    borderRadius: theme.roundness,
+  },
 });

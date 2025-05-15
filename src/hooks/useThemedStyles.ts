@@ -7,7 +7,7 @@ import type { AppTheme } from '../theme/theme';
  * @returns An object containing the theme and themed common styles
  */
 export const useThemedStyles = () => {
-  const theme = useTheme<AppTheme>();
+  const theme = useTheme() as AppTheme;
   const commonStyles = getCommonStyles(theme);
 
   return {

@@ -8,28 +8,34 @@ import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { fetchUnreadCount } from '../store/slices/notificationsSlice';
 import { getNotificationIcon } from '../utils/notificationUtils';
 
-interface NotificationBadgeProps {
-  userId: string;
+export interface NotificationBadgeProps {
+  userId?: string;
+  maxCount?: number;
   size?: number;
   color?: string;
 }
 
 export const NotificationBadge: React.FC<NotificationBadgeProps> = ({
   userId,
-  size = 24,
+  maxCount = 99,
+  size = 16,
   color,
 }) => {
   const theme = useTheme();
   const navigation = useNavigation();
   const dispatch = useAppDispatch();
   
-  const isDarkMode = useAppSelector(state => state.settings.darkMode);
-  const { unreadCount } = useAppSelector(state => state.notifications);
+  const isDarkMode = useAppSelector(state => state.settings?.darkMode || false);
+  const unreadCount = useAppSelector(state => state.notifications?.unreadCount || 0);
   
   // Fetch unread count on mount and when userId changes
   useEffect(() => {
     if (userId) {
-      dispatch(fetchUnreadCount(userId));
+      try {
+        dispatch(fetchUnreadCount(userId));
+      } catch (error) {
+        console.error('Error fetching notification count:', error);
+      }
     }
   }, [userId, dispatch]);
   
@@ -37,7 +43,11 @@ export const NotificationBadge: React.FC<NotificationBadgeProps> = ({
   useEffect(() => {
     const intervalId = setInterval(() => {
       if (userId) {
-        dispatch(fetchUnreadCount(userId));
+        try {
+          dispatch(fetchUnreadCount(userId));
+        } catch (error) {
+          console.error('Error fetching notification count:', error);
+        }
       }
     }, 60000); // 60 seconds
     
@@ -57,13 +67,16 @@ export const NotificationBadge: React.FC<NotificationBadgeProps> = ({
   };
   
   // If no unread notifications, just show the bell icon
-  if (unreadCount === 0) {
+  if (!unreadCount || unreadCount === 0) {
     return (
       <TouchableOpacity onPress={handlePress} style={styles.container}>
         <Bell size={size} color={color || (isDarkMode ? '#fff' : '#333')} />
       </TouchableOpacity>
     );
   }
+  
+  // Format the count with a "+" if it exceeds maxCount
+  const displayCount = unreadCount > maxCount ? `${maxCount}+` : unreadCount.toString();
   
   return (
     <TouchableOpacity onPress={handlePress} style={styles.container}>
@@ -74,11 +87,19 @@ export const NotificationBadge: React.FC<NotificationBadgeProps> = ({
           {
             backgroundColor: theme.colors.error,
             borderColor: isDarkMode ? '#121212' : '#f5f5f5',
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            right: -size / 3,
+            top: -size / 3,
           },
         ]}
       >
-        <Text style={styles.badgeText}>
-          {unreadCount > 99 ? '99+' : unreadCount}
+        <Text style={[
+          styles.badgeText,
+          { fontSize: size * 0.65 }
+        ]}>
+          {unreadCount < 10 ? displayCount : ''}
         </Text>
       </View>
     </TouchableOpacity>
@@ -95,19 +116,11 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
     borderWidth: 2,
     paddingHorizontal: 4,
   },
   badgeText: {
     color: 'white',
-    fontSize: 10,
     fontWeight: 'bold',
   },
 });

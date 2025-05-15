@@ -1,12 +1,14 @@
 import ChatListScreen from './ChatListScreen';
 import ChatConversationScreen from './ChatConversationScreen';
 import NewConversationScreen from './NewConversationScreen';
+import { ChatTabletLayout } from './ChatTabletLayout';
 
 // Export components for use in administrator and business-manager modules
 export {
   ChatListScreen,
   ChatConversationScreen,
-  NewConversationScreen
+  NewConversationScreen,
+  ChatTabletLayout
 };
 
 // Export types directly from component files

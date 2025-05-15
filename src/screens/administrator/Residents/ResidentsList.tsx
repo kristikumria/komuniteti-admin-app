@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { Text, useTheme, ActivityIndicator, Searchbar, FAB, SegmentedButtons } from 'react-native-paper';
-import { Users, Plus, Filter } from 'lucide-react-native';
+import { Users, Plus, Filter, Home } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -14,7 +14,11 @@ import { useAppSelector } from '../../../store/hooks';
 import { STATUS_COLORS } from '../../../utils/constants';
 import { useThemedStyles } from '../../../hooks/useThemedStyles';
 
-type Props = NativeStackScreenProps<AdministratorStackParamList, 'Residents'>;
+// Update the Props type to accept optional additional props for tablet mode
+type Props = NativeStackScreenProps<AdministratorStackParamList, 'Residents'> & {
+  customSelectHandler?: (residentId: string) => void;
+  selectedResidentId?: string | null;
+};
 
 // Filter and sort configurations
 const filterConfig: FilterConfig = {
@@ -54,7 +58,7 @@ const filterConfig: FilterConfig = {
   ],
 };
 
-export const ResidentsList = ({ navigation }: Props) => {
+export const ResidentsList = ({ navigation, customSelectHandler, selectedResidentId }: Props) => {
   const theme = useTheme();
   const isDarkMode = useAppSelector((state) => state.settings.darkMode);
   const { commonStyles } = useThemedStyles();
@@ -175,7 +179,13 @@ export const ResidentsList = ({ navigation }: Props) => {
   };
   
   const handleResidentPress = (residentId: string) => {
-    navigation.navigate('ResidentDetails', { residentId });
+    // Use custom handler if provided (for tablet layout)
+    if (customSelectHandler) {
+      customSelectHandler(residentId);
+    } else {
+      // Default navigation behavior
+      navigation.navigate('ResidentDetails', { residentId });
+    }
   };
   
   const onChangeSearch = (query: string) => {
@@ -196,6 +206,14 @@ export const ResidentsList = ({ navigation }: Props) => {
   ) => {
     setActiveFilters(filters);
     setActiveSort(sort);
+  };
+  
+  const handleUnitPress = (unitId: string) => {
+    navigation.navigate('UnitDetails', { unitId });
+  };
+  
+  const handleViewUnits = () => {
+    navigation.navigate('Units');
   };
   
   const renderEmptyList = () => (
@@ -236,16 +254,34 @@ export const ResidentsList = ({ navigation }: Props) => {
   const renderResidentItem = ({ item }: { item: Resident }) => (
     <ListItem
       title={item.name}
-      subtitle={`${item.unit} • ${item.status === 'owner' ? 'Owner' : 'Tenant'}`}
-      description={`${item.familyMembers} family members • Moved in: ${new Date(item.moveInDate).toLocaleDateString()}`}
-      avatar={{
-        uri: item.image,
-      }}
+      subtitle={`Unit ${item.unit}, ${item.building}`}
+      leftIcon={
+        <Users size={24} color={theme.colors.primary} />
+      }
+      rightSubtitle={
+        <View style={commonStyles.row}>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: STATUS_COLORS[item.paymentStatus] }
+            ]}
+          />
+          <Text style={{ marginLeft: 4, color: theme.colors.onSurfaceVariant }}>
+            {item.paymentStatus === 'current' ? 'Paid' : 'Overdue'}
+          </Text>
+        </View>
+      }
+      rightTitle={
+        <Text
+          style={{
+            color: item.status === 'owner' ? theme.colors.primary : theme.colors.secondary
+          }}
+        >
+          {item.status === 'owner' ? 'Owner' : 'Tenant'}
+        </Text>
+      }
       onPress={() => handleResidentPress(item.id)}
-      badge={{
-        text: item.paymentStatus === 'current' ? 'Current' : 'Overdue',
-        color: item.paymentStatus === 'current' ? STATUS_COLORS.success : STATUS_COLORS.error,
-      }}
+      selected={selectedResidentId === item.id}
     />
   );
   
@@ -370,13 +406,20 @@ export const ResidentsList = ({ navigation }: Props) => {
         color="white"
       />
       
+      <FAB
+        icon={props => <Home {...props} />}
+        style={[styles.unitsFab, { backgroundColor: theme.colors.secondary }]}
+        onPress={handleViewUnits}
+        color="white"
+      />
+      
       <FilterModal
-        isVisible={filterModalVisible}
-        onClose={() => setFilterModalVisible(false)}
+        visible={filterModalVisible}
+        onDismiss={() => setFilterModalVisible(false)}
         config={filterConfig}
         onApplyFilters={handleApplyFilters}
-        activeFilters={activeFilters}
-        activeSort={activeSort}
+        initialFilters={activeFilters}
+        initialSort={activeSort}
       />
     </>
   );
@@ -458,5 +501,27 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  unitsFab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 100,
+    borderRadius: 28,
+  },
+  unitButton: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
+  },
+  unitButtonText: {
+    fontSize: 10,
+    marginTop: 4,
+  },
+  statusBadge: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 4,
   },
 }); 

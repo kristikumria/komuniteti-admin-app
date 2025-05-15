@@ -87,8 +87,8 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({
         },
       ]}
     >
-      <Surface elevation={2}>
-        <View style={styles(theme).surfaceContent}>
+      <Surface elevation={2} style={styles(theme).surface}>
+        <View style={styles(theme).contentWrapper}>
           <TouchableOpacity style={styles(theme).content} onPress={handlePress}>
             <View style={styles(theme).iconContainer}>
               {getNotificationIcon(notification, 24, theme.colors.primary)}
@@ -130,8 +130,7 @@ const styles = (theme: AppTheme) => StyleSheet.create({
   surface: {
     borderRadius: theme.roundness,
   },
-  surfaceContent: {
-    borderRadius: theme.roundness,
+  contentWrapper: {
     overflow: 'hidden',
   },
   content: {

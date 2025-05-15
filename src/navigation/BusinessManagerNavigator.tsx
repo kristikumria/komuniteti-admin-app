@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Import screens (will create these files next)
 import { Dashboard } from '../screens/business-manager/Dashboard';
-import { BuildingsList } from '../screens/business-manager/Buildings/BuildingsList';
+import { BuildingsScreen } from '../screens/business-manager/Buildings';
 import { BuildingDetails } from '../screens/business-manager/Buildings/BuildingDetails';
 import { AddBuilding } from '../screens/business-manager/Buildings/AddBuilding';
 import { EditBuilding } from '../screens/business-manager/Buildings/EditBuilding';
@@ -39,6 +39,12 @@ import { AnalyticsScreen } from '../screens/business-manager/Analytics/Analytics
 import { SettingsScreen } from '../screens/shared/Settings/SettingsScreen';
 import { ServicesScreen } from '../screens/business-manager/Services/ServicesScreen';
 import { MoreScreen } from '../screens/shared/More/MoreScreen';
+import { BusinessAccountsList } from '../screens/business-manager/BusinessAccounts/BusinessAccountsList';
+import { BuildingsByBusinessAccount } from '../screens/business-manager/Buildings/BuildingsByBusinessAccount';
+import { BusinessAccountDetails } from '../screens/business-manager/BusinessAccounts/BusinessAccountDetails';
+import { BusinessAccountDocumentsScreen } from '../screens/business-manager/BusinessAccounts/BusinessAccountDocumentsScreen';
+import { BusinessAccountFinancialReportsScreen } from '../screens/business-manager/BusinessAccounts/BusinessAccountFinancialReportsScreen';
+import { BuildingsComparisonScreen } from '../screens/business-manager/Buildings/BuildingsComparisonScreen';
 
 const Tab = createBottomTabNavigator<BusinessManagerTabParamList>();
 const Stack = createNativeStackNavigator<BusinessManagerStackParamList>();
@@ -48,11 +54,13 @@ const RootStack = createNativeStackNavigator<BusinessManagerStackParamList>();
 const BuildingsStack = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Buildings" component={BuildingsList} />
+      <Stack.Screen name="Buildings" component={BuildingsScreen} />
       <Stack.Screen name="BuildingDetails" component={BuildingDetails} />
       <Stack.Screen name="AddBuilding" component={AddBuilding} />
       <Stack.Screen name="EditBuilding" component={EditBuilding} />
       <Stack.Screen name="AssignAdministrator" component={AssignAdministrator} />
+      <Stack.Screen name="BuildingsByBusinessAccount" component={BuildingsByBusinessAccount} />
+      <Stack.Screen name="BuildingsComparison" component={BuildingsComparisonScreen} />
     </Stack.Navigator>
   );
 };
@@ -105,10 +113,18 @@ const MoreStack = () => {
       <Stack.Screen name="ChatConversation" component={ChatConversationScreen} />
       <Stack.Screen name="NewConversation" component={NewConversationScreen} />
       <Stack.Screen name="PollsScreen" component={PollsScreen} />
+      <Stack.Screen name="PollDetails" component={PollDetailsScreen} />
       <Stack.Screen name="ReportsStack" component={ReportsStack} />
       <Stack.Screen name="Organigram" component={OrganigramScreen} />
       <Stack.Screen name="Analytics" component={AnalyticsScreen} />
       <Stack.Screen name="Services" component={ServicesScreen} />
+      <Stack.Screen name="BusinessAccounts" component={BusinessAccountsList} />
+      <Stack.Screen name="BusinessAccountDetails" component={BusinessAccountDetails} />
+      <Stack.Screen name="BusinessAccountDocuments" component={BusinessAccountDocumentsScreen} />
+      <Stack.Screen name="BusinessAccountFinancialReports" component={BusinessAccountFinancialReportsScreen} />
+      <Stack.Screen name="NotificationDetails" component={NotificationDetails} />
+      <Stack.Screen name="NotificationSettings" component={NotificationSettings} />
+      <Stack.Screen name="BuildingsByBusinessAccount" component={BuildingsByBusinessAccount} />
     </Stack.Navigator>
   );
 };

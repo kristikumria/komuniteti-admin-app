@@ -33,11 +33,18 @@ import { mockProperties, mockBuildings } from '../../../services/mockData';
 type ResidentDetailsRouteProps = RouteProp<AdministratorStackParamList, 'ResidentDetails'>;
 type NavigationProp = NativeStackNavigationProp<AdministratorStackParamList>;
 
-export const ResidentDetails = () => {
+// Update the component to accept props or use route params
+interface ResidentDetailsProps {
+  residentId?: string;
+  hideHeader?: boolean;
+}
+
+export const ResidentDetails: React.FC<ResidentDetailsProps> = ({ residentId: propResidentId, hideHeader = false }) => {
   const theme = useTheme();
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ResidentDetailsRouteProps>();
-  const { residentId } = route.params;
+  // Use the residentId from props if provided, otherwise get it from route params
+  const residentId = propResidentId || (route.params?.residentId);
   const isDarkMode = useAppSelector((state) => state.settings.darkMode);
   const { commonStyles } = useThemedStyles();
   
@@ -51,8 +58,10 @@ export const ResidentDetails = () => {
   const [propertySearchQuery, setPropertySearchQuery] = useState('');
   
   useEffect(() => {
-    fetchResident();
-    fetchAvailableProperties();
+    if (residentId) {
+      fetchResident();
+      fetchAvailableProperties();
+    }
   }, [residentId]);
   
   const fetchResident = async () => {
@@ -190,10 +199,12 @@ export const ResidentDetails = () => {
   if (loading && !refreshing) {
     return (
       <>
-        <Header 
-          title="Resident Details" 
-          showBack={true}
-        />
+        {!hideHeader && (
+          <Header 
+            title="Resident Details" 
+            showBack={true}
+          />
+        )}
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={{ marginTop: 16, color: isDarkMode ? '#fff' : '#333' }}>
@@ -204,26 +215,22 @@ export const ResidentDetails = () => {
     );
   }
   
-  // For safety, in case the resident is not found
-  if (!resident) {
+  if (!resident && !loading) {
     return (
       <>
-        <Header 
-          title="Resident Details" 
-          showBack={true}
-        />
-        <View style={styles.notFoundContainer}>
-          <AlertCircle size={50} color={theme.colors.error} />
-          <Text 
-            style={[
-              styles.notFoundText,
-              { color: isDarkMode ? '#fff' : '#333' }
-            ]}
-          >
+        {!hideHeader && (
+          <Header 
+            title="Resident Details" 
+            showBack={true}
+          />
+        )}
+        <View style={styles.errorContainer}>
+          <AlertCircle size={48} color={theme.colors.error} />
+          <Text style={[styles.errorText, { color: theme.colors.error }]}>
             Resident not found
           </Text>
-          <Button
-            mode="contained"
+          <Button 
+            mode="contained" 
             onPress={() => navigation.goBack()}
             style={{ marginTop: 16 }}
           >
@@ -241,11 +248,19 @@ export const ResidentDetails = () => {
   );
   
   return (
-    <>
-      <Header 
-        title={resident.name} 
-        showBack={true}
-      />
+    <View style={styles.container}>
+      {!hideHeader && (
+        <Header 
+          title={resident?.name || 'Resident Details'} 
+          subtitle={resident?.unit ? `Unit ${resident.unit}` : ''}
+          showBack={true}
+          rightAction={
+            <TouchableOpacity onPress={handleEdit}>
+              <Edit3 size={20} color={theme.colors.primary} />
+            </TouchableOpacity>
+          }
+        />
+      )}
       
       <ScrollView
         style={[
@@ -1055,7 +1070,7 @@ export const ResidentDetails = () => {
         onPress={handleEdit}
         color="white"
       />
-    </>
+    </View>
   );
 };
 
@@ -1068,13 +1083,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  notFoundContainer: {
+  errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
-  notFoundText: {
+  errorText: {
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 16,

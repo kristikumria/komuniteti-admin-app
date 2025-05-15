@@ -40,62 +40,62 @@ export const InfoCard: React.FC<InfoCardProps> = ({
         elevation={2}
       >
         <View style={styles.cardInnerWrapper}>
-        <CardWrapper
-          style={[styles.cardContent, { backgroundColor: cardBgColor }]}
-          onPress={onPress}
-        >
-          <View style={[styles.iconContainer, { backgroundColor: iconBgColor }]}>
-            {icon}
-          </View>
-          
-          <View style={styles.textContent}>
-            <Text style={[styles.title, { color: isDarkMode ? '#e0e0e0' : '#666' }]}>{title}</Text>
-            <Text style={[styles.value, { color: isDarkMode ? '#fff' : '#333' }]}>{value}</Text>
+          <CardWrapper
+            style={[styles.cardContent, { backgroundColor: cardBgColor }]}
+            onPress={onPress}
+          >
+            <View style={[styles.iconContainer, { backgroundColor: iconBgColor }]}>
+              {icon}
+            </View>
             
-            {subtitle && (
-              <Text style={[styles.subtitle, { color: isDarkMode ? '#aaa' : '#888' }]}>
-                {subtitle}
-              </Text>
-            )}
-            
-            {trend !== undefined && (
-              <View style={styles.trendContainer}>
-                {trend > 0 ? (
-                  <TrendingUp 
-                    size={14} 
-                    color="#4caf50" 
-                    style={{ marginRight: 4 }} 
-                  />
-                ) : trend < 0 ? (
-                  <TrendingDown 
-                    size={14} 
-                    color="#f44336" 
-                    style={{ marginRight: 4 }} 
-                  />
-                ) : null}
-                <Text style={[
-                  styles.trend, 
-                  { 
-                    color: trend > 0 
-                      ? '#4caf50' 
-                      : trend < 0 
-                        ? '#f44336' 
-                        : isDarkMode 
-                          ? '#aaa' 
-                          : '#888' 
-                  }
-                ]}>
-                  {trend > 0 ? '+' : ''}{trend}%
+            <View style={styles.textContent}>
+              <Text style={[styles.title, { color: isDarkMode ? '#e0e0e0' : '#666' }]}>{title}</Text>
+              <Text style={[styles.value, { color: isDarkMode ? '#fff' : '#333' }]}>{value}</Text>
+              
+              {subtitle && (
+                <Text style={[styles.subtitle, { color: isDarkMode ? '#aaa' : '#888' }]}>
+                  {subtitle}
                 </Text>
-                {trendLabel && (
-                  <Text style={[styles.trendLabel, { color: isDarkMode ? '#aaa' : '#888' }]}>
-                    {trendLabel}
+              )}
+              
+              {trend !== undefined && (
+                <View style={styles.trendContainer}>
+                  {trend > 0 ? (
+                    <TrendingUp 
+                      size={14} 
+                      color="#4caf50" 
+                      style={{ marginRight: 4 }} 
+                    />
+                  ) : trend < 0 ? (
+                    <TrendingDown 
+                      size={14} 
+                      color="#f44336" 
+                      style={{ marginRight: 4 }} 
+                    />
+                  ) : null}
+                  <Text style={[
+                    styles.trend, 
+                    { 
+                      color: trend > 0 
+                        ? '#4caf50' 
+                        : trend < 0 
+                          ? '#f44336' 
+                          : isDarkMode 
+                            ? '#aaa' 
+                            : '#888' 
+                    }
+                  ]}>
+                    {trend > 0 ? '+' : ''}{trend}%
                   </Text>
-                )}
-              </View>
-            )}
-          </View>
-        </CardWrapper>
+                  {trendLabel && (
+                    <Text style={[styles.trendLabel, { color: isDarkMode ? '#aaa' : '#888' }]}>
+                      {trendLabel}
+                    </Text>
+                  )}
+                </View>
+              )}
+            </View>
+          </CardWrapper>
         </View>
       </Card>
     </View>
@@ -112,6 +112,7 @@ const styles = StyleSheet.create({
   },
   cardInnerWrapper: {
     overflow: 'hidden',
+    borderRadius: 12,
   },
   cardContent: {
     borderRadius: 12,

@@ -4,7 +4,7 @@ import { Text, Avatar, useTheme, Badge, Divider } from 'react-native-paper';
 import { ChevronRight } from 'lucide-react-native';
 import { useAppSelector } from '../store/hooks';
 
-interface ListItemProps {
+export interface ListItemProps {
   title: string;
   subtitle?: string;
   description?: string;
@@ -14,7 +14,7 @@ interface ListItemProps {
     icon?: React.ReactNode;
     color?: string;
   };
-  leftIcon?: () => React.ReactNode;
+  leftIcon?: React.ReactNode | React.ComponentType<any> | (() => React.ReactNode);
   onPress?: () => void;
   badge?: {
     text: string;
@@ -22,8 +22,11 @@ interface ListItemProps {
     icon?: React.ReactNode;
   };
   rightContent?: React.ReactNode;
+  rightTitle?: React.ReactNode | string;
+  rightSubtitle?: React.ReactNode | string;
   showChevron?: boolean;
   showDivider?: boolean;
+  selected?: boolean;
 }
 
 export const ListItem: React.FC<ListItemProps> = ({
@@ -35,15 +38,25 @@ export const ListItem: React.FC<ListItemProps> = ({
   onPress,
   badge,
   rightContent,
+  rightTitle,
+  rightSubtitle,
   showChevron = true,
   showDivider = true,
+  selected = false,
 }) => {
   const theme = useTheme();
   const isDarkMode = useAppSelector((state) => state.settings.darkMode);
   
   const renderAvatar = () => {
     if (leftIcon) {
-      return leftIcon();
+      if (typeof leftIcon === 'function' && !('$$typeof' in (leftIcon as any))) {
+        return (leftIcon as () => React.ReactNode)();
+      } else if (React.isValidElement(leftIcon)) {
+        return leftIcon;
+      } else {
+        const IconComponent = leftIcon as React.ComponentType<any>;
+        return <IconComponent size={24} color={theme.colors.primary} />;
+      }
     }
     
     if (!avatar) return null;
@@ -80,7 +93,8 @@ export const ListItem: React.FC<ListItemProps> = ({
       <TouchableOpacity
         style={[
           styles.container,
-          { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' }
+          { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' },
+          selected && { backgroundColor: theme.colors.primaryContainer }
         ]}
         onPress={onPress}
         disabled={!onPress}
@@ -91,7 +105,8 @@ export const ListItem: React.FC<ListItemProps> = ({
           <View style={styles.textContainer}>
             <Text style={[
               styles.title,
-              { color: isDarkMode ? '#fff' : '#333' }
+              { color: isDarkMode ? '#fff' : '#333' },
+              selected && { color: theme.colors.onPrimaryContainer }
             ]}>
               {title}
             </Text>
@@ -99,7 +114,8 @@ export const ListItem: React.FC<ListItemProps> = ({
             {subtitle && (
               <Text style={[
                 styles.subtitle,
-                { color: isDarkMode ? '#aaa' : '#666' }
+                { color: isDarkMode ? '#aaa' : '#666' },
+                selected && { color: theme.colors.onPrimaryContainer }
               ]}>
                 {subtitle}
               </Text>
@@ -108,7 +124,8 @@ export const ListItem: React.FC<ListItemProps> = ({
             {description && (
               <Text style={[
                 styles.description,
-                { color: isDarkMode ? '#888' : '#777' }
+                { color: isDarkMode ? '#888' : '#777' },
+                selected && { color: theme.colors.onPrimaryContainer }
               ]} numberOfLines={2}>
                 {description}
               </Text>
@@ -116,6 +133,34 @@ export const ListItem: React.FC<ListItemProps> = ({
           </View>
           
           <View style={styles.rightContainer}>
+            {(rightTitle || rightSubtitle) && (
+              <View style={styles.rightTextContainer}>
+                {rightTitle && (
+                  typeof rightTitle === 'string' ? (
+                    <Text style={[
+                      styles.rightTitle,
+                      { color: isDarkMode ? '#fff' : '#333' },
+                      selected && { color: theme.colors.onPrimaryContainer }
+                    ]}>
+                      {rightTitle}
+                    </Text>
+                  ) : rightTitle
+                )}
+                
+                {rightSubtitle && (
+                  typeof rightSubtitle === 'string' ? (
+                    <Text style={[
+                      styles.rightSubtitle,
+                      { color: isDarkMode ? '#aaa' : '#666' },
+                      selected && { color: theme.colors.onPrimaryContainer }
+                    ]}>
+                      {rightSubtitle}
+                    </Text>
+                  ) : rightSubtitle
+                )}
+              </View>
+            )}
+            
             {badge && (
               <View style={styles.badgeContainer}>
                 {badge.icon && <View style={styles.badgeIcon}>{badge.icon}</View>}
@@ -136,7 +181,7 @@ export const ListItem: React.FC<ListItemProps> = ({
             {showChevron && (
               <ChevronRight
                 size={18}
-                color={isDarkMode ? '#777' : '#999'}
+                color={selected ? theme.colors.onPrimaryContainer : isDarkMode ? '#777' : '#999'}
                 style={styles.chevron}
               />
             )}
@@ -192,6 +237,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     paddingLeft: 16,
+  },
+  rightTextContainer: {
+    marginRight: 8,
+    alignItems: 'flex-end',
+  },
+  rightTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  rightSubtitle: {
+    fontSize: 12,
   },
   badgeContainer: {
     flexDirection: 'row',

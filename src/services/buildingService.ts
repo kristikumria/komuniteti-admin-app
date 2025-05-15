@@ -4,54 +4,114 @@ import { Building } from '../types/buildingTypes';
 const MOCK_BUILDINGS: Building[] = [
   {
     id: '1',
-    name: 'Residence Plaza',
-    address: 'Rruga Hoxha Tahsim 45',
+    name: 'Riviera Towers',
+    address: '145 Rruga Ismail Qemali, Tirana',
     city: 'Tirana',
     zipCode: '1001',
     country: 'Albania',
     image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60',
-    units: 24,
-    floors: 6,
-    buildYear: 2015,
-    totalArea: 2400,
-    propertyManager: 'Alba Property',
-    description: 'Modern residential building with 24 units in the center of Tirana.',
+    units: 65,
+    floors: 18,
+    buildYear: 2018,
+    totalArea: 12500,
+    propertyManager: 'Komuniteti Management',
+    description: 'Luxury residential and commercial complex in central Tirana',
     createdAt: new Date('2023-01-10').toISOString(),
     updatedAt: new Date('2023-05-15').toISOString(),
+    // Additional fields used by the UI
+    residents: 220,
+    issues: 2,
+    occupancyRate: 92,
+    maintenanceCost: '€1,500/month',
+    propertyType: 'Residential',
+    amenities: ['Gym', 'Pool', 'Parking', 'Security'],
+    residentialUnits: 58,
+    businessUnits: 7,
+    status: 'active',
+    adminAssigned: true,
+    location: {
+      country: 'Albania',
+      city: 'Tirana',
+      coordinates: {
+        latitude: 41.3275,
+        longitude: 19.8187
+      }
+    },
+    floorArea: 12500
   },
   {
     id: '2',
-    name: 'Park Apartments',
-    address: 'Rruga Myslym Shyri 78',
+    name: 'Park View Residence',
+    address: '78 Rruga Sami Frasheri, Tirana',
     city: 'Tirana',
     zipCode: '1004',
     country: 'Albania',
     image: 'https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60',
-    units: 36,
-    floors: 8,
-    buildYear: 2018,
-    totalArea: 3600,
+    units: 42,
+    floors: 12,
+    buildYear: 2016,
+    totalArea: 8750,
     propertyManager: 'Trend Property Management',
-    description: 'Luxury apartment complex near the central park with modern amenities.',
+    description: 'Modern mixed-use building with premium apartments and office spaces',
     createdAt: new Date('2023-02-15').toISOString(),
     updatedAt: new Date('2023-06-20').toISOString(),
+    // Additional fields used by the UI
+    residents: 150,
+    issues: 1,
+    occupancyRate: 85,
+    maintenanceCost: '€1,200/month',
+    propertyType: 'Mixed Use',
+    amenities: ['Gym', 'Parking', 'Security'],
+    residentialUnits: 32,
+    businessUnits: 10,
+    status: 'active',
+    adminAssigned: true,
+    location: {
+      country: 'Albania',
+      city: 'Tirana',
+      coordinates: {
+        latitude: 41.3217,
+        longitude: 19.8233
+      }
+    },
+    floorArea: 8750
   },
   {
     id: '3',
-    name: 'City View Residences',
-    address: 'Bulevardi Bajram Curri 120',
+    name: 'Central Plaza',
+    address: '25 Bulevardi Dëshmorët e Kombit, Tirana',
     city: 'Tirana',
     zipCode: '1019',
     country: 'Albania',
     image: 'https://images.unsplash.com/photo-1513584684374-8bab748fbf90?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60',
-    units: 48,
-    floors: 12,
+    units: 30,
+    floors: 10,
     buildYear: 2020,
-    totalArea: 5400,
+    totalArea: 9000,
     propertyManager: 'Komuniteti Management',
-    description: 'High-rise residential building with panoramic views of the city.',
+    description: 'Premium commercial building in the heart of Tirana',
     createdAt: new Date('2023-03-05').toISOString(),
     updatedAt: new Date('2023-07-10').toISOString(),
+    // Additional fields used by the UI
+    residents: 10,
+    issues: 0,
+    occupancyRate: 95,
+    maintenanceCost: '€2,000/month',
+    propertyType: 'Commercial',
+    amenities: ['Parking', 'Security', 'Conference Room'],
+    residentialUnits: 0,
+    businessUnits: 30,
+    status: 'active',
+    adminAssigned: true,
+    location: {
+      country: 'Albania',
+      city: 'Tirana',
+      coordinates: {
+        latitude: 41.3275,
+        longitude: 19.8187
+      }
+    },
+    floorArea: 9000
   },
 ];
 
@@ -74,10 +134,15 @@ class BuildingService {
    * Get a building by ID
    */
   async getBuildingById(id: string): Promise<Building | undefined> {
+    console.log('buildingService.getBuildingById called with ID:', id);
+    console.log('Available building IDs:', this.buildings.map(b => b.id));
+    
     // Simulate API call
     return new Promise((resolve) => {
       setTimeout(() => {
-        const building = this.buildings.find((b) => b.id === id);
+        // Ensure string comparison
+        const building = this.buildings.find((b) => String(b.id) === String(id));
+        console.log('Found building:', building?.name || 'Not found');
         resolve(building);
       }, 300);
     });

@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
   Alert
 } from 'react-native';
-import { Text, Surface, Menu, useTheme } from 'react-native-paper';
+import { Text, Surface, Menu } from 'react-native-paper';
 import { MaterialIcons, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -42,7 +42,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   isDarkMode = false,
   onTypingStatusChange
 }) => {
-  const theme = useTheme();
   const [message, setMessage] = useState('');
   const [inputHeight, setInputHeight] = useState(40);
   const [attachMenuVisible, setAttachMenuVisible] = useState(false);
@@ -449,14 +448,14 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         {replyingTo && (
           <View style={[
             styles.replyContainer,
-            { borderLeftColor: theme.colors.primary },
+            { borderLeftColor: '#1363DF' },
             isDarkMode ? styles.replyContainerDark : styles.replyContainerLight
           ]}>
             <View style={styles.replyContent}>
               <Text
                 style={[
                   styles.replyName,
-                  { color: theme.colors.primary }
+                  { color: '#1363DF' }
                 ]}
                 numberOfLines={1}
               >
@@ -489,7 +488,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 <MaterialIcons name="delete" size={24} color="#e74c3c" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.sendButton} onPress={stopRecording}>
-                <MaterialIcons name="send" size={24} color={theme.colors.primary} />
+                <MaterialIcons name="send" size={24} color="#1363DF" />
               </TouchableOpacity>
             </View>
           </View>
@@ -507,7 +506,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                     <MaterialIcons
                       name="add"
                       size={24}
-                      color={theme.colors.primary}
+                      color="#1363DF"
                     />
                   </Animated.View>
                 </TouchableOpacity>
@@ -566,7 +565,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                   <MaterialIcons
                     name="emoji-emotions"
                     size={24}
-                    color={theme.colors.primary}
+                    color="#1363DF"
                   />
                 </TouchableOpacity>
               ) : null}
@@ -576,7 +575,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               <TouchableOpacity
                 style={[
                   styles.sendButton,
-                  { backgroundColor: theme.colors.primary },
+                  { backgroundColor: '#1363DF' },
                   sending && styles.sendingButton
                 ]}
                 onPress={handleSend}
@@ -585,14 +584,14 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 {sending ? (
                   <MaterialCommunityIcons name="loading" size={24} color="white" />
                 ) : (
-                  <MaterialIcons name="send" size={24} color={theme.colors.primary} />
+                  <MaterialIcons name="send" size={24} color="white" />
                 )}
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
                 style={[
                   styles.micButton,
-                  { backgroundColor: theme.colors.primary }
+                  { backgroundColor: '#1363DF' }
                 ]}
                 onPress={startRecording}
                 delayLongPress={500}

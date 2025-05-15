@@ -159,7 +159,15 @@ const getCategoryLabel = (category: InfoPointCategory): string => {
   }
 };
 
-export const InfoPointsScreen = () => {
+export interface InfoPointsScreenProps {
+  hideHeader?: boolean;
+  customSelectHandler?: (infoPointId: string) => void;
+}
+
+export const InfoPointsScreen = ({ 
+  hideHeader = false, 
+  customSelectHandler 
+}: InfoPointsScreenProps) => {
   const theme = useTheme();
   const navigation = useNavigation();
   const dispatch = useAppDispatch();
@@ -297,69 +305,95 @@ export const InfoPointsScreen = () => {
   
   const renderInfoPointItem = ({ item }: { item: InfoPoint }) => (
     <Card 
-      style={[
-        styles.card, 
-        { 
-          backgroundColor: theme.colors.surfaceVariant,
-          borderColor: item.pinned ? theme.colors.primary : 'transparent',
-          borderWidth: item.pinned ? 1 : 0
+      style={[styles.card, item.pinned && styles.pinnedCard]} 
+      key={item.id}
+      onPress={() => {
+        if (customSelectHandler) {
+          customSelectHandler(item.id);
         }
-      ]}
-      onPress={() => handleOpenMenu(item.id)}
+      }}
     >
-      <Card.Content>
-        <View style={styles.cardHeader}>
-          <View style={styles.titleContainer}>
-            <Title>{item.title}</Title>
-            <View style={styles.tagsContainer}>
-              <Chip 
-                mode="outlined" 
-                style={[styles.categoryChip, { borderColor: theme.colors.outline }]}
-                icon={() => getCategoryIcon(item.category, theme.colors.onSurfaceVariant)}
-              >
-                {getCategoryLabel(item.category)}
-              </Chip>
-              
-              {item.buildingName && (
-                <Chip 
-                  mode="outlined" 
-                  style={[styles.buildingChip, { borderColor: theme.colors.outline }]}
-                >
-                  {item.buildingName}
-                </Chip>
-              )}
-            </View>
+      <View style={styles.cardHeader}>
+        <View style={styles.titleContainer}>
+          <View style={styles.categoryIconContainer}>
+            {getCategoryIcon(item.category, theme.colors.primary)}
           </View>
-          
-          <TouchableOpacity 
-            onPress={() => handleOpenMenu(item.id)} 
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <GripVertical size={24} color={theme.colors.onSurfaceVariant} />
-          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Title style={styles.cardTitle}>{item.title}</Title>
+            {item.buildingName && (
+              <Text variant="bodySmall" style={styles.buildingInfo}>
+                {item.buildingName}
+              </Text>
+            )}
+          </View>
         </View>
         
-        <Paragraph 
-          style={styles.description}
-          numberOfLines={3}
-          ellipsizeMode="tail"
-        >
+        <View style={styles.actionsContainer}>
+          {item.pinned && <Pin size={16} color={theme.colors.primary} style={{ marginRight: 8 }} />}
+          <Menu
+            visible={visibleMenuId === item.id}
+            onDismiss={handleCloseMenu}
+            anchor={
+              <IconButton
+                icon={() => <MoreVertical size={20} color={theme.colors.onSurface} />}
+                onPress={() => handleOpenMenu(item.id)}
+              />
+            }
+          >
+            <Menu.Item 
+              leadingIcon={() => <Edit size={20} color={theme.colors.onSurface} />}
+              onPress={() => handleEdit(item)}
+              title="Edit" 
+            />
+            <Menu.Item 
+              leadingIcon={() => <Pin size={20} color={theme.colors.onSurface} />}
+              onPress={() => handleTogglePin(item.id)}
+              title={item.pinned ? "Unpin" : "Pin"} 
+            />
+            <Menu.Item 
+              leadingIcon={() => <Globe size={20} color={theme.colors.onSurface} />}
+              onPress={() => handleTogglePublish(item.id)}
+              title={item.published ? "Unpublish" : "Publish"} 
+            />
+            <Divider />
+            <Menu.Item 
+              leadingIcon={() => <Trash2 size={20} color={theme.colors.error} />}
+              onPress={() => handleDelete(item.id)}
+              title="Delete"
+              titleStyle={{ color: theme.colors.error }}
+            />
+          </Menu>
+        </View>
+      </View>
+      
+      <Card.Content>
+        <Paragraph numberOfLines={3} style={styles.cardContent}>
           {item.content}
         </Paragraph>
         
-        <View style={styles.statusChips}>
-          {item.pinned && (
+        <View style={styles.cardFooter}>
+          <Chip 
+            style={styles.categoryChip}
+            textStyle={{ color: theme.colors.onPrimary }}
+          >
+            {getCategoryLabel(item.category)}
+          </Chip>
+          
+          {item.published ? (
             <Chip 
-              icon={() => <Pin size={16} color={theme.colors.primary} />}
-              style={{ backgroundColor: `${theme.colors.primary}20` }}
+              style={[styles.statusChip, { backgroundColor: theme.colors.tertiary }]}
+              textStyle={{ color: theme.colors.onTertiary }}
             >
-              Pinned
+              Published
+            </Chip>
+          ) : (
+            <Chip 
+              style={[styles.statusChip, { backgroundColor: theme.colors.surfaceVariant }]}
+              textStyle={{ color: theme.colors.onSurfaceVariant }}
+            >
+              Draft
             </Chip>
           )}
-          
-          <Chip icon="calendar" style={{ marginLeft: item.pinned ? 8 : 0 }}>
-            Updated {new Date(item.updatedAt).toLocaleDateString()}
-          </Chip>
         </View>
       </Card.Content>
     </Card>
@@ -367,7 +401,9 @@ export const InfoPointsScreen = () => {
   
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Header title="InfoPoints" subtitle="Manage building information and guidelines" />
+      {!hideHeader && (
+        <Header title="InfoPoints" subtitle="Manage building information and guidelines" />
+      )}
       
       <View style={styles.searchFilterContainer}>
         <Searchbar
@@ -626,26 +662,32 @@ const styles = StyleSheet.create({
   titleContainer: {
     flex: 1,
   },
-  tagsContainer: {
+  categoryIconContainer: {
+    marginRight: 8,
+  },
+  actionsContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 8,
-    gap: 8,
+    alignItems: 'center',
   },
-  categoryChip: {
-    alignSelf: 'flex-start',
+  cardTitle: {
+    marginBottom: 4,
   },
-  buildingChip: {
-    alignSelf: 'flex-start',
+  buildingInfo: {
+    marginTop: 4,
   },
-  description: {
+  cardContent: {
     marginVertical: 12,
   },
-  statusChips: {
+  cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 8,
-    gap: 8,
+  },
+  categoryChip: {
+    marginRight: 8,
+  },
+  statusChip: {
+    marginLeft: 8,
   },
   loadingContainer: {
     flex: 1,
@@ -663,5 +705,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 16,
+  },
+  pinnedCard: {
+    borderColor: 'red',
+    borderWidth: 2,
   },
 }); 

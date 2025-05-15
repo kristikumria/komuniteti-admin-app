@@ -11,7 +11,7 @@ import {
   Vibration,
   Pressable
 } from 'react-native';
-import { Menu, Divider, useTheme } from 'react-native-paper';
+import { Menu, Divider } from 'react-native-paper';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { ChatMessage } from '../../navigation/types';
@@ -39,7 +39,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   previousMessageSameSender = false,
   nextMessageSameSender = false
 }) => {
-  const theme = useTheme();
   const [menuVisible, setMenuVisible] = useState(false);
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const menuPosition = useRef({ x: 0, y: 0 });
@@ -114,7 +113,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         case 'delivered':
           return <MaterialCommunityIcons name="check-all" size={14} color="#999" />;
         case 'read':
-          return <MaterialCommunityIcons name="check-all" size={14} color={theme.colors.primary} />;
+          return <MaterialCommunityIcons name="check-all" size={14} color="#1363DF" />;
         case 'failed':
           return <MaterialCommunityIcons name="alert-circle" size={14} color="#f44336" />;
         default:
@@ -170,7 +169,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const getBubbleStyle = () => {
     const baseStyle = isFromCurrentUser ? styles.currentUserBubble : styles.otherUserBubble;
     const colorStyle = isFromCurrentUser 
-      ? { backgroundColor: theme.colors.primary } 
+      ? { backgroundColor: '#1363DF' } 
       : { backgroundColor: isDarkMode ? '#333' : '#E8E8E8' };
     
     // Bubble shape based on message grouping
@@ -205,7 +204,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   // Render reply line with the themed color
   const renderReplyLine = () => {
     return (
-      <View style={[styles.replyLine, { backgroundColor: theme.colors.primary }]} />
+      <View style={[styles.replyLine, { backgroundColor: '#1363DF' }]} />
     );
   };
 

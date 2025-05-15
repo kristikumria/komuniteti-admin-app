@@ -18,6 +18,12 @@ export type BusinessManagerStackParamList = {
   AssignAdministrator: { buildingId: string; buildingName: string };
   Administrators: undefined;
   AdministratorDetails: { adminId: string };
+  BusinessAccounts: undefined;
+  BusinessAccountDetails: { businessAccountId: string };
+  BusinessAccountDocuments: { businessAccountId: string; businessAccountName: string };
+  BusinessAccountFinancialReports: { businessAccountId: string; businessAccountName: string };
+  BuildingsByBusinessAccount: { businessAccountId: string; businessAccountName: string };
+  BuildingsComparison: { businessAccountId: string; buildingIds: string[] };
   Payments: undefined;
   PaymentDetails: { paymentId: string };
   AddPayment: undefined;
@@ -52,6 +58,7 @@ export type BusinessManagerStackParamList = {
 export type AdministratorTabParamList = {
   DashboardTab: undefined;
   ResidentsTab: NavigatorScreenParams<AdministratorStackParamList> | undefined;
+  UnitsTab: NavigatorScreenParams<AdministratorStackParamList> | undefined;
   PaymentsTab: NavigatorScreenParams<AdministratorStackParamList> | undefined;
   ChatTab: NavigatorScreenParams<{
     Chat: undefined;
@@ -69,12 +76,22 @@ export type AdministratorStackParamList = {
   ResidentDetails: { residentId: string };
   AddResident: undefined;
   EditResident: { residentId: string };
+  // Units related screens
+  Units: undefined;
+  UnitDetails: { unitId: string };
+  AddUnit: undefined;
+  EditUnit: { unitId: string };
+  ResidentialUnits: undefined;
+  BusinessUnits: undefined;
+  BuildingUnits: { buildingId: string };
+  // Payments related screens
   Payments: undefined;
   PaymentDetails: { paymentId: string };
   AddPayment: undefined;
   EditPayment: { paymentId: string };
   ProcessPayment: { paymentId: string };
   PaymentHistory: undefined;
+  // Other screens
   NotificationsTab: undefined;
   NotificationsScreen: undefined;
   NotificationDetails: { notificationId: string };
@@ -98,6 +115,18 @@ export type AdministratorStackParamList = {
   ReportsStack: undefined;
   Messages: undefined;
   MainTabs: undefined;
+  // Main tabs
+  AdministratorTabs: undefined;
+  // Resident management
+  Residents: undefined;
+  ResidentDetails: { residentId: string };
+  AddResident: undefined;
+  EditResident: { residentId: string };
+  // ... existing routes ...
+  // Settings & Profile
+  Settings: undefined;
+  Profile: undefined;
+  NotificationSettings: undefined;
 };
 
 // Root Navigation
@@ -122,6 +151,21 @@ export interface Building {
   amenities: string[];
   image: string;
   administratorId?: string;
+  businessAccountId?: string;
+  residentialUnits?: number;
+  businessUnits?: number;
+  status?: 'active' | 'maintenance' | 'development';
+  adminAssigned?: boolean;
+  location?: {
+    country: string;
+    city: string;
+    coordinates?: {
+      latitude: number;
+      longitude: number;
+    };
+  };
+  floorArea?: number;
+  floors?: number;
 }
 
 export interface Administrator {
@@ -340,4 +384,36 @@ export type BusinessManagerTabParamList = {
   }> | undefined;
   MoreTab: NavigatorScreenParams<BusinessManagerStackParamList> | undefined;
   MainTabs: undefined;
+};
+
+// Add a BusinessAccount interface
+export interface BusinessAccount {
+  id: string;
+  name: string;
+  description?: string;
+  type: string;
+  buildings: number;
+  administrators: number;
+  residents: number;
+  address: string;
+  email: string;
+  phone: string;
+  logoUrl?: string;
+  createdAt: string;
+  performanceMetrics?: {
+    occupancyRate: number;
+    revenueGrowth: number;
+    maintenanceCosts: number;
+    tenantSatisfaction: number;
+  };
+  pendingIssues?: number;
+}
+
+export type AdministratorBottomTabParamList = {
+  DashboardTab: undefined;
+  ResidentsTab: undefined;
+  UnitsTab: undefined;
+  PaymentsTab: undefined;
+  ChatTab: undefined;
+  MoreTab: undefined;
 }; 

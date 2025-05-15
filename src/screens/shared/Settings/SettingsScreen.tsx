@@ -25,7 +25,11 @@ interface Account {
 
 type SettingsScreenNavigationProp = NativeStackNavigationProp<AdministratorStackParamList>;
 
-export const SettingsScreen = () => {
+export interface SettingsScreenProps {
+  hideHeader?: boolean;
+}
+
+export const SettingsScreen = ({ hideHeader = false }: SettingsScreenProps) => {
   const theme = useTheme();
   const navigation = useNavigation<SettingsScreenNavigationProp>();
   const dispatch = useAppDispatch();
@@ -86,10 +90,12 @@ export const SettingsScreen = () => {
   
   return (
     <>
-      <Header 
-        title="Settings" 
-        showBack={true}
-      />
+      {!hideHeader && (
+        <Header 
+          title="Settings" 
+          showBack={true}
+        />
+      )}
       
       <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <Card style={[commonStyles.card, { backgroundColor: theme.colors.surface }]}>

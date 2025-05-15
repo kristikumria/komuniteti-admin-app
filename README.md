@@ -16,6 +16,8 @@ A React Native mobile application for property management administrators.
 - Resident management (registration, profile editing, removal)
 - Payment processing and history tracking
 - Comprehensive notification system
+- Material Design 3 (MD3) token-based styling system with dark mode support
+- Responsive layouts optimized for both phones and tablets
 - Chat functionality (in progress):
   - One-to-one messaging
   - Message composition and history viewing
@@ -30,8 +32,10 @@ src/
   ├── components/     # Shared UI components
   │   ├── Buildings/  # Building-related components
   │   ├── Chat/       # Chat-related components
+  │   ├── Grid/       # Responsive grid components
   │   ├── Payments/   # Payment-related components
   │   └── UI/         # Common UI components
+  ├── hooks/          # Custom React hooks
   ├── navigation/     # Navigation configuration
   ├── screens/        # App screens
   │   ├── administrator/ # Administrator-specific screens
@@ -46,7 +50,8 @@ src/
   ├── store/          # Redux setup
   │   ├── slices/     # Redux slices for different features
   │   └── store.ts    # Redux store configuration
-  ├── theme/          # Styling and theming
+  ├── styles/         # Global styles and styling utilities
+  ├── theme/          # MD3 theming system
   └── utils/          # Utility functions
 ```
 
@@ -81,6 +86,9 @@ npm run android
 
 # Run on Web
 npm run web
+
+# Check MD3 migration status
+npm run md3-check
 ```
 
 ## Tech Stack
@@ -90,12 +98,25 @@ npm run web
 - TypeScript
 - Redux Toolkit
 - React Navigation
-- React Native Paper
+- React Native Paper with Material Design 3
 - React Hook Form with Yup
 - Socket.io-client
 - Async Storage
 - JWT Decode
 - Axios
+
+## Design System
+
+The app uses Material Design 3 (MD3) for consistent styling across the application:
+
+- Theme tokens for colors, typography, spacing, and elevation
+- Dark mode support with proper contrast
+- Consistent component styling using the `useThemedStyles` hook
+- Responsive layouts for both phone and tablet form factors
+
+The design system implementation is guided by:
+- `src/styles/MD3_IMPLEMENTATION_GUIDE.md` - Comprehensive guide for using MD3
+- `MD3_MIGRATION_PLAN.md` - Phased approach to migrating the codebase
 
 ## Customization
 
@@ -108,8 +129,11 @@ The application is being actively developed with the following completed feature
 - Building and resident management
 - Payment processing and history
 - Notification system
+- MD3 design foundation (theme tokens, helper hooks, common styles)
+- Responsive tablet layout foundation
 
 Features in progress:
+- MD3 implementation across all components
 - Chat functionality (resolving TypeScript issues and improving socket integration)
 - InfoPoints system
 

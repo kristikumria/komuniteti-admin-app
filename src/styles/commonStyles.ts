@@ -102,6 +102,36 @@ export const getCommonStyles = (theme: AppTheme) => StyleSheet.create({
   },
   
   /**
+   * Touch target sizing for proper interactive areas
+   */
+  touchTarget: {
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  touchTargetTablet: {
+    minWidth: 48,
+    minHeight: 48,
+  },
+  
+  /**
+   * Responsive container for tablet layouts
+   */
+  tabletContainer: {
+    flexDirection: 'row',
+    flex: 1,
+  },
+  tabletSidebar: {
+    width: '30%',
+    borderRightWidth: 1,
+    borderRightColor: theme.colors.outlineVariant,
+  },
+  tabletContent: {
+    width: '70%',
+  },
+  
+  /**
    * Spacing helpers
    */
   mt8: { marginTop: theme.spacing.s },
@@ -132,5 +162,18 @@ export const getCommonStyles = (theme: AppTheme) => StyleSheet.create({
     width: '100%',
     marginVertical: theme.spacing.s,
     backgroundColor: theme.colors.outlineVariant,
+  },
+  
+  /**
+   * Responsive typography adjustments
+   */
+  tabletHeading: {
+    // Slightly larger typography for tablet displays
+    // Use Text component with appropriate variants
+  },
+  tabletButton: {
+    // Adjusted button sizing for tablet touch targets
+    paddingVertical: theme.spacing.s,
+    paddingHorizontal: theme.spacing.m,
   },
 }); 

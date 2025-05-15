@@ -11,6 +11,8 @@ import infoPointsReducer from './slices/infoPointSlice';
 import buildingsReducer from './slices/buildingSlice';
 import administratorsReducer from './slices/administratorSlice';
 import pollsReducer from './slices/pollsSlice';
+import contextReducer from './slices/contextSlice';
+import businessAccountReducer from './slices/businessAccountSlice';
 
 export const store = configureStore({
   reducer: {
@@ -24,6 +26,8 @@ export const store = configureStore({
     buildings: buildingsReducer,
     administrators: administratorsReducer,
     polls: pollsReducer,
+    context: contextReducer,
+    businessAccount: businessAccountReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

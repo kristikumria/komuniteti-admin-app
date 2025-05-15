@@ -21,7 +21,12 @@ interface ProfileFormData {
   phone: string | null;
 }
 
-export const ProfileScreen = ({ navigation }: any) => {
+export interface ProfileScreenProps {
+  navigation: any;
+  hideHeader?: boolean;
+}
+
+export const ProfileScreen = ({ navigation, hideHeader = false }: ProfileScreenProps) => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector(state => state.auth);
@@ -79,22 +84,24 @@ export const ProfileScreen = ({ navigation }: any) => {
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <IconButton
-            icon="arrow-left"
-            iconColor={theme.colors.onSurface}
-            size={24}
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          />
-          <Text style={[styles.title, { color: theme.colors.onSurface }]}>My Profile</Text>
-          <IconButton
-            icon={isEditing ? 'close' : 'pencil'}
-            iconColor={theme.colors.primary}
-            size={24}
-            onPress={() => isEditing ? handleCancel() : setIsEditing(true)}
-          />
-        </View>
+        {!hideHeader && (
+          <View style={styles.header}>
+            <IconButton
+              icon="arrow-left"
+              iconColor={theme.colors.onSurface}
+              size={24}
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            />
+            <Text style={[styles.title, { color: theme.colors.onSurface }]}>My Profile</Text>
+            <IconButton
+              icon={isEditing ? 'close' : 'pencil'}
+              iconColor={theme.colors.primary}
+              size={24}
+              onPress={() => isEditing ? handleCancel() : setIsEditing(true)}
+            />
+          </View>
+        )}
         
         <View style={styles.profileContainer}>
           <Avatar.Text

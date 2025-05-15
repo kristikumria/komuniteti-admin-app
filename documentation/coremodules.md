@@ -7,13 +7,70 @@ Komuniteti.al implements a hierarchical role-based access control system:
 ```
 Business Manager
     │
-    ├── Manages multiple buildings
+    ├── Business account 1
     │   │
     │   ├── Building 1 ──► Administrator A
+    │   │   │
+    │   │   ├── Residential Unit
+    │   │   │   │
+    │   │   │   └── Residents
+    │   │   │
+    │   │   └── Business Unit
+    │   │       │
+    │   │       └── Business Manager
     │   │
     │   ├── Building 2 ──► Administrator B
+    │   │   │
+    │   │   ├── Residential Unit
+    │   │   │   │
+    │   │   │   └── Residents
+    │   │   │
+    │   │   └── Business Unit
+    │   │       │
+    │   │       └── Business Manager
     │   │
     │   └── Building 3 ──► Administrator C
+    │       │
+    │       ├── Residential Unit
+    │       │   │
+    │       │   └── Residents
+    │       │
+    │       └── Business Unit
+    │           │
+    │           └── Business Manager
+    │
+    Switch
+    ├── Business account 2
+    │   │
+    │   ├── Building 1 ──► Administrator A
+    │   │   │
+    │   │   ├── Residential Unit
+    │   │   │   │
+    │   │   │   └── Residents
+    │   │   │
+    │   │   └── Business Unit
+    │   │       │
+    │   │       └── Business Manager
+    │   │
+    │   ├── Building 2 ──► Administrator B
+    │   │   │
+    │   │   ├── Residential Unit
+    │   │   │   │
+    │   │   │   └── Residents
+    │   │   │
+    │   │   └── Business Unit
+    │   │       │
+    │   │       └── Business Manager
+    │   │
+    │   └── Building 3 ──► Administrator C
+    │       │
+    │       ├── Residential Unit
+    │       │   │
+    │       │   └── Residents
+    │       │
+    │       └── Business Unit
+    │           │
+    │           └── Business Manager
     │
     └── Can switch between business accounts
 ```
@@ -92,6 +149,13 @@ Business managers oversee company operations on the Komuniteti.al platform. They
 #### Organigram
 - Visualize organizational structure (company, administrators, service staff, residents)
 
+#### Account Settings
+- Manage personal profile information
+- Update login credentials and security settings
+- Manage business account details
+- Access account activity logs
+- Configure two-factor authentication
+
 ## Administrator
 
 Administrators manage specific buildings assigned by business managers. They can:
@@ -104,6 +168,42 @@ Administrators manage specific buildings assigned by business managers. They can
 - Communicate with residents
 - Create polls and surveys
 - Switch between different building accounts
+
+```
+Administrator
+    │
+    ├── Building 1
+    │   │
+    │   ├── Residential Unit
+    │   │   │
+    │   │   └── Residents
+    │   │
+    │   └── Business Unit
+    │       │
+    │       └── Business Manager
+    │
+    ├── Building 2
+    │   │
+    │   ├── Residential Unit
+    │   │   │
+    │   │   └── Residents
+    │   │
+    │   └── Business Unit
+    │       │
+    │       └── Business Manager
+    │
+    ├── Building 3
+    │   │
+    │   ├── Residential Unit
+    │   │   │
+    │   │   └── Residents
+    │   │
+    │   └── Business Unit
+    │       │
+    │       └── Business Manager
+    │
+    └── Can switch between buildings
+```
 
 ### Core Modules
 
@@ -137,3 +237,9 @@ Administrators manage specific buildings assigned by business managers. They can
 
 #### Organigram
 - Visualize organizational structure (company, administrators, service staff, residents)
+
+#### Account Settings
+- Manage personal profile information
+- Update login credentials and security settings
+- Access account activity logs
+- Configure two-factor authentication
