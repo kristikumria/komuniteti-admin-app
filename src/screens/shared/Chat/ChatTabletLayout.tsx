@@ -1,112 +1,100 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Platform, Dimensions } from 'react-native';
-import { useTheme } from 'react-native-paper';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { View, StyleSheet, Dimensions } from 'react-native';
+import { useRoute } from '@react-navigation/native';
+import { ChatListScreen } from './index';
+import { ChatConversationScreen } from './index';
+import { NewConversationScreen } from './index';
 
-import { MasterDetailView } from '../../../components/MasterDetailView';
-import { ChatListScreen, ChatConversationScreen } from './index';
-import { AdministratorStackParamList } from '../../../navigation/types';
-import { useBreakpoint } from '../../../hooks/useBreakpoint';
-import { useThemedStyles } from '../../../hooks/useThemedStyles';
-import { Header } from '../../../components/Header';
-
-type NavigationProp = NativeStackNavigationProp<AdministratorStackParamList>;
-type ChatRouteProps = RouteProp<AdministratorStackParamList, 'Chat'>;
-type ChatConversationRouteProps = RouteProp<AdministratorStackParamList, 'ChatConversation'>;
+interface ChatTabletLayoutProps {
+  userRole?: 'administrator' | 'business-manager';
+}
 
 /**
- * Responsive layout for Chat that shows a master-detail view on tablets
- * and a standard stack navigation on phones
+ * A layout component specifically for tablet view of chat functionality
+ * Shows a master-detail view with conversation list on left and selected conversation on right
  */
-export const ChatTabletLayout = () => {
-  const theme = useTheme();
-  const navigation = useNavigation<NavigationProp>();
-  const route = useRoute<ChatRouteProps | ChatConversationRouteProps>();
-  const { isTablet, breakpoint } = useBreakpoint();
-  const { commonStyles } = useThemedStyles();
+export const ChatTabletLayout: React.FC<ChatTabletLayoutProps> = ({
+  userRole = 'administrator',
+}) => {
+  const route = useRoute<any>();
   
-  // Get the conversation ID from the route params if we're on the conversation screen
-  const conversationId = 'params' in route && route.params?.conversationId;
+  // State
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [isCreatingNewConversation, setIsCreatingNewConversation] = useState(false);
   
-  // State to track the selected conversation
-  const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>(
-    typeof conversationId === 'string' ? conversationId : undefined
-  );
-  
-  // Update selectedConversationId when navigation changes
+  // Handle route parameters
   useEffect(() => {
-    if (typeof conversationId === 'string') {
-      setSelectedConversationId(conversationId);
+    if (route.params?.conversationId) {
+      setSelectedConversationId(route.params.conversationId);
+      setIsCreatingNewConversation(false);
     }
-  }, [conversationId]);
+  }, [route.params]);
   
-  // Custom navigation for the chat list that updates the selected conversation
-  const handleConversationSelect = (conversationId: string) => {
+  // Handlers
+  const handleSelectConversation = (conversationId: string) => {
     setSelectedConversationId(conversationId);
-    
-    // Only navigate on non-tablet devices
-    if (!isTablet) {
-      navigation.navigate('ChatConversation', { conversationId });
-    }
+    setIsCreatingNewConversation(false);
   };
   
-  // Handle back navigation from conversation on tablets
-  const handleGoBack = () => {
-    if (isTablet) {
-      setSelectedConversationId(undefined);
-    } else {
-      navigation.goBack();
-    }
+  const handleCreateNewConversation = () => {
+    setSelectedConversationId(null);
+    setIsCreatingNewConversation(true);
   };
   
-  // Wrap the ChatListScreen component with custom navigation
-  const ChatListWrapper = () => (
-    <View style={{ flex: 1 }}>
-      <ChatListScreen 
-        navigateToConversation={handleConversationSelect}
-        navigateToNewConversation={() => navigation.navigate('NewConversation')}
-      />
+  const handleConversationCreated = (conversationId: string) => {
+    setSelectedConversationId(conversationId);
+    setIsCreatingNewConversation(false);
+  };
+  
+  // Render master-detail view
+  return (
+    <View style={styles.container}>
+      <View style={styles.sidebar}>
+        <ChatListScreen 
+          userRole={userRole}
+          onSelectConversation={handleSelectConversation}
+          onCreateNewConversation={handleCreateNewConversation}
+          currentConversationId={selectedConversationId}
+        />
+      </View>
+      
+      <View style={styles.mainContent}>
+        {selectedConversationId ? (
+          <ChatConversationScreen 
+            conversationId={selectedConversationId}
+            userRole={userRole}
+            onGoBack={() => setSelectedConversationId(null)}
+          />
+        ) : isCreatingNewConversation ? (
+          <NewConversationScreen 
+            onConversationCreated={handleConversationCreated}
+            onCancel={() => setIsCreatingNewConversation(false)}
+            userRole={userRole}
+          />
+        ) : (
+          <View style={styles.emptyState} />
+        )}
+      </View>
     </View>
   );
-  
-  // Conditionally render ChatConversationScreen only if we have a selected conversation
-  const ChatConversationWrapper = () => (
-    selectedConversationId ? (
-      <View style={{ flex: 1 }}>
-        <ChatConversationScreen 
-          conversationId={selectedConversationId}
-          onGoBack={handleGoBack}
-        />
-      </View>
-    ) : (
-      <View style={[commonStyles.centeredContainer, { padding: 20 }]}>
-        <Header 
-          title="Messages"
-          subtitle="Select a conversation from the list"
-          centerTitle={true}
-          showBack={!isTablet}
-        />
-      </View>
-    )
-  );
-  
-  // Return different layouts based on device size
-  if (isTablet) {
-    // Use different ratios for portrait vs landscape on tablets
-    const { width, height } = Dimensions.get('window');
-    const isLandscape = width > height;
-    const ratio = isLandscape ? 0.35 : 0.4; // Master takes less width in landscape
-    
-    return (
-      <MasterDetailView
-        masterContent={<ChatListWrapper />}
-        detailContent={<ChatConversationWrapper />}
-        ratio={ratio}
-      />
-    );
-  }
-  
-  // On phones, just render the list
-  return <ChatListWrapper />;
-}; 
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  sidebar: {
+    width: 350,
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(0,0,0,0.1)',
+  },
+  mainContent: {
+    flex: 1,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+}); 

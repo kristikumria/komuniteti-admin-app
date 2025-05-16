@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useTheme, Button, TextInput } from 'react-native-paper';
+import { Text, Button, TextInput, Surface } from 'react-native-paper';
 import { authService } from '../services/authService';
 import { forgotPasswordSchema } from '../utils/validationSchemas';
+import { useThemedStyles } from '../hooks/useThemedStyles';
+import type { AppTheme } from '../theme/theme';
 
 interface ForgotPasswordFormData {
   email: string;
 }
 
 export const ForgotPasswordScreen = ({ navigation }: any) => {
-  const theme = useTheme();
+  const { theme, commonStyles } = useThemedStyles();
   const [loading, setLoading] = useState(false);
   
   const { control, handleSubmit, formState: { errors } } = useForm<ForgotPasswordFormData>({
@@ -38,23 +40,23 @@ export const ForgotPasswordScreen = ({ navigation }: any) => {
   };
   
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles(theme).scrollContainer}>
+      <View style={styles(theme).container}>
         <TouchableOpacity 
-          style={styles.backButton} 
+          style={styles(theme).backButton} 
           onPress={() => navigation.goBack()}
         >
-          <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>← Back to Login</Text>
+          <Text variant="labelLarge" style={styles(theme).backButtonText}>← Back to Login</Text>
         </TouchableOpacity>
         
-        <View style={styles.headerContainer}>
-          <Text style={[styles.title, { color: theme.colors.onSurface }]}>Forgot Password</Text>
-          <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
+        <Surface style={styles(theme).headerContainer} elevation={0}>
+          <Text variant="headlineMedium" style={styles(theme).title}>Forgot Password</Text>
+          <Text variant="bodyLarge" style={styles(theme).subtitle}>
             Enter your email address and we'll send you instructions to reset your password.
           </Text>
-        </View>
+        </Surface>
         
-        <View style={styles.formContainer}>
+        <Surface style={styles(theme).formContainer} elevation={1}>
           <Controller
             control={control}
             name="email"
@@ -69,12 +71,13 @@ export const ForgotPasswordScreen = ({ navigation }: any) => {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 left={<TextInput.Icon icon="email" />}
-                style={styles.textInput}
+                style={styles(theme).textInput}
+                outlineStyle={{ borderRadius: theme.shapes.corner.small }}
               />
             )}
           />
           {errors.email && (
-            <Text style={[styles.errorText, { color: theme.colors.error }]}>
+            <Text variant="labelSmall" style={styles(theme).errorText}>
               {errors.email.message}
             </Text>
           )}
@@ -84,57 +87,87 @@ export const ForgotPasswordScreen = ({ navigation }: any) => {
             onPress={handleSubmit(onSubmit)}
             loading={loading}
             disabled={loading}
-            style={styles.submitButton}
+            style={styles(theme).submitButton}
+            contentStyle={{ height: 48 }}
+            labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
           >
             Send Reset Instructions
           </Button>
-        </View>
+          
+          <View style={styles(theme).infoContainer}>
+            <Text variant="bodyMedium" style={styles(theme).infoText}>
+              After submitting, check your email inbox for a link to reset your password. 
+              If you don't receive an email within a few minutes, please check your spam folder.
+            </Text>
+          </View>
+        </Surface>
       </View>
     </ScrollView>
   );
 };
 
-const styles = StyleSheet.create({
+const styles = (theme: AppTheme) => StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
+    backgroundColor: theme.colors.background,
   },
   container: {
     flex: 1,
-    padding: 24,
-    backgroundColor: '#fff',
+    padding: theme.spacing.l,
   },
   backButton: {
-    marginTop: 16,
-    marginBottom: 24,
+    marginTop: theme.spacing.m,
+    marginBottom: theme.spacing.l,
   },
   backButtonText: {
-    fontSize: 16,
     fontWeight: '500',
+    color: theme.colors.primary,
   },
   headerContainer: {
-    marginBottom: 32,
+    marginBottom: theme.spacing.xl,
+    padding: theme.spacing.m,
+    borderRadius: theme.shapes.corner.medium,
+    backgroundColor: theme.colors.surfaceContainerLow,
   },
   title: {
-    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: theme.spacing.s,
+    color: theme.colors.onSurface,
   },
   subtitle: {
-    fontSize: 16,
+    color: theme.colors.onSurfaceVariant,
     lineHeight: 22,
   },
   formContainer: {
     width: '100%',
+    padding: theme.spacing.m,
+    borderRadius: theme.shapes.corner.medium,
+    backgroundColor: theme.colors.surfaceContainer,
   },
   textInput: {
-    marginBottom: 8,
+    marginBottom: theme.spacing.s,
+    backgroundColor: theme.colors.surfaceContainerHighest,
   },
   errorText: {
-    fontSize: 12,
-    marginBottom: 16,
+    marginBottom: theme.spacing.m,
+    marginTop: -theme.spacing.xs,
+    marginLeft: theme.spacing.s,
+    color: theme.colors.error,
   },
   submitButton: {
-    marginTop: 16,
-    paddingVertical: 6,
+    marginTop: theme.spacing.m,
+    marginBottom: theme.spacing.m,
+    borderRadius: theme.shapes.corner.small,
+    backgroundColor: theme.colors.primary,
+  },
+  infoContainer: {
+    padding: theme.spacing.m,
+    backgroundColor: theme.colors.infoContainer,
+    borderRadius: theme.shapes.corner.small,
+    borderLeftWidth: theme.shapes.border.thick,
+    borderLeftColor: theme.colors.info,
+  },
+  infoText: {
+    color: theme.colors.onInfoContainer,
   },
 });

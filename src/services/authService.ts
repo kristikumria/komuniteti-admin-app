@@ -1,7 +1,8 @@
 import api from './api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
-import { User, UserRole } from '../store/slices/authSlice';
+import { User } from '../navigation/types';
+import { UserRole } from '../store/slices/authSlice';
 
 // Determine if we should use mock data for development
 const USE_MOCK_DATA = true;

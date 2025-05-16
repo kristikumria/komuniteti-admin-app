@@ -570,7 +570,200 @@ export const chatService = {
       lastMessage: message,
       updatedAt: message.timestamp
     };
-  }
+  },
+  
+  // Upload an attachment for a message
+  uploadAttachment: async (file: {
+    uri: string;
+    type: string;
+    name?: string;
+    size?: number;
+    width?: number;
+    height?: number;
+  }): Promise<ChatAttachment> => {
+    return new Promise((resolve, reject) => {
+      // Simulate network delay for upload
+      setTimeout(() => {
+        try {
+          // Validate file
+          if (!file.uri) {
+            reject(new Error('Invalid file: Missing URI'));
+            return;
+          }
+          
+          // Check file type
+          const fileType = file.type.split('/')[0];
+          let attachmentType: 'image' | 'document' | 'location' | 'contact' | 'voice';
+          
+          switch (fileType) {
+            case 'image':
+              attachmentType = 'image';
+              break;
+            case 'audio':
+              attachmentType = 'voice';
+              break;
+            default:
+              attachmentType = 'document';
+          }
+          
+          // Generate file extension if not provided in name
+          let extension = '';
+          if (file.name) {
+            const nameParts = file.name.split('.');
+            if (nameParts.length > 1) {
+              extension = nameParts[nameParts.length - 1].toLowerCase();
+            }
+          } else if (file.type) {
+            const mimeTypeParts = file.type.split('/');
+            if (mimeTypeParts.length > 1) {
+              extension = mimeTypeParts[1].split(';')[0].toLowerCase();
+            }
+          }
+          
+          // Generate document icon based on extension
+          let icon = 'insert-drive-file';
+          
+          if (attachmentType === 'document') {
+            switch (extension) {
+              case 'pdf':
+                icon = 'picture-as-pdf';
+                break;
+              case 'doc':
+              case 'docx':
+                icon = 'description';
+                break;
+              case 'xls':
+              case 'xlsx':
+                icon = 'table-chart';
+                break;
+              case 'ppt':
+              case 'pptx':
+                icon = 'slideshow';
+                break;
+              case 'txt':
+                icon = 'text-snippet';
+                break;
+              case 'zip':
+              case 'rar':
+                icon = 'folder-zip';
+                break;
+              default:
+                icon = 'insert-drive-file';
+            }
+          }
+          
+          // In a real app, this would upload to a server and get back a URL
+          // For our mock, we'll just use the original URI
+          
+          // Create attachment object
+          const attachment: ChatAttachment = {
+            id: `att-${Date.now()}`,
+            type: attachmentType,
+            url: file.uri,
+            name: file.name || `file.${extension || 'unknown'}`,
+            size: file.size || 0,
+            mimeType: file.type,
+          };
+          
+          // Add extra properties based on type
+          if (attachment.type === 'image' && file.width && file.height) {
+            (attachment as any).width = file.width;
+            (attachment as any).height = file.height;
+          }
+          
+          resolve(attachment);
+        } catch (error) {
+          reject(new Error(`Failed to upload attachment: ${error}`));
+        }
+      }, 1500); // Simulate upload time
+    });
+  },
+  
+  // Send a message with attachment
+  sendMessageWithAttachment: async (messageData: {
+    conversationId: string;
+    content: string;
+    attachment: any;
+    replyToId?: string;
+  }): Promise<ChatMessage> => {
+    return new Promise((resolve) => {
+      // Get current user from Redux store
+      const currentUser = getCurrentUser();
+      
+      // Find conversation
+      const conversation = MOCK_CONVERSATIONS[messageData.conversationId];
+      if (!conversation) {
+        throw new Error(`Conversation with ID ${messageData.conversationId} not found`);
+      }
+      
+      // Create reply data if needed
+      let replyTo: ChatMessage['replyTo'] = undefined;
+      if (messageData.replyToId) {
+        const messages = MOCK_MESSAGES[messageData.conversationId] || [];
+        const repliedMessage = messages.find(m => m.id === messageData.replyToId);
+        if (repliedMessage) {
+          replyTo = {
+            id: repliedMessage.id,
+            senderId: repliedMessage.senderId,
+            senderName: repliedMessage.senderName,
+            content: repliedMessage.content
+          };
+        }
+      }
+      
+      // Process the attachment
+      let attachments: ChatAttachment[] = [];
+      
+      if (messageData.attachment) {
+        if (messageData.attachment.type === 'multiple_images' && Array.isArray(messageData.attachment.attachments)) {
+          // Multiple images
+          attachments = messageData.attachment.attachments;
+        } else {
+          // Single attachment
+          attachments = [messageData.attachment];
+        }
+      }
+      
+      // Create new message
+      const newMessage: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        conversationId: messageData.conversationId,
+        senderId: currentUser.id,
+        senderName: currentUser.name,
+        senderRole: currentUser.role as any,
+        content: messageData.content,
+        timestamp: new Date().toISOString(),
+        readBy: [currentUser.id],
+        status: 'sent',
+        replyTo,
+        attachments
+      };
+      
+      // Add to mock data
+      if (!MOCK_MESSAGES[messageData.conversationId]) {
+        MOCK_MESSAGES[messageData.conversationId] = [];
+      }
+      MOCK_MESSAGES[messageData.conversationId].push(newMessage);
+      
+      // Update conversation's last message and timestamp
+      MOCK_CONVERSATIONS[messageData.conversationId] = {
+        ...MOCK_CONVERSATIONS[messageData.conversationId],
+        lastMessage: newMessage,
+        updatedAt: newMessage.timestamp
+      };
+      
+      // Simulate socket delivery to other users
+      setTimeout(() => {
+        // Update message status to delivered
+        newMessage.status = 'delivered';
+        
+        // Notify via socket
+        socketService.notifyNewMessage(newMessage);
+      }, 1000);
+      
+      resolve(newMessage);
+    });
+  },
 };
 
 export default chatService; 

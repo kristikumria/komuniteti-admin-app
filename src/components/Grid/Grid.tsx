@@ -2,6 +2,13 @@ import React from 'react';
 import { View, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 
+// Define a type for Row props to correctly pass spacing
+interface RowProps {
+  spacing?: number;
+  children?: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+}
+
 interface GridProps {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
@@ -48,7 +55,8 @@ export const Grid: React.FC<GridProps> = ({
         if (React.isValidElement(child) && 
             typeof child.type === 'function' && 
             (child.type as any).displayName === 'Row') {
-          return React.cloneElement(child, { spacing });
+          // Use type assertion to fix the type error
+          return React.cloneElement(child as React.ReactElement<any>, { spacing });
         }
         return child;
       })}

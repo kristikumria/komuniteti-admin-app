@@ -399,8 +399,18 @@ export const UnitsList = ({ navigation, customSelectHandler, selectedUnitId }: P
   
   const handleViewResidents = (unitId: string) => {
     const unit = units.find(u => u.id === unitId);
-    if (unit && unit.type === 'residential' && unit.residentId) {
-      navigation.navigate('ResidentDetails', { residentId: unit.residentId });
+    if (unit) {
+      if (unit.type === 'residential' && unit.residentId) {
+        // If we have a single resident, navigate to their details
+        navigation.navigate('ResidentDetails', { residentId: unit.residentId });
+      } else {
+        // Otherwise navigate to the unit residents list view
+        navigation.navigate('UnitResidents', { 
+          unitId, 
+          unitNumber: unit.number,
+          buildingName: unit.building 
+        });
+      }
     }
   };
   

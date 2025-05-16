@@ -27,15 +27,12 @@ export const useBreakpoint = () => {
       setDimensions(window);
     };
 
+    // Use the newer API that returns a subscription object
     const subscription = Dimensions.addEventListener('change', onChange);
 
     return () => {
-      // @ts-ignore - React Native types for newer versions are different
-      if (subscription?.remove) {
-        subscription.remove();
-      } else {
-        Dimensions.removeEventListener('change', onChange);
-      }
+      // Modern API always has a remove method
+      subscription.remove();
     };
   }, []);
 

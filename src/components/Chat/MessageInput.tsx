@@ -16,6 +16,7 @@ import { MaterialIcons, MaterialCommunityIcons, Ionicons } from '@expo/vector-ic
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Haptics from 'expo-haptics';
+import chatService from '../../services/chatService';
 
 interface MessageInputProps {
   onSendMessage: (text: string) => void;
@@ -42,17 +43,18 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   isDarkMode = false,
   onTypingStatusChange
 }) => {
-  const [message, setMessage] = useState('');
-  const [inputHeight, setInputHeight] = useState(40);
+  const [inputText, setInputText] = useState('');
+  const [height, setHeight] = useState(40);
   const [attachMenuVisible, setAttachMenuVisible] = useState(false);
   const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
-  const [isTyping, setIsTyping] = useState(false);
-  const inputRef = useRef<TextInput>(null);
-  const typingTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const recordingInterval = useRef<NodeJS.Timeout | null>(null);
+  const inputRef = useRef<TextInput>(null);
   const attachIconRotation = useRef(new Animated.Value(0)).current;
+  const lastTypingTime = useRef<NodeJS.Timeout | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
 
   // Rotate attachment icon when menu is opened/closed
   useEffect(() => {
@@ -66,9 +68,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   // Cleanup timers on unmount
   useEffect(() => {
     return () => {
-      if (typingTimeout.current) {
-        clearTimeout(typingTimeout.current);
-      }
       if (recordingInterval.current) {
         clearInterval(recordingInterval.current);
       }
@@ -76,7 +75,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   }, []);
 
   const handleTyping = (text: string) => {
-    setMessage(text);
+    setInputText(text);
     
     // Handle typing indicator
     if (!isTyping && text.length > 0) {
@@ -92,13 +91,13 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     }
     
     // Reset the typing timeout
-    if (typingTimeout.current) {
-      clearTimeout(typingTimeout.current);
+    if (lastTypingTime.current) {
+      clearTimeout(lastTypingTime.current);
     }
     
     // Set a new timeout to stop typing indication after 2 seconds of inactivity
     if (text.length > 0) {
-      typingTimeout.current = setTimeout(() => {
+      lastTypingTime.current = setTimeout(() => {
         if (isTyping) {
           setIsTyping(false);
           if (onTypingStatusChange) {
@@ -111,14 +110,14 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
   const handleContentSizeChange = (event: any) => {
     const { height } = event.nativeEvent.contentSize;
-    setInputHeight(Math.min(Math.max(40, height), 120));
+    setHeight(Math.min(Math.max(40, height), 120));
   };
 
   const handleSend = () => {
-    if (message.trim()) {
-      onSendMessage(message.trim());
-      setMessage('');
-      setInputHeight(40);
+    if (inputText.trim()) {
+      onSendMessage(inputText.trim());
+      setInputText('');
+      setHeight(40);
       
       // Stop typing indication
       setIsTyping(false);
@@ -126,8 +125,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         onTypingStatusChange(false);
       }
       
-      if (typingTimeout.current) {
-        clearTimeout(typingTimeout.current);
+      if (lastTypingTime.current) {
+        clearTimeout(lastTypingTime.current);
       }
       
       // Provide haptic feedback
@@ -196,41 +195,60 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
         quality: 0.8,
-        selectionLimit: 5, // Allow up to 5 images at once
       });
       
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        if (onAttachmentSelect) {
+        try {
+          // Show uploading indicator
+          setIsUploading(true);
+          
           // If multiple images were selected, process them all
           if (result.assets.length > 1) {
             // Process multiple images
-            const attachments = result.assets.map(asset => ({
-              type: 'image',
-              uri: asset.uri,
-              name: asset.uri.split('/').pop() || 'image.jpg',
-              size: asset.fileSize || 0,
-              mimeType: asset.mimeType || 'image/jpeg',
-              width: asset.width,
-              height: asset.height,
-            }));
+            const uploadPromises = result.assets.map(asset => 
+              chatService.uploadAttachment({
+                uri: asset.uri,
+                type: asset.mimeType || 'image/jpeg',
+                name: asset.uri.split('/').pop() || 'image.jpg',
+                size: asset.fileSize || 0,
+                width: asset.width,
+                height: asset.height,
+              })
+            );
             
-            onAttachmentSelect({
-              type: 'multiple_images',
-              attachments
-            });
+            const attachments = await Promise.all(uploadPromises);
+            
+            if (onAttachmentSelect) {
+              onAttachmentSelect({
+                type: 'multiple_images',
+                attachments
+              });
+            }
           } else {
             // Process single image
             const asset = result.assets[0];
-            onAttachmentSelect({
-              type: 'image',
+            const attachment = await chatService.uploadAttachment({
               uri: asset.uri,
+              type: asset.mimeType || 'image/jpeg',
               name: asset.uri.split('/').pop() || 'image.jpg',
               size: asset.fileSize || 0,
-              mimeType: asset.mimeType || 'image/jpeg',
               width: asset.width,
               height: asset.height,
             });
+            
+            if (onAttachmentSelect) {
+              onAttachmentSelect(attachment);
+            }
           }
+        } catch (error) {
+          console.error('Error uploading image:', error);
+          Alert.alert(
+            'Upload Failed',
+            'Failed to upload the image. Please try again.',
+            [{ text: 'OK' }]
+          );
+        } finally {
+          setIsUploading(false);
         }
       }
     } catch (error) {
@@ -247,36 +265,73 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const pickDocument = async () => {
     setAttachMenuVisible(false);
     try {
+      // Android permissions handled automatically by DocumentPicker
       const result = await DocumentPicker.getDocumentAsync({
-        type: '*/*',
-        copyToCacheDirectory: true,
+        type: [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'application/vnd.ms-excel',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'application/vnd.ms-powerpoint',
+          'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          'text/plain',
+          'application/zip',
+          'application/x-zip-compressed'
+        ],
+        copyToCacheDirectory: true, // Copy the file to app's cache for more reliable access
         multiple: false,
       });
       
-      if (result.canceled === false && result.assets && result.assets.length > 0) {
-        // Handle document picker success
-        if (onAttachmentSelect) {
-          const asset = result.assets[0];
-          
-          // Check file size (limit to 20MB)
-          const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB in bytes
-          if (asset.size && asset.size > MAX_FILE_SIZE) {
-            Alert.alert(
-              'File Too Large',
-              'The selected file exceeds the 20MB size limit. Please choose a smaller file.',
-              [{ text: 'OK' }]
-            );
-            return;
-          }
-          
-          onAttachmentSelect({
-            type: 'document',
-            uri: asset.uri,
-            name: asset.name || 'document',
-            size: asset.size || 0,
-            mimeType: asset.mimeType || 'application/octet-stream'
-          });
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        // User cancelled or no asset selected
+        return;
+      }
+      
+      const asset = result.assets[0];
+      
+      // Check file size (limit to 10MB)
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+      if (asset.size && asset.size > MAX_FILE_SIZE) {
+        Alert.alert(
+          'File Too Large',
+          'Please select a file smaller than 10MB.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
+      try {
+        // Show uploading indicator
+        setIsUploading(true);
+        
+        // Upload document
+        const attachment = await chatService.uploadAttachment({
+          uri: asset.uri,
+          type: asset.mimeType || 'application/octet-stream',
+          name: asset.name,
+          size: asset.size,
+        });
+        
+        // Provide haptic feedback on successful selection
+        if (Platform.OS === 'ios') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } else {
+          Vibration.vibrate(50);
         }
+        
+        if (onAttachmentSelect) {
+          onAttachmentSelect(attachment);
+        }
+      } catch (error) {
+        console.error('Error uploading document:', error);
+        Alert.alert(
+          'Upload Failed',
+          'Failed to upload the document. Please try again.',
+          [{ text: 'OK' }]
+        );
+      } finally {
+        setIsUploading(false);
       }
     } catch (error) {
       console.error('Error picking document:', error);
@@ -542,12 +597,12 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 ref={inputRef}
                 style={[
                   styles.input,
-                  { height: Math.max(40, inputHeight) },
+                  { height: Math.max(40, height) },
                   isDarkMode ? styles.inputDark : styles.inputLight
                 ]}
                 placeholder={placeholder}
                 placeholderTextColor={isDarkMode ? '#aaa' : '#999'}
-                value={message}
+                value={inputText}
                 onChangeText={handleTyping}
                 multiline
                 maxLength={1000}
@@ -557,7 +612,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 autoCapitalize="sentences"
               />
               
-              {!message.trim() ? (
+              {!inputText.trim() ? (
                 <TouchableOpacity
                   style={styles.emojiButton}
                   onPress={toggleEmojiPicker}
@@ -571,17 +626,17 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               ) : null}
             </View>
             
-            {message.trim() ? (
+            {inputText.trim() ? (
               <TouchableOpacity
                 style={[
                   styles.sendButton,
                   { backgroundColor: '#1363DF' },
-                  sending && styles.sendingButton
+                  isUploading && styles.sendingButton
                 ]}
                 onPress={handleSend}
-                disabled={sending}
+                disabled={isUploading}
               >
-                {sending ? (
+                {isUploading ? (
                   <MaterialCommunityIcons name="loading" size={24} color="white" />
                 ) : (
                   <MaterialIcons name="send" size={24} color="white" />

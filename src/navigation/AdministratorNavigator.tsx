@@ -19,7 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 
 // Import screens
-import { AdministratorDashboard } from '../screens/administrator/Dashboard';
+import { AdministratorDashboard } from '../screens/administrator/Dashboard/Dashboard';
 import { ResidentsList } from '../screens/administrator/Residents/ResidentsList';
 import { ResidentDetails } from '../screens/administrator/Residents/ResidentDetails';
 import { ResidentsTabletLayout } from '../screens/administrator/Residents/ResidentsTabletLayout';
@@ -57,6 +57,14 @@ import { ProfileTabletLayout } from '../screens/shared/ProfileTabletLayout';
 import { PaymentsTabletLayout } from '../screens/administrator/Payments/PaymentsTabletLayout';
 import { ReportsTabletLayout } from '../screens/administrator/Reports/ReportsTabletLayout';
 import { ChatTabletLayout } from '../screens/shared/Chat';
+// Import the MD3ElevationShowcase screen
+import { MD3ElevationShowcase } from '../screens/dev/MD3ElevationShowcase';
+// Import the ChatTestScreen
+import { ChatTestScreen } from '../screens/dev/ChatTestScreen';
+// Import the maintenance components but not MaintenanceList (removed duplicate)
+import { MaintenanceDetail, MaintenanceForm, MaintenanceWorkers, MaintenanceWorkerDetail, MaintenanceAnalyticsComponent as MaintenanceAnalytics } from '../screens/shared/Maintenance/MaintenanceComponents';
+// Import the unified MaintenanceReports screen
+import MaintenanceReports from '../screens/administrator/MaintenanceReports';
 
 const Tab = createBottomTabNavigator<AdministratorTabParamList>();
 const Stack = createNativeStackNavigator<AdministratorStackParamList>();
@@ -64,16 +72,6 @@ const RootStack = createNativeStackNavigator<AdministratorStackParamList>();
 const MainStack = createBottomTabNavigator<AdministratorTabParamList>();
 
 // Individual Stack Navigators
-const ResidentsStack = () => {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Residents" component={ResidentsList} />
-      <Stack.Screen name="ResidentDetails" component={ResidentDetails} />
-      <Stack.Screen name="AddResident" component={AddResident} />
-      <Stack.Screen name="EditResident" component={EditResident} />
-    </Stack.Navigator>
-  );
-};
 
 // Units Stack Navigator
 const UnitsStack = () => {
@@ -158,6 +156,14 @@ const MoreStack = () => {
       <Stack.Screen name="Messages" component={ChatListScreen} />
       <Stack.Screen name="ChatConversation" component={ChatConversationScreen} />
       <Stack.Screen name="NewConversation" component={NewConversationScreen} />
+      <Stack.Screen name="MaintenanceRequests" component={MaintenanceReports} />
+      <Stack.Screen name="MaintenanceDetail" component={MaintenanceDetail} />
+      <Stack.Screen name="MaintenanceForm" component={MaintenanceForm} />
+      <Stack.Screen name="MaintenanceWorkers" component={MaintenanceWorkers} />
+      <Stack.Screen name="MaintenanceWorkerDetail" component={MaintenanceWorkerDetail} />
+      <Stack.Screen name="MaintenanceAnalytics" component={MaintenanceAnalytics} />
+      <Stack.Screen name="MD3ElevationShowcase" component={MD3ElevationShowcase} />
+      <Stack.Screen name="ChatTestScreen" component={ChatTestScreen} />
     </Stack.Navigator>
   );
 };
@@ -259,19 +265,6 @@ const AdministratorTabNavigator = () => {
         component={DashboardScreen}
         options={{
           tabBarLabel: 'Dashboard',
-        }}
-      />
-
-      <MainStack.Screen
-        name="ResidentsTab"
-        component={ResidentsStackNavigator}
-        options={{
-          title: 'Residents',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={{ position: 'relative' }}>
-              <Users size={24} color={color} />
-            </View>
-          ),
         }}
       />
 
@@ -402,31 +395,17 @@ export const AdministratorNavigator = () => {
         name="Profile" 
         component={isTablet ? ProfileTabletLayout : ProfileScreen} 
       />
+      
+      {/* Unified Maintenance & Reports Screen */}
+      <RootStack.Screen 
+        name="MaintenanceReports" 
+        component={MaintenanceReports} 
+      />
     </RootStack.Navigator>
   );
 };
 
-// Residents Stack Navigator (inside the tab)
-const ResidentsStackNavigator = () => {
-  const theme = useTheme();
-  const { isTablet } = useBreakpoint();
-  
-  return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Stack.Screen 
-        name="Residents" 
-        component={isTablet ? ResidentsTabletLayout : ResidentsList} 
-      />
-      <Stack.Screen name="ResidentDetails" component={ResidentDetails} />
-      <Stack.Screen name="AddResident" component={AddResident} />
-      <Stack.Screen name="EditResident" component={EditResident} />
-    </Stack.Navigator>
-  );
-};
+
 
 const styles = StyleSheet.create({
   badge: {

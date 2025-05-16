@@ -13,6 +13,7 @@ import administratorsReducer from './slices/administratorSlice';
 import pollsReducer from './slices/pollsSlice';
 import contextReducer from './slices/contextSlice';
 import businessAccountReducer from './slices/businessAccountSlice';
+import maintenanceReducer from './slices/maintenanceSlice';
 
 export const store = configureStore({
   reducer: {
@@ -28,6 +29,7 @@ export const store = configureStore({
     polls: pollsReducer,
     context: contextReducer,
     businessAccount: businessAccountReducer,
+    maintenance: maintenanceReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

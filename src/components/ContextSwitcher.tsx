@@ -1,18 +1,28 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, TouchableOpacity, Modal, FlatList, Image } from 'react-native';
-import { Text, useTheme, Divider, ActivityIndicator } from 'react-native-paper';
-import { ChevronDown, Building2, Briefcase, Check } from 'lucide-react-native';
-import { useAppSelector } from '../store/hooks';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, TouchableOpacity, Modal, FlatList, Animated, Dimensions } from 'react-native';
+import { Text, Divider, ActivityIndicator, Surface, IconButton, useTheme } from 'react-native-paper';
+import { ChevronDown, Building2, Briefcase, Check, X } from 'lucide-react-native';
 import { useContextData } from '../hooks/useContextData';
+import { useThemedStyles } from '../hooks/useThemedStyles';
+import { ElevationLevel } from '../theme';
+import type { AppTheme } from '../theme/theme';
 
 interface ContextSwitcherProps {
   containerStyle?: object;
 }
 
+/**
+ * A context switching component that allows users to switch between business accounts or buildings.
+ * Follows Material Design 3 guidelines with proper animations, elevation, and accessibility.
+ * 
+ * @example
+ * <ContextSwitcher />
+ */
 export const ContextSwitcher = ({ containerStyle }: ContextSwitcherProps) => {
-  const theme = useTheme();
+  const { theme } = useThemedStyles();
   const [modalVisible, setModalVisible] = useState(false);
-  const isDarkMode = useAppSelector((state) => state.settings.darkMode);
+  const fadeAnim = useState(new Animated.Value(0))[0];
+  const slideAnim = useState(new Animated.Value(Dimensions.get('window').height))[0];
   
   const {
     userRole,
@@ -24,6 +34,40 @@ export const ContextSwitcher = ({ containerStyle }: ContextSwitcherProps) => {
     changeBusinessAccount,
     changeBuilding,
   } = useContextData();
+  
+  // Control animations when modal visibility changes
+  useEffect(() => {
+    if (modalVisible) {
+      // Fade in the overlay
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+      
+      // Slide up the content
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 10,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      // Fade out the overlay
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+      
+      // Slide down the content
+      Animated.timing(slideAnim, {
+        toValue: Dimensions.get('window').height,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [modalVisible]);
   
   // Determine label and options based on user role
   const contextLabel = userRole === 'business_manager' 
@@ -44,6 +88,10 @@ export const ContextSwitcher = ({ containerStyle }: ContextSwitcherProps) => {
     setModalVisible(false);
   };
   
+  const closeModal = () => {
+    setModalVisible(false);
+  };
+  
   // Render an individual context option
   const renderContextOption = ({ item }: { item: any }) => {
     const isActive = userRole === 'business_manager'
@@ -53,24 +101,43 @@ export const ContextSwitcher = ({ containerStyle }: ContextSwitcherProps) => {
     return (
       <TouchableOpacity
         style={[
-          styles.contextOption,
-          isActive && { backgroundColor: `${theme.colors.primary}15` }
+          styles(theme).contextOption,
+          isActive && { backgroundColor: theme.colors.primaryContainer }
         ]}
         onPress={() => handleSelectContext(item.id)}
+        accessibilityRole="radio"
+        accessibilityState={{ checked: isActive }}
+        accessibilityLabel={`${item.name}${item.address ? `, ${item.address}` : ''}`}
       >
-        <View style={styles.contextOptionContent}>
-          <View style={styles.contextIconContainer}>
+        <View style={styles(theme).contextOptionContent}>
+          <View style={styles(theme).contextIconContainer}>
             {userRole === 'business_manager' ? (
-              <Briefcase size={24} color={theme.colors.primary} />
+              <Briefcase size={24} color={isActive ? theme.colors.onPrimaryContainer : theme.colors.primary} />
             ) : (
-              <Building2 size={24} color={theme.colors.primary} />
+              <Building2 size={24} color={isActive ? theme.colors.onPrimaryContainer : theme.colors.primary} />
             )}
           </View>
           
-          <View style={styles.contextDetails}>
-            <Text style={styles.contextName}>{item.name}</Text>
+          <View style={styles(theme).contextDetails}>
+            <Text 
+              variant="bodyLarge" 
+              style={[
+                styles(theme).contextName,
+                isActive && { color: theme.colors.onPrimaryContainer }
+              ]}
+            >
+              {item.name}
+            </Text>
             {item.address && (
-              <Text style={styles.contextDescription}>{item.address}</Text>
+              <Text 
+                variant="bodySmall" 
+                style={[
+                  styles(theme).contextDescription,
+                  isActive && { color: theme.colors.onPrimaryContainer }
+                ]}
+              >
+                {item.address}
+              </Text>
             )}
           </View>
           
@@ -84,127 +151,171 @@ export const ContextSwitcher = ({ containerStyle }: ContextSwitcherProps) => {
   
   if (isLoading) {
     return (
-      <View style={[styles.container, containerStyle]}>
+      <View style={[styles(theme).container, containerStyle]}>
         <ActivityIndicator size="small" color={theme.colors.primary} />
       </View>
     );
   }
   
   return (
-    <View style={[styles.container, containerStyle]}>
+    <View style={[styles(theme).container, containerStyle]}>
       <TouchableOpacity
-        style={styles.button}
+        style={styles(theme).button}
         onPress={() => setModalVisible(true)}
         disabled={contextOptions.length <= 1}
+        accessibilityRole="button"
+        accessibilityLabel={`Currently selected: ${contextLabel}${contextOptions.length > 1 ? '. Tap to change.' : ''}`}
+        accessibilityState={{
+          disabled: contextOptions.length <= 1,
+        }}
       >
         <Text 
-          style={[
-            styles.buttonText, 
-            { color: theme.colors.onSurface }
-          ]}
+          variant="bodyMedium"
+          style={styles(theme).buttonText}
           numberOfLines={1}
         >
           {contextLabel}
         </Text>
         
         {contextOptions.length > 1 && (
-          <ChevronDown size={18} color={theme.colors.onSurface} />
+          <ChevronDown size={18} color={theme.colors.onSurfaceVariant} />
         )}
       </TouchableOpacity>
       
       <Modal
         visible={modalVisible}
         transparent={true}
-        animationType="fade"
-        onRequestClose={() => setModalVisible(false)}
+        animationType="none"
+        onRequestClose={closeModal}
+        statusBarTranslucent
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setModalVisible(false)}
+        <Animated.View
+          style={[
+            styles(theme).modalOverlay,
+            { opacity: fadeAnim }
+          ]}
         >
-          <View 
+          <TouchableOpacity
+            style={styles(theme).modalOverlayTouchable}
+            activeOpacity={1}
+            onPress={closeModal}
+            accessibilityRole="button"
+            accessibilityLabel="Close menu"
+          />
+            
+          <Animated.View
             style={[
-              styles.modalContent,
-              { backgroundColor: isDarkMode ? '#1e1e1e' : 'white' }
+              styles(theme).modalContainer,
+              { transform: [{ translateY: slideAnim }] }
             ]}
           >
-            <Text style={styles.modalTitle}>
-              {userRole === 'business_manager' ? 'Select Business Account' : 'Select Building'}
-            </Text>
-            
-            <Divider style={styles.divider} />
-            
-            <FlatList
-              data={contextOptions}
-              renderItem={renderContextOption}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.contextList}
-              ItemSeparatorComponent={() => <Divider style={styles.optionDivider} />}
-              ListEmptyComponent={() => (
-                <Text style={styles.emptyText}>
-                  {userRole === 'business_manager' 
-                    ? 'No business accounts available' 
-                    : 'No buildings assigned'
-                  }
+            <Surface 
+              style={styles(theme).modalContent}
+              elevation={ElevationLevel.Level3}
+            >
+              <View style={styles(theme).modalHeader}>
+                <Text variant="titleLarge" style={styles(theme).modalTitle}>
+                  {userRole === 'business_manager' ? 'Select Business Account' : 'Select Building'}
                 </Text>
-              )}
-            />
-          </View>
-        </TouchableOpacity>
+                
+                <IconButton
+                  icon={() => <X size={20} color={theme.colors.onSurfaceVariant} />}
+                  onPress={closeModal}
+                  size={20}
+                  accessibilityLabel="Close"
+                />
+              </View>
+              
+              <Divider style={styles(theme).divider} />
+              
+              <FlatList
+                data={contextOptions}
+                renderItem={renderContextOption}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles(theme).contextList}
+                ItemSeparatorComponent={() => (
+                  <Divider style={styles(theme).optionDivider} />
+                )}
+                ListEmptyComponent={() => (
+                  <Text 
+                    variant="bodyMedium"
+                    style={styles(theme).emptyText}
+                  >
+                    {userRole === 'business_manager' 
+                      ? 'No business accounts available' 
+                      : 'No buildings assigned'
+                    }
+                  </Text>
+                )}
+              />
+            </Surface>
+          </Animated.View>
+        </Animated.View>
       </Modal>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const styles = (theme: AppTheme) => StyleSheet.create({
   container: {
-    marginRight: 8,
+    marginRight: theme.spacing.s,
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: theme.spacing.s,
+    paddingVertical: theme.spacing.xs,
     height: 36,
-    borderRadius: 8,
+    borderRadius: theme.roundness,
+    backgroundColor: theme.colors.surfaceVariant + '20',
   },
   buttonText: {
-    fontSize: 14,
     fontWeight: '500',
     marginRight: 4,
     maxWidth: 200,
+    color: theme.colors.onSurface,
   },
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-start',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  modalContent: {
-    margin: 20,
+  modalOverlayTouchable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  modalContainer: {
+    margin: theme.spacing.l,
     marginTop: 80,
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+  },
+  modalContent: {
+    borderRadius: theme.roundness * 1.5,
+    padding: theme.spacing.m,
     maxHeight: '80%',
+    backgroundColor: theme.colors.surface,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.s,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    color: theme.colors.onSurface,
   },
   divider: {
-    marginBottom: 12,
+    marginBottom: theme.spacing.m,
+    backgroundColor: theme.colors.outlineVariant,
   },
   contextList: {
-    paddingBottom: 8,
+    paddingBottom: theme.spacing.s,
   },
   contextOption: {
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: theme.spacing.m,
+    borderRadius: theme.roundness,
   },
   contextOptionContent: {
     flexDirection: 'row',
@@ -214,28 +325,28 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: theme.colors.surfaceVariant,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: theme.spacing.m,
   },
   contextDetails: {
     flex: 1,
   },
   contextName: {
-    fontSize: 16,
     fontWeight: '500',
+    color: theme.colors.onSurface,
   },
   contextDescription: {
-    fontSize: 12,
-    opacity: 0.6,
+    color: theme.colors.onSurfaceVariant,
   },
   optionDivider: {
-    opacity: 0.2,
+    backgroundColor: theme.colors.outlineVariant,
+    opacity: 0.5,
   },
   emptyText: {
     textAlign: 'center',
-    paddingVertical: 24,
-    opacity: 0.6,
+    color: theme.colors.onSurfaceVariant,
+    padding: theme.spacing.m,
   },
 }); 

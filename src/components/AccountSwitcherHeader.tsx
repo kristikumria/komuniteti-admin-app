@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, TouchableOpacity, Modal, FlatList, Dimensions, Animated, PanResponder } from 'react-native';
 import { Text, Button, Divider, IconButton, useTheme, Surface, Avatar, Chip } from 'react-native-paper';
-import { ChevronDown, User, Building2, Check, Minus, ChevronRight, Home, Briefcase } from 'lucide-react-native';
+import { ChevronDown, User, Building2, Check, Minus, ChevronRight, Home, Briefcase, X, ChevronLeft } from 'lucide-react-native';
 import { useAppSelector } from '../store/hooks';
 import { BlurView } from 'expo-blur';
+import { ElevationLevel } from '../theme';
+import type { AppTheme } from '../theme/theme';
 
 interface Building {
   id: string;
@@ -37,8 +39,15 @@ interface AccountSwitcherHeaderProps {
   onAccountSwitch: (accountId: string, accountType?: string) => void;
 }
 
+/**
+ * Account switcher header component that allows users to switch between business accounts and buildings.
+ * Follows Material Design 3 guidelines with proper elevation, interactive states, and accessibility.
+ * 
+ * @example
+ * <AccountSwitcherHeader onAccountSwitch={(id, type) => handleAccountSwitch(id, type)} />
+ */
 export const AccountSwitcherHeader: React.FC<AccountSwitcherHeaderProps> = ({ onAccountSwitch }) => {
-  const theme = useTheme();
+  const theme = useTheme() as AppTheme;
   const isDarkMode = useAppSelector(state => state.settings.darkMode);
   const { user } = useAppSelector(state => state.auth);
   const isBusinessManager = user?.role === 'business_manager';
@@ -53,8 +62,42 @@ export const AccountSwitcherHeader: React.FC<AccountSwitcherHeaderProps> = ({ on
   const [showBuildingsList, setShowBuildingsList] = useState(false);
   const [currentBusinessBuildings, setCurrentBusinessBuildings] = useState<Building[]>([]);
   
-  // Animation for bottom sheet
+  // Animations for bottom sheet and overlay
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  
+  // Pan responder for dragging the bottom sheet
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dy > 5;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          const newValue = 1 - (gestureState.dy / (Dimensions.get('window').height * 0.6));
+          slideAnim.setValue(Math.max(0, Math.min(1, newValue)));
+          overlayOpacity.setValue(Math.max(0, Math.min(1, newValue * 0.7)));
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 100 || gestureState.vy > 0.5) {
+          handleCloseModal();
+        } else {
+          Animated.spring(slideAnim, {
+            toValue: 1,
+            useNativeDriver: true,
+            tension: 50,
+            friction: 7,
+          }).start();
+          Animated.timing(overlayOpacity, {
+            toValue: 0.7,
+            duration: 250,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
   
   // Load mock data based on user role
   useEffect(() => {
@@ -134,20 +177,34 @@ export const AccountSwitcherHeader: React.FC<AccountSwitcherHeaderProps> = ({ on
   // Handle animations
   useEffect(() => {
     if (modalVisible) {
-      Animated.spring(slideAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 50,
-        friction: 7
-      }).start();
+      Animated.parallel([
+        Animated.spring(slideAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7
+        }),
+        Animated.timing(overlayOpacity, {
+          toValue: 0.7,
+          duration: 250,
+          useNativeDriver: true
+        })
+      ]).start();
     } else {
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true
-      }).start();
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true
+        }),
+        Animated.timing(overlayOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true
+        })
+      ]).start();
     }
-  }, [modalVisible, slideAnim]);
+  }, [modalVisible, slideAnim, overlayOpacity]);
   
   const handleOpenModal = () => {
     setModalVisible(true);
@@ -155,11 +212,18 @@ export const AccountSwitcherHeader: React.FC<AccountSwitcherHeaderProps> = ({ on
   };
   
   const handleCloseModal = () => {
-    Animated.timing(slideAnim, {
-      toValue: 0,
-      duration: 250,
-      useNativeDriver: true
-    }).start(() => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true
+      }),
+      Animated.timing(overlayOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true
+      })
+    ]).start(() => {
       setModalVisible(false);
     });
   };
@@ -198,46 +262,26 @@ export const AccountSwitcherHeader: React.FC<AccountSwitcherHeaderProps> = ({ on
   // Calculate the translate Y value for the bottom sheet
   const translateY = slideAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [600, 0],
-    extrapolate: 'clamp'
+    outputRange: [Dimensions.get('window').height, 0],
   });
   
-  // Create the pan responder for swipe down to close
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        return gestureState.dy > 10;
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        if (gestureState.dy > 0) {
-          slideAnim.setValue(1 - gestureState.dy / 400);
-        }
-      },
-      onPanResponderRelease: (evt, gestureState) => {
-        if (gestureState.dy > 100) {
-          handleCloseModal();
-        } else {
-          Animated.spring(slideAnim, {
-            toValue: 1,
-            useNativeDriver: true,
-            tension: 50,
-            friction: 7
-          }).start();
-        }
-      }
-    })
-  ).current;
+  // Calculate the border radius based on the animation progress
+  const borderRadius = slideAnim.interpolate({
+    inputRange: [0.9, 1],
+    outputRange: [20, 0],
+    extrapolate: 'clamp',
+  });
   
   const getBuildingIcon = (type: string) => {
     switch (type) {
       case 'residential':
-        return <Home size={16} color={theme.colors.onSurfaceVariant} />;
+        return <Home size={24} color={theme.colors.primary} />;
       case 'commercial':
-        return <Briefcase size={16} color={theme.colors.onSurfaceVariant} />;
+        return <Briefcase size={24} color={theme.colors.primary} />;
       case 'mixed':
-        return <Building2 size={16} color={theme.colors.onSurfaceVariant} />;
+        return <Building2 size={24} color={theme.colors.primary} />;
       default:
-        return <Building2 size={16} color={theme.colors.onSurfaceVariant} />;
+        return <Building2 size={24} color={theme.colors.primary} />;
     }
   };
   
@@ -248,274 +292,284 @@ export const AccountSwitcherHeader: React.FC<AccountSwitcherHeaderProps> = ({ on
       case 'commercial':
         return 'Commercial';
       case 'mixed':
-        return 'Mixed Use';
+        return 'Mixed-Use';
       default:
-        return 'Building';
+        return 'Unknown';
+    }
+  };
+  
+  const getBuildingTypeChipColor = (type: string) => {
+    switch (type) {
+      case 'residential':
+        return { background: theme.colors.primaryContainer, text: theme.colors.onPrimaryContainer };
+      case 'commercial':
+        return { background: theme.colors.secondaryContainer, text: theme.colors.onSecondaryContainer };
+      case 'mixed':
+        return { background: theme.colors.tertiaryContainer, text: theme.colors.onTertiaryContainer };
+      default:
+        return { background: theme.colors.surfaceVariant, text: theme.colors.onSurfaceVariant };
     }
   };
   
   const renderBusinessItem = ({ item }: { item: BusinessAccount }) => {
-    const isSelected = selectedBusinessId === item.id;
+    const isSelected = item.id === selectedBusinessId;
     
     return (
       <TouchableOpacity
         style={[
-          styles.accountItem,
-          isSelected && {
-            backgroundColor: theme.colors.primaryContainer,
-            borderRadius: 12
-          }
+          styles(theme).listItem,
+          isSelected && styles(theme).selectedItem
         ]}
         onPress={() => handleBusinessSelect(item.id)}
+        accessibilityRole="radio"
+        accessibilityState={{ checked: isSelected }}
+        accessibilityLabel={`${item.name}${item.email ? `, ${item.email}` : ''}, ${item.buildings.length} buildings`}
       >
-        <View style={styles.accountItemContent}>
-          <Avatar.Icon 
-            size={44} 
-            icon="domain"
-            style={{
-              backgroundColor: isSelected 
-                ? theme.colors.primary 
-                : theme.colors.surfaceVariant
-            }}
-            color={isSelected ? theme.colors.onPrimary : theme.colors.onSurfaceVariant}
-          />
-          <View style={styles.accountInfo}>
+        <View style={styles(theme).listItemContent}>
+          <View style={styles(theme).iconContainer}>
+            <Avatar.Icon 
+              size={40} 
+              icon={props => <Briefcase {...props} />} 
+              style={{ backgroundColor: isSelected ? theme.colors.primaryContainer : theme.colors.surfaceVariant }}
+              color={isSelected ? theme.colors.onPrimaryContainer : theme.colors.onSurfaceVariant}
+            />
+          </View>
+          
+          <View style={styles(theme).itemDetails}>
             <Text 
               variant="titleMedium" 
               style={[
-                styles.accountName, 
-                { 
-                  color: isSelected ? theme.colors.primary : theme.colors.onSurface,
-                  fontWeight: isSelected ? 'bold' : 'normal'  
-                }
+                styles(theme).itemTitle,
+                isSelected && { color: theme.colors.primary }
               ]}
-              numberOfLines={1}
             >
               {item.name}
             </Text>
+            {item.email && (
+              <Text 
+                variant="bodySmall" 
+                style={styles(theme).itemSubtitle}
+              >
+                {item.email}
+              </Text>
+            )}
             <Text 
-              variant="bodySmall" 
-              style={{ 
-                color: theme.colors.onSurfaceVariant 
-              }}
-              numberOfLines={1}
+              variant="labelSmall" 
+              style={styles(theme).buildingCount}
             >
-              {item.buildings.length} {item.buildings.length === 1 ? 'Building' : 'Buildings'}
+              {item.buildings.length} {item.buildings.length === 1 ? 'building' : 'buildings'}
             </Text>
           </View>
-          <ChevronRight size={20} color={theme.colors.onSurfaceVariant} />
+          
+          <View style={styles(theme).actionContainer}>
+            {isSelected ? (
+              <Check size={24} color={theme.colors.primary} />
+            ) : (
+              <ChevronRight size={20} color={theme.colors.onSurfaceVariant} />
+            )}
+          </View>
         </View>
       </TouchableOpacity>
     );
   };
   
   const renderBuildingItem = ({ item }: { item: Building }) => {
-    const isSelected = selectedAccountId === item.id;
+    const isSelected = item.id === selectedAccountId;
+    const chipColors = getBuildingTypeChipColor(item.type);
     
     return (
       <TouchableOpacity
         style={[
-          styles.accountItem,
-          isSelected && {
-            backgroundColor: theme.colors.primaryContainer,
-            borderRadius: 12
-          }
+          styles(theme).listItem,
+          isSelected && styles(theme).selectedItem
         ]}
         onPress={() => handleBuildingSelect(item.id)}
+        accessibilityRole="radio"
+        accessibilityState={{ checked: isSelected }}
+        accessibilityLabel={`${item.name}, ${getBuildingTypeLabel(item.type)}, ${item.address}, ${item.totalUnits} units`}
       >
-        <View style={styles.accountItemContent}>
-          <Avatar.Icon 
-            size={44} 
-            icon={item.type === 'residential' ? 'home' : item.type === 'commercial' ? 'office-building' : 'domain'}
-            style={{
-              backgroundColor: isSelected 
-                ? theme.colors.primary 
-                : theme.colors.surfaceVariant
-            }}
-            color={isSelected ? theme.colors.onPrimary : theme.colors.onSurfaceVariant}
-          />
-          <View style={styles.accountInfo}>
+        <View style={styles(theme).listItemContent}>
+          <View style={styles(theme).iconContainer}>
+            <Avatar.Icon 
+              size={40} 
+              icon={props => getBuildingIcon(item.type)}
+              style={{ backgroundColor: isSelected ? theme.colors.primaryContainer : theme.colors.surfaceVariant }}
+              color={isSelected ? theme.colors.onPrimaryContainer : theme.colors.onSurfaceVariant}
+            />
+          </View>
+          
+          <View style={styles(theme).itemDetails}>
             <Text 
               variant="titleMedium" 
               style={[
-                styles.accountName, 
-                { 
-                  color: isSelected ? theme.colors.primary : theme.colors.onSurface,
-                  fontWeight: isSelected ? 'bold' : 'normal'  
-                }
+                styles(theme).itemTitle,
+                isSelected && { color: theme.colors.primary }
               ]}
-              numberOfLines={1}
             >
               {item.name}
             </Text>
-            <View style={styles.buildingDetails}>
-              <Text 
-                variant="bodySmall" 
-                style={{ color: theme.colors.onSurfaceVariant }}
-                numberOfLines={1}
+            
+            <Text 
+              variant="bodySmall" 
+              style={styles(theme).itemSubtitle}
+            >
+              {item.address}
+            </Text>
+            
+            <View style={styles(theme).chipContainer}>
+              <Chip 
+                style={[
+                  styles(theme).chip, 
+                  { backgroundColor: chipColors.background }
+                ]}
+                textStyle={{ color: chipColors.text, fontSize: 12 }}
               >
-                {item.address}
+                {getBuildingTypeLabel(item.type)}
+              </Chip>
+              
+              <Text variant="labelSmall" style={styles(theme).unitsText}>
+                {item.totalUnits} {item.totalUnits === 1 ? 'unit' : 'units'}
               </Text>
-              <View style={styles.buildingStats}>
-                <Chip 
-                  style={styles.typeChip} 
-                  textStyle={{ fontSize: 10 }}
-                  icon={() => getBuildingIcon(item.type)}
-                >
-                  {getBuildingTypeLabel(item.type)}
-                </Chip>
-                <Text 
-                  variant="bodySmall" 
-                  style={{ color: theme.colors.onSurfaceVariant, marginLeft: 8 }}
-                >
-                  {item.totalUnits} {item.totalUnits === 1 ? 'Unit' : 'Units'}
-                </Text>
-              </View>
             </View>
           </View>
+          
           {isSelected && (
-            <Check size={20} color={theme.colors.primary} />
+            <View style={styles(theme).actionContainer}>
+              <Check size={24} color={theme.colors.primary} />
+            </View>
           )}
         </View>
       </TouchableOpacity>
     );
   };
-
-  // Determine what to show: buildings for admin, businesses or buildings for business manager
-  const renderContent = () => {
-    if (isBusinessManager) {
-      if (showBuildingsList) {
-        return (
-          <>
-            <View style={styles.modalHeader}>
-              <TouchableOpacity 
-                style={styles.backButton} 
-                onPress={handleBackToBusinesses}
-              >
-                <IconButton
-                  icon="arrow-left"
-                  size={20}
-                  onPress={handleBackToBusinesses}
-                />
-                <Text variant="bodyMedium" style={{ color: theme.colors.primary }}>
-                  Back to Businesses
-                </Text>
-              </TouchableOpacity>
-              <IconButton
-                icon="close"
-                size={24}
-                onPress={handleCloseModal}
-                style={styles.closeButton}
-              />
-            </View>
-            
-            <Text variant="headlineSmall" style={{ color: theme.colors.onSurface, fontWeight: 'bold', marginBottom: 8 }}>
-              {selectedBusinessName}
-            </Text>
-            <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 16 }}>
-              Select a building to manage
-            </Text>
-            <Divider style={{ backgroundColor: theme.colors.outlineVariant, marginBottom: 16 }} />
-            
-            <FlatList
-              data={currentBusinessBuildings}
-              keyExtractor={(item) => item.id}
-              renderItem={renderBuildingItem}
-              ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-              contentContainerStyle={styles.listContainer}
-              ListEmptyComponent={
-                <View style={styles.emptyState}>
-                  <Text style={{ color: theme.colors.onSurfaceVariant }}>
-                    No buildings found for this business
-                  </Text>
-                </View>
-              }
-            />
-          </>
-        );
-      } else {
-        return (
-          <>
-            <View style={styles.modalHeader}>
-              <Text variant="headlineSmall" style={{ color: theme.colors.onSurface, fontWeight: 'bold' }}>
-                Business Accounts
-              </Text>
-              <IconButton
-                icon="close"
-                size={24}
-                onPress={handleCloseModal}
-                style={styles.closeButton}
-              />
-            </View>
-            <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 16 }}>
-              Select a business to view its buildings
-            </Text>
-            <Divider style={{ backgroundColor: theme.colors.outlineVariant, marginBottom: 16 }} />
-            
-            <FlatList
-              data={businessAccounts}
-              keyExtractor={(item) => item.id}
-              renderItem={renderBusinessItem}
-              ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-              contentContainerStyle={styles.listContainer}
-            />
-          </>
-        );
-      }
-    } else {
-      // Administrator view - just show buildings
-      return (
+  
+  const renderDragHandle = () => (
+    <View {...panResponder.panHandlers} style={styles(theme).dragHandle}>
+      <View style={styles(theme).dragIndicator} />
+    </View>
+  );
+  
+  const renderHeader = () => (
+    <View style={styles(theme).modalHeader}>
+      {showBuildingsList && isBusinessManager ? (
         <>
-          <View style={styles.modalHeader}>
-            <Text variant="headlineSmall" style={{ color: theme.colors.onSurface, fontWeight: 'bold' }}>
-              Buildings
-            </Text>
-            <IconButton
-              icon="close"
-              size={24}
-              onPress={handleCloseModal}
-              style={styles.closeButton}
-            />
-          </View>
-          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 16 }}>
-            Select a building to manage
+          <Button
+            mode="text"
+            icon={() => <ChevronLeft size={18} color={theme.colors.primary} />}
+            onPress={handleBackToBusinesses}
+            style={styles(theme).backButton}
+            accessibilityLabel="Back to business accounts"
+          >
+            Back
+          </Button>
+          <Text variant="titleMedium" style={styles(theme).modalTitle}>
+            {selectedBusinessName} Buildings
           </Text>
-          <Divider style={{ backgroundColor: theme.colors.outlineVariant, marginBottom: 16 }} />
-          
-          <FlatList
-            data={adminBuildings}
-            keyExtractor={(item) => item.id}
-            renderItem={renderBuildingItem}
-            ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-            contentContainerStyle={styles.listContainer}
-          />
         </>
+      ) : (
+        <Text variant="titleLarge" style={styles(theme).modalTitle}>
+          {isBusinessManager ? 'Select Business Account' : 'Select Building'}
+        </Text>
+      )}
+      
+      <IconButton
+        icon={() => <X size={20} color={theme.colors.onSurfaceVariant} />}
+        onPress={handleCloseModal}
+        accessibilityLabel="Close"
+      />
+    </View>
+  );
+  
+  const renderContent = () => {
+    if (showBuildingsList && isBusinessManager) {
+      return (
+        <FlatList
+          data={currentBusinessBuildings}
+          renderItem={renderBuildingItem}
+          keyExtractor={(item) => item.id}
+          ItemSeparatorComponent={() => <Divider style={styles(theme).divider} />}
+          contentContainerStyle={styles(theme).listContent}
+          ListEmptyComponent={() => (
+            <View style={styles(theme).emptyContainer}>
+              <Text variant="bodyMedium" style={styles(theme).emptyText}>
+                No buildings found for this business account.
+              </Text>
+            </View>
+          )}
+        />
+      );
+    } else if (isBusinessManager) {
+      return (
+        <FlatList
+          data={businessAccounts}
+          renderItem={renderBusinessItem}
+          keyExtractor={(item) => item.id}
+          ItemSeparatorComponent={() => <Divider style={styles(theme).divider} />}
+          contentContainerStyle={styles(theme).listContent}
+          ListEmptyComponent={() => (
+            <View style={styles(theme).emptyContainer}>
+              <Text variant="bodyMedium" style={styles(theme).emptyText}>
+                No business accounts found.
+              </Text>
+            </View>
+          )}
+        />
+      );
+    } else {
+      return (
+        <FlatList
+          data={adminBuildings}
+          renderItem={renderBuildingItem}
+          keyExtractor={(item) => item.id}
+          ItemSeparatorComponent={() => <Divider style={styles(theme).divider} />}
+          contentContainerStyle={styles(theme).listContent}
+          ListEmptyComponent={() => (
+            <View style={styles(theme).emptyContainer}>
+              <Text variant="bodyMedium" style={styles(theme).emptyText}>
+                No buildings assigned.
+              </Text>
+            </View>
+          )}
+        />
       );
     }
   };
   
   return (
-    <>
-      <TouchableOpacity onPress={handleOpenModal} style={[
-        styles.button,
-        {
-          backgroundColor: theme.colors.surfaceVariant,
-          borderColor: theme.colors.outlineVariant,
-        }
-      ]}>
-        <Avatar.Icon 
-          size={24} 
-          icon={isBusinessManager ? 'domain' : 'home'} 
-          style={styles.buttonIcon}
-          color={theme.colors.onSurfaceVariant}
-        />
-        <Text 
-          style={[styles.buttonText, { color: theme.colors.onSurface }]} 
-          numberOfLines={1}
-        >
-          {selectedAccountName}
-        </Text>
-        <ChevronDown size={16} color={theme.colors.onSurfaceVariant} />
+    <View style={styles(theme).container}>
+      <TouchableOpacity
+        style={styles(theme).switcher}
+        onPress={handleOpenModal}
+        accessibilityRole="button"
+        accessibilityLabel={`Current ${isBusinessManager ? 'building' : 'building'}: ${selectedAccountName}. Tap to change.`}
+      >
+        <View style={styles(theme).switcherIconContainer}>
+          {isBusinessManager ? (
+            <Building2 size={24} color={theme.colors.primary} />
+          ) : (
+            <Building2 size={24} color={theme.colors.primary} />
+          )}
+        </View>
+        
+        <View style={styles(theme).switcherTextContainer}>
+          <Text
+            variant="labelSmall"
+            style={styles(theme).switcherLabel}
+          >
+            {isBusinessManager ? 'CURRENT BUILDING' : 'BUILDING'}
+          </Text>
+          
+          <View style={styles(theme).switcherNameContainer}>
+            <Text
+              variant="titleSmall"
+              style={styles(theme).switcherName}
+              numberOfLines={1}
+            >
+              {selectedAccountName || (isBusinessManager ? 'Select Building' : 'Select Building')}
+            </Text>
+            <ChevronDown size={14} color={theme.colors.primary} style={{ marginLeft: 4 }} />
+          </View>
+        </View>
       </TouchableOpacity>
       
       <Modal
@@ -523,166 +577,190 @@ export const AccountSwitcherHeader: React.FC<AccountSwitcherHeaderProps> = ({ on
         transparent={true}
         animationType="none"
         onRequestClose={handleCloseModal}
+        statusBarTranslucent
       >
-        <BlurView intensity={10} style={styles.modalOverlay} tint={isDarkMode ? "dark" : "light"}>
-          <TouchableOpacity 
-            style={styles.backdropTouchable} 
-            activeOpacity={1} 
-            onPress={handleCloseModal} 
-          />
-          
+        <View style={styles(theme).modalContainer}>
           <Animated.View 
             style={[
-              styles.bottomSheetContainer, 
-              { 
-                transform: [{ translateY }],
-                backgroundColor: theme.colors.surface
-              }
+              styles(theme).overlay,
+              { opacity: overlayOpacity }
             ]}
-            {...panResponder.panHandlers}
           >
-            {/* Drag handle */}
-            <View style={styles.dragHandleContainer}>
-              <View style={[styles.dragHandle, { backgroundColor: theme.colors.outlineVariant }]} />
-            </View>
-            
-            <View style={styles.bottomSheetContent}>
-              {renderContent()}
-            </View>
+            <TouchableOpacity 
+              style={styles(theme).overlayTouchable} 
+              activeOpacity={1} 
+              onPress={handleCloseModal}
+              accessibilityRole="button"
+              accessibilityLabel="Close menu"
+            />
           </Animated.View>
-        </BlurView>
+          
+          <Animated.View
+            style={[
+              styles(theme).bottomSheet,
+              {
+                transform: [{ translateY }],
+                borderTopLeftRadius: borderRadius,
+                borderTopRightRadius: borderRadius,
+              },
+            ]}
+          >
+            <Surface style={styles(theme).sheetContent} elevation={ElevationLevel.Level3}>
+              <View style={styles(theme).sheetOverflowContainer}>
+                {renderDragHandle()}
+                {renderHeader()}
+                <Divider />
+                {renderContent()}
+              </View>
+            </Surface>
+          </Animated.View>
+        </View>
       </Modal>
-    </>
+    </View>
   );
 };
 
-const { width, height } = Dimensions.get('window');
-
-const styles = StyleSheet.create({
-  button: {
+const styles = (theme: AppTheme) => StyleSheet.create({
+  container: {
+    marginBottom: theme.spacing.m,
+  },
+  switcher: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 24,
-    borderWidth: 1,
-    maxWidth: 200,
-    elevation: 1,
+    backgroundColor: theme.colors.surfaceVariant + '20',
+    borderRadius: theme.roundness,
+    padding: theme.spacing.s,
   },
-  buttonIcon: {
-    marginRight: 8,
-    backgroundColor: 'transparent',
-    height: 24,
-    width: 24,
+  switcherIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.surfaceVariant,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: theme.spacing.s,
   },
-  buttonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginRight: 4,
+  switcherTextContainer: {
     flex: 1,
   },
-  modalOverlay: {
+  switcherLabel: {
+    color: theme.colors.onSurfaceVariant,
+    marginBottom: 2,
+  },
+  switcherNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  switcherName: {
+    color: theme.colors.onSurface,
+    fontWeight: '500',
+  },
+  modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
-  backdropTouchable: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'black',
   },
-  bottomSheetContainer: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 8,
-    maxHeight: height * 0.85,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: -3,
-    },
-    shadowOpacity: 0.27,
-    shadowRadius: 4.65,
-    elevation: 6,
+  overlayTouchable: {
+    flex: 1,
   },
-  bottomSheetContent: {
-    padding: 20,
-    paddingTop: 0,
+  bottomSheet: {
+    width: '100%',
+    maxHeight: '90%',
+    backgroundColor: theme.colors.surface,
   },
-  dragHandleContainer: {
+  sheetContent: {
+    width: '100%',
+    backgroundColor: theme.colors.surface,
+  },
+  sheetOverflowContainer: {
+    overflow: 'hidden',
+    width: '100%',
+  },
+  dragHandle: {
     width: '100%',
     height: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dragHandle: {
-    width: 40,
-    height: 5,
-    borderRadius: 3,
-    opacity: 0.5,
+  dragIndicator: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: theme.colors.outlineVariant,
   },
   modalHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    paddingHorizontal: theme.spacing.m,
+    paddingVertical: theme.spacing.s,
   },
   backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginRight: theme.spacing.s,
   },
-  closeButton: {
-    margin: -8,
+  modalTitle: {
+    flex: 1,
+    color: theme.colors.onSurface,
   },
-  listContainer: {
-    paddingVertical: 8,
+  divider: {
+    backgroundColor: theme.colors.outlineVariant,
   },
-  accountItem: {
-    padding: 16,
-    borderRadius: 12,
-    marginVertical: 2,
+  listContent: {
+    paddingBottom: theme.spacing.l,
   },
-  accountItemContent: {
+  listItem: {
+    paddingVertical: theme.spacing.m,
+    paddingHorizontal: theme.spacing.m,
+  },
+  selectedItem: {
+    backgroundColor: theme.colors.surfaceVariant + '40',
+  },
+  listItemContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    marginRight: theme.spacing.m,
   },
-  accountIcon: {
-    fontSize: 24,
-  },
-  accountInfo: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  accountName: {
-    marginBottom: 2,
-  },
-  buildingDetails: {
+  itemDetails: {
     flex: 1,
   },
-  buildingStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  itemTitle: {
+    fontWeight: '500',
+    color: theme.colors.onSurface,
+  },
+  itemSubtitle: {
+    color: theme.colors.onSurfaceVariant,
+    marginTop: 2,
+  },
+  buildingCount: {
+    color: theme.colors.onSurfaceVariant,
     marginTop: 4,
   },
-  typeChip: {
-    height: 22,
+  chipContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  chip: {
+    height: 24,
+  },
+  unitsText: {
+    color: theme.colors.onSurfaceVariant,
+    marginLeft: theme.spacing.s,
+  },
+  actionContainer: {
+    marginLeft: theme.spacing.s,
+  },
+  emptyContainer: {
+    padding: theme.spacing.l,
     alignItems: 'center',
   },
-  emptyState: {
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  }
+  emptyText: {
+    color: theme.colors.onSurfaceVariant,
+    textAlign: 'center',
+  },
 }); 

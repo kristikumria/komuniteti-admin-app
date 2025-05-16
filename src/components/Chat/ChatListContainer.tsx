@@ -8,15 +8,22 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
-  Animated,
+  Animated as RNAnimated,
   Platform
 } from 'react-native';
-import { Searchbar, Badge, FAB, useTheme, Divider } from 'react-native-paper';
+import { Searchbar, Badge, FAB, useTheme, Divider, Surface } from 'react-native-paper';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAppSelector } from '../../store/hooks';
 import { ChatConversation } from '../../navigation/types';
 import { format, isToday, isYesterday } from 'date-fns';
-import { theme as appTheme } from '../../theme';
+import Animated, { 
+  FadeIn, 
+  FadeOut,
+  SlideInRight,
+  useAnimatedStyle, 
+  withTiming, 
+  Easing
+} from 'react-native-reanimated';
 
 interface ChatListContainerProps {
   conversations: ChatConversation[];
@@ -47,8 +54,23 @@ export const ChatListContainer: React.FC<ChatListContainerProps> = ({
   const [filteredConversations, setFilteredConversations] = useState<ChatConversation[]>([]);
   
   // Animation for search bar
-  const searchBarHeight = useRef(new Animated.Value(0)).current;
+  const searchBarHeight = useRef(new RNAnimated.Value(0)).current;
   const [isSearchVisible, setIsSearchVisible] = useState(false);
+  
+  // Animated style for search bar
+  const searchBarAnimStyle = useAnimatedStyle(() => {
+    return {
+      height: withTiming(isSearchVisible ? 56 : 0, {
+        duration: 300,
+        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+      }),
+      opacity: withTiming(isSearchVisible ? 1 : 0, {
+        duration: 250,
+        easing: Easing.ease,
+      }),
+      overflow: 'hidden',
+    };
+  }, [isSearchVisible]);
   
   // Filter conversations based on search query
   useEffect(() => {
@@ -75,14 +97,6 @@ export const ChatListContainer: React.FC<ChatListContainerProps> = ({
   
   // Toggle search bar visibility
   const toggleSearch = () => {
-    const toValue = isSearchVisible ? 0 : 56;
-    
-    Animated.timing(searchBarHeight, {
-      toValue,
-      duration: 200,
-      useNativeDriver: false
-    }).start();
-    
     setIsSearchVisible(!isSearchVisible);
     
     if (isSearchVisible) {
@@ -114,9 +128,9 @@ export const ChatListContainer: React.FC<ChatListContainerProps> = ({
   };
   
   // Render conversation item
-  const renderConversationItem = ({ item }: { item: ChatConversation }) => {
+  const renderConversationItem = ({ item, index }: { item: ChatConversation; index: number }) => {
     const isGroup = item.isGroup;
-    let avatarSource = null;
+    let avatarSource: { uri: string } | null = null;
     let name = item.title;
     
     // Get avatar image
@@ -133,81 +147,97 @@ export const ChatListContainer: React.FC<ChatListContainerProps> = ({
     const isOnline = !isGroup && item.participants.length > 0 && item.participants[0].isOnline;
     
     return (
-      <TouchableOpacity
-        style={[
-          styles.conversationItem,
-          { backgroundColor: isDarkMode ? '#1a1a1a' : '#ffffff' }
-        ]}
-        onPress={() => onPressConversation(item.id)}
-        activeOpacity={0.7}
+      <Animated.View
+        entering={FadeIn.delay(50 * Math.min(index, 10)).duration(300)}
+        exiting={FadeOut.duration(200)}
       >
-        <View style={styles.avatarContainer}>
-          {avatarSource ? (
-            <Image source={avatarSource} style={styles.avatar} />
-          ) : (
-            <View style={[
-              styles.defaultAvatar,
-              isGroup ? styles.groupAvatar : null,
-              { backgroundColor: getAvatarColor(name) }
-            ]}>
-              {isGroup ? (
-                <MaterialIcons name="group" size={24} color="white" />
+        <Surface
+          style={[
+            styles.conversationItem,
+            { backgroundColor: theme.colors.surface }
+          ]}
+          elevation={hasUnread ? 2 : 1}
+        >
+          <TouchableOpacity
+            style={styles.conversationTouchable}
+            onPress={() => onPressConversation(item.id)}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Conversation with ${item.title}`}
+            accessibilityHint="Double tap to open conversation"
+          >
+            <View style={styles.avatarContainer}>
+              {avatarSource ? (
+                <Image source={avatarSource} style={styles.avatar} />
               ) : (
-                <Text style={styles.avatarText}>
-                  {name.charAt(0).toUpperCase()}
-                </Text>
+                <View style={[
+                  styles.defaultAvatar,
+                  isGroup ? styles.groupAvatar : null,
+                  { backgroundColor: getAvatarColor(name) }
+                ]}>
+                  {isGroup ? (
+                    <MaterialIcons name="group" size={24} color="white" />
+                  ) : (
+                    <Text style={styles.avatarText}>
+                      {name.charAt(0).toUpperCase()}
+                    </Text>
+                  )}
+                </View>
               )}
+              {isOnline && <View style={[
+                styles.onlineIndicator,
+                { borderColor: theme.colors.surface }
+              ]} />}
             </View>
-          )}
-          {isOnline && <View style={styles.onlineIndicator} />}
-        </View>
-        
-        <View style={styles.conversationInfo}>
-          <View style={styles.conversationHeader}>
-            <Text 
-              style={[
-                styles.conversationTitle,
-                { color: isDarkMode ? '#ffffff' : '#212121' },
-                hasUnread && styles.unreadTitle
-              ]}
-              numberOfLines={1}
-            >
-              {item.title}
-            </Text>
-            <Text 
-              style={[
-                styles.timeText,
-                { color: isDarkMode ? '#aaaaaa' : '#757575' },
-                hasUnread && styles.unreadTime
-              ]}
-            >
-              {item.lastMessage && formatTime(item.lastMessage.timestamp)}
-            </Text>
-          </View>
-          
-          <View style={styles.messageContainer}>
-            <Text 
-              style={[
-                styles.messageText,
-                { color: isDarkMode ? '#cccccc' : '#757575' },
-                hasUnread && styles.unreadMessage
-              ]}
-              numberOfLines={1}
-            >
-              {item.lastMessage && truncateText(item.lastMessage.content, 45)}
-            </Text>
             
-            {hasUnread && (
-              <Badge 
-                size={22}
-                style={styles.unreadBadge}
-              >
-                {item.unreadCount}
-              </Badge>
-            )}
-          </View>
-        </View>
-      </TouchableOpacity>
+            <View style={styles.conversationInfo}>
+              <View style={styles.conversationHeader}>
+                <Text 
+                  style={[
+                    styles.conversationTitle,
+                    { color: theme.colors.onSurface },
+                    hasUnread && [styles.unreadTitle, { color: theme.colors.onSurface }]
+                  ]}
+                  numberOfLines={1}
+                >
+                  {item.title}
+                </Text>
+                <Text 
+                  style={[
+                    styles.timeText,
+                    { color: theme.colors.onSurfaceVariant },
+                    hasUnread && [styles.unreadTime, { color: theme.colors.primary }]
+                  ]}
+                >
+                  {item.lastMessage && formatTime(item.lastMessage.timestamp)}
+                </Text>
+              </View>
+              
+              <View style={styles.messageContainer}>
+                <Text 
+                  style={[
+                    styles.messageText,
+                    { color: theme.colors.onSurfaceVariant },
+                    hasUnread && [styles.unreadMessage, { color: theme.colors.onSurface }]
+                  ]}
+                  numberOfLines={1}
+                >
+                  {item.lastMessage && truncateText(item.lastMessage.content, 45)}
+                </Text>
+                
+                {hasUnread && (
+                  <Badge 
+                    size={22}
+                    style={[styles.unreadBadge, { backgroundColor: theme.colors.primary }]}
+                  >
+                    {item.unreadCount}
+                  </Badge>
+                )}
+              </View>
+            </View>
+          </TouchableOpacity>
+        </Surface>
+      </Animated.View>
     );
   };
   
@@ -232,50 +262,53 @@ export const ChatListContainer: React.FC<ChatListContainerProps> = ({
     if (loading) return null;
     
     return (
-      <View style={styles.emptyContainer}>
+      <Animated.View 
+        style={styles.emptyContainer}
+        entering={FadeIn.duration(400)}
+      >
         <MaterialIcons 
           name="chat-bubble-outline" 
           size={80}
-          color={appTheme.colors.primary}
+          color={theme.colors.primary}
         />
         <Text style={[
           styles.emptyText,
-          { color: isDarkMode ? '#ffffff' : '#212121' }
+          { color: theme.colors.onBackground }
         ]}>
           No conversations yet
         </Text>
         <Text style={[
           styles.emptySubText,
-          { color: isDarkMode ? '#cccccc' : '#757575' }
+          { color: theme.colors.onSurfaceVariant }
         ]}>
           {isAdmin 
             ? "You'll see conversations with property managers here"
             : "You'll see conversations with administrators here"
           }
         </Text>
-      </View>
+      </Animated.View>
     );
   };
   
   return (
-    <View style={[
+    <Surface style={[
       styles.container,
-      { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }
+      { backgroundColor: theme.colors.background }
     ]}>
       {headerComponent}
       
-      <Animated.View style={{ height: searchBarHeight, overflow: 'hidden' }}>
+      <Animated.View style={searchBarAnimStyle}>
         <Searchbar
           placeholder="Search conversations..."
           onChangeText={setSearchQuery}
           value={searchQuery}
           style={[
             styles.searchBar,
-            { backgroundColor: isDarkMode ? '#333333' : '#f0f0f0' }
+            { backgroundColor: theme.colors.surfaceVariant }
           ]}
-          iconColor={isDarkMode ? '#ffffff' : '#212121'}
-          inputStyle={{ color: isDarkMode ? '#ffffff' : '#212121' }}
-          placeholderTextColor={isDarkMode ? '#aaaaaa' : '#757575'}
+          iconColor={theme.colors.onSurfaceVariant}
+          inputStyle={{ color: theme.colors.onSurface }}
+          placeholderTextColor={theme.colors.onSurfaceVariant}
         />
       </Animated.View>
       
@@ -288,11 +321,16 @@ export const ChatListContainer: React.FC<ChatListContainerProps> = ({
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={[appTheme.colors.primary]}
-            tintColor={appTheme.colors.primary}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
           />
         }
-        ItemSeparatorComponent={() => <Divider style={{ backgroundColor: isDarkMode ? '#333333' : '#e0e0e0' }} />}
+        ItemSeparatorComponent={() => (
+          <Divider style={{ 
+            backgroundColor: theme.colors.surfaceVariant,
+            marginHorizontal: 16
+          }} />
+        )}
         ListEmptyComponent={renderEmptyComponent}
       />
       
@@ -300,33 +338,34 @@ export const ChatListContainer: React.FC<ChatListContainerProps> = ({
       <FAB
         style={[
           styles.searchFab,
-          { backgroundColor: isDarkMode ? '#333333' : '#ffffff' }
+          { backgroundColor: theme.colors.surfaceVariant }
         ]}
         icon="magnify"
-        color={appTheme.colors.primary}
+        color={theme.colors.primary}
         onPress={toggleSearch}
         small
+        accessibilityLabel="Search conversations"
       />
       
       {onPressNewChat && (
         <FAB
           style={[
             styles.fab,
-            { backgroundColor: appTheme.colors.primary }
+            { backgroundColor: theme.colors.primary }
           ]}
           icon="plus"
-          color="#ffffff"
+          color={theme.colors.onPrimary}
           onPress={onPressNewChat}
+          accessibilityLabel="Start new conversation"
         />
       )}
-    </View>
+    </Surface>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   searchBar: {
     margin: 8,
@@ -336,9 +375,14 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   conversationItem: {
+    marginHorizontal: 8,
+    marginVertical: 4,
+    borderRadius: 12,
+    overflow: 'hidden'
+  },
+  conversationTouchable: {
     flexDirection: 'row',
     padding: 16,
-    backgroundColor: '#ffffff',
   },
   avatarContainer: {
     position: 'relative',
@@ -348,18 +392,16 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#e0e0e0',
   },
   defaultAvatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#9e9e9e',
     justifyContent: 'center',
     alignItems: 'center',
   },
   groupAvatar: {
-    backgroundColor: appTheme.colors.primary,
+    backgroundColor: '#1363DF',
   },
   avatarText: {
     fontSize: 20,
@@ -375,7 +417,6 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: '#4CAF50',
     borderWidth: 2,
-    borderColor: '#ffffff',
   },
   conversationInfo: {
     flex: 1,
@@ -405,20 +446,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   unreadBadge: {
-    backgroundColor: appTheme.colors.primary,
-    color: 'white',
     marginLeft: 8,
   },
   unreadTitle: {
     fontWeight: 'bold',
-    color: '#212121',
   },
   unreadTime: {
-    color: appTheme.colors.primary,
     fontWeight: '500',
   },
   unreadMessage: {
-    color: '#212121',
     fontWeight: '500',
   },
   emptyContainer: {

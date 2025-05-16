@@ -41,6 +41,8 @@ import { Building as ServiceBuildingType } from '../../../types/buildingTypes';
 import { useAppSelector } from '../../../store/hooks';
 import { STATUS_COLORS } from '../../../utils/constants';
 import { useThemedStyles } from '../../../hooks/useThemedStyles';
+import { BuildingUnits } from './components/BuildingUnits';
+import { ResidentsList } from '../Units/Residents/ResidentsList';
 
 type BuildingDetailsRouteProps = RouteProp<BusinessManagerStackParamList, 'BuildingDetails'>;
 type BuildingNavigationProps = NativeStackNavigationProp<BusinessManagerStackParamList>;
@@ -50,8 +52,8 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // Create a custom Badge component
 const CustomBadge = ({ text, backgroundColor }: { text: string, backgroundColor: string }) => {
   return (
-    <View style={[styles.badge, { backgroundColor }]}>
-      <Text style={styles.badgeText}>{text}</Text>
+    <View style={[{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }, { backgroundColor }]}>
+      <Text style={{ color: '#fff', fontSize: 12, fontWeight: '500' }}>{text}</Text>
     </View>
   );
 };
@@ -511,7 +513,7 @@ export const BuildingDetails = () => {
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 
-            onPress={handleRefresh}
+            onRefresh={handleRefresh}
             colors={[theme.colors.primary]}
           />
         }
@@ -520,10 +522,42 @@ export const BuildingDetails = () => {
       >
         {renderHeader()}
         
-        {/* Rest of the building details content would go here based on the active tab */}
+        {/* Tab-specific content */}
         <View style={styles.contentContainer}>
-          {/* This is where the tab-specific content would go */}
-          <Text variant="bodyMedium">Tab content for {activeTab} would go here</Text>
+          {activeTab === 'overview' && (
+            <View>
+              <Text variant="titleMedium" style={{ marginBottom: 16, fontWeight: 'bold' }}>Building Overview</Text>
+              {/* Building overview content */}
+              <Text variant="bodyMedium">Overview content would go here</Text>
+            </View>
+          )}
+          
+          {activeTab === 'units' && (
+            <BuildingUnits buildingId={buildingId} buildingName={building?.name || ''} />
+          )}
+          
+          {activeTab === 'residents' && (
+            <View>
+              <Text variant="titleMedium" style={{ marginBottom: 16, fontWeight: 'bold' }}>Residents</Text>
+              <Text variant="bodyMedium">Residents content would go here</Text>
+            </View>
+          )}
+          
+          {activeTab === 'financials' && (
+            <View>
+              <Text variant="titleMedium" style={{ marginBottom: 16, fontWeight: 'bold' }}>Financials</Text>
+              {/* Financials content */}
+              <Text variant="bodyMedium">Financials content would go here</Text>
+            </View>
+          )}
+          
+          {activeTab === 'maintenance' && (
+            <View>
+              <Text variant="titleMedium" style={{ marginBottom: 16, fontWeight: 'bold' }}>Maintenance</Text>
+              {/* Maintenance content */}
+              <Text variant="bodyMedium">Maintenance content would go here</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
       

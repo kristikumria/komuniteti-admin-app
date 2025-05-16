@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Text,
   TouchableOpacity,
-  Animated,
+  Animated as RNAnimated,
   RefreshControl,
   Vibration,
   Dimensions
@@ -18,7 +18,16 @@ import { useAppSelector } from '../../store/hooks';
 import { ChatMessage, ChatConversation } from '../../navigation/types';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput } from './MessageInput';
-import { useTheme } from 'react-native-paper';
+import { useTheme, Surface } from 'react-native-paper';
+import Animated, { 
+  useAnimatedStyle, 
+  withTiming, 
+  Easing,
+  FadeIn,
+  FadeOut,
+  SlideInDown,
+  SlideOutDown
+} from 'react-native-reanimated';
 
 interface ChatContainerProps {
   messages: ChatMessage[];
@@ -69,8 +78,22 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
   const [showScrollButton, setShowScrollButton] = useState(false);
   
   // Animation values
-  const scrollButtonOpacity = useRef(new Animated.Value(0)).current;
-  const typingIndicatorHeight = useRef(new Animated.Value(0)).current;
+  const scrollButtonOpacity = useRef(new RNAnimated.Value(0)).current;
+  const typingStatus = useRef(typingUsers.length > 0).current;
+  
+  // Animated styles
+  const typingIndicatorStyle = useAnimatedStyle(() => {
+    return {
+      height: withTiming(typingUsers.length > 0 ? 35 : 0, {
+        duration: 300,
+        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+      }),
+      opacity: withTiming(typingUsers.length > 0 ? 1 : 0, {
+        duration: 250,
+        easing: Easing.ease,
+      }),
+    };
+  }, [typingUsers.length]);
   
   // Handle scroll events to show/hide scroll to bottom button
   const handleScroll = (event: any) => {
@@ -79,7 +102,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
     
     if (showButton !== showScrollButton) {
       setShowScrollButton(showButton);
-      Animated.timing(scrollButtonOpacity, {
+      RNAnimated.timing(scrollButtonOpacity, {
         toValue: showButton ? 1 : 0,
         duration: 200,
         useNativeDriver: true
@@ -94,15 +117,6 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
       Vibration.vibrate(10);
     }
   };
-  
-  // Handle typing indicator animation
-  useEffect(() => {
-    Animated.timing(typingIndicatorHeight, {
-      toValue: typingUsers.length > 0 ? 35 : 0,
-      duration: 300,
-      useNativeDriver: false
-    }).start();
-  }, [typingUsers, typingIndicatorHeight]);
   
   // Handle replying to a message
   const handleReply = (message: ChatMessage) => {
@@ -157,18 +171,24 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
       new Date(messages[index].timestamp).toDateString() !== 
       new Date(messages[index + 1]?.timestamp).toDateString();
     
+    // Staggered animations based on index and direction
     return (
-      <MessageBubble
-        message={item}
-        isFromCurrentUser={isFromCurrentUser}
-        showAvatar={showAvatar}
-        onReply={handleReply}
-        onDelete={onDeleteMessage}
-        showDate={showDate}
-        isDarkMode={isDarkMode}
-        previousMessageSameSender={previousSameSender}
-        nextMessageSameSender={nextSameSender}
-      />
+      <Animated.View 
+        entering={FadeIn.delay(50 * Math.min(index, 10)).duration(300)}
+        key={item.id}
+      >
+        <MessageBubble
+          message={item}
+          isFromCurrentUser={isFromCurrentUser}
+          showAvatar={showAvatar}
+          onReply={handleReply}
+          onDelete={onDeleteMessage}
+          showDate={showDate}
+          isDarkMode={isDarkMode}
+          previousMessageSameSender={previousSameSender}
+          nextMessageSameSender={nextSameSender}
+        />
+      </Animated.View>
     );
   };
   
@@ -183,16 +203,27 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
     return (
       <Animated.View style={[
         styles.typingContainer,
-        { height: typingIndicatorHeight }
+        typingIndicatorStyle
       ]}>
-        <View style={styles.typingContent}>
+        <Surface 
+          style={[
+            styles.typingContent,
+            { backgroundColor: theme.colors.surfaceVariant }
+          ]}
+          elevation={1}
+        >
           <MaterialCommunityIcons 
             name="message-text-outline" 
             size={16} 
             color={theme.colors.primary} 
           />
-          <Text style={styles.typingText}>{typingText}</Text>
-        </View>
+          <Text style={[
+            styles.typingText,
+            { color: theme.colors.onSurfaceVariant }
+          ]}>
+            {typingText}
+          </Text>
+        </Surface>
       </Animated.View>
     );
   };
@@ -202,7 +233,10 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
     if (loading) return null;
     
     return (
-      <View style={styles.emptyContainer}>
+      <Animated.View 
+        style={styles.emptyContainer}
+        entering={FadeIn.duration(400)}
+      >
         <MaterialIcons
           name="chat-bubble-outline"
           size={80}
@@ -211,20 +245,21 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
         <Text 
           style={[
             styles.emptyText,
-            { color: isDarkMode ? '#ffffff' : '#212121' }
+            { color: theme.colors.onSurface }
           ]}
+          accessibilityRole="header"
         >
           No messages yet
         </Text>
         <Text 
           style={[
             styles.emptySubText,
-            { color: isDarkMode ? '#cccccc' : '#757575' }
+            { color: theme.colors.onSurfaceVariant }
           ]}
         >
           Send a message to start the conversation
         </Text>
-      </View>
+      </Animated.View>
     );
   };
   
@@ -233,42 +268,48 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
     if (!loading || refreshing || messages.length === 0) return null;
     
     return (
-      <View style={styles.footerLoader}>
+      <Animated.View 
+        style={styles.footerLoader}
+        entering={FadeIn.duration(300)}
+      >
         <ActivityIndicator size="small" color={theme.colors.primary} />
-        <Text style={styles.footerText}>
+        <Text style={[
+          styles.footerText,
+          { color: theme.colors.onSurfaceVariant }
+        ]}>
           Loading more messages...
         </Text>
-      </View>
+      </Animated.View>
     );
   };
   
   // Main loading screen
   if (loading && messages.length === 0) {
     return (
-      <View style={[
+      <Surface style={[
         styles.container,
-        { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }
+        { backgroundColor: theme.colors.background }
       ]}>
         {headerComponent}
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={[
             styles.loadingText,
-            { color: isDarkMode ? '#ffffff' : '#212121' }
+            { color: theme.colors.onBackground }
           ]}>
             Loading conversation...
           </Text>
         </View>
-      </View>
+      </Surface>
     );
   }
   
   // Error state
   if (error) {
     return (
-      <View style={[
+      <Surface style={[
         styles.container,
-        { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }
+        { backgroundColor: theme.colors.background }
       ]}>
         {headerComponent}
         <View style={styles.errorContainer}>
@@ -279,12 +320,12 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
           />
           <Text style={[
             styles.errorText,
-            { color: isDarkMode ? '#ffffff' : '#212121' }
+            { color: theme.colors.onBackground }
           ]}>
             {error}
           </Text>
         </View>
-      </View>
+      </Surface>
     );
   }
 
@@ -292,7 +333,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
     <KeyboardAvoidingView
       style={[
         styles.container,
-        { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }
+        { backgroundColor: theme.colors.background }
       ]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
@@ -344,24 +385,37 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
       />
       
       {/* Scroll to bottom button */}
-      <Animated.View 
+      <RNAnimated.View 
         style={[
           styles.scrollButton,
-          { 
+          {
             opacity: scrollButtonOpacity,
-            backgroundColor: isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)'
+            shadowColor: theme.colors.shadow || '#000000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
+            elevation: 4
           }
         ]}
         pointerEvents={showScrollButton ? 'auto' : 'none'}
       >
         <TouchableOpacity
-          style={styles.scrollButtonInner}
+          style={[
+            styles.scrollButtonInner,
+            {
+              backgroundColor: isDarkMode 
+                ? theme.colors.surfaceVariant 
+                : theme.colors.surfaceVariant
+            }
+          ]}
           onPress={scrollToBottom}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Scroll to bottom"
         >
           <MaterialIcons name="keyboard-arrow-down" size={24} color={theme.colors.primary} />
         </TouchableOpacity>
-      </Animated.View>
+      </RNAnimated.View>
     </KeyboardAvoidingView>
   );
 };
@@ -369,7 +423,6 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   loadingContainer: {
     flex: 1,
@@ -415,7 +468,6 @@ const styles = StyleSheet.create({
   typingContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -425,7 +477,6 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 14,
     fontStyle: 'italic',
-    opacity: 0.7,
   },
   scrollButton: {
     position: 'absolute',
@@ -436,11 +487,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
   },
   scrollButtonInner: {
     width: 40,
@@ -470,6 +516,5 @@ const styles = StyleSheet.create({
   footerText: {
     marginLeft: 8,
     fontSize: 14,
-    color: '#757575',
   }
 }); 

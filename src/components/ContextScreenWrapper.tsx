@@ -73,7 +73,7 @@ export const ContextScreenWrapper: React.FC<ContextScreenWrapperProps> = ({
     <>
       <View style={styles.contextInfo}>
         <Text variant="headlineSmall" style={styles.screenTitle}>
-          {title || (userRole === 'business_manager' ? 'Dashboard' : 'Building Dashboard')}
+          {title || (userRole === 'business_manager' ? 'Business Dashboard' : 'Building Dashboard')}
         </Text>
         <Text variant="bodyMedium" style={styles.contextSubtitle}>
           {contextSubtitle}

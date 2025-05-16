@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Modal, ScrollView, TouchableOpacity } from 'react-native';
-import { Text, useTheme, Button, Divider, Chip, RadioButton, TextInput } from 'react-native-paper';
-import { X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react-native';
-import { useAppSelector } from '../store/hooks';
+import React, { useState, useRef, useEffect } from 'react';
+import { StyleSheet, View, Modal, ScrollView, TouchableOpacity, Animated, Dimensions, BackHandler } from 'react-native';
+import { Text, Button, Divider, Chip, RadioButton, Surface, IconButton } from 'react-native-paper';
+import { X, ArrowUp, ArrowDown, Filter, SortAsc } from 'lucide-react-native';
+import { useThemedStyles } from '../hooks/useThemedStyles';
+import { ElevationLevel } from '../theme';
+import type { AppTheme } from '../theme/theme';
 
 export interface FilterOption {
   id: string;
@@ -38,7 +40,19 @@ export interface FilterModalProps {
   activeSort?: { field: string; direction: 'asc' | 'desc' };
 }
 
-export const FilterModal = ({
+/**
+ * A modal component for filtering and sorting data.
+ * Follows Material Design 3 guidelines with proper elevation, animations, and accessibility.
+ * 
+ * @example
+ * <FilterModal 
+ *   visible={showFilter}
+ *   onDismiss={() => setShowFilter(false)}
+ *   config={filterConfig}
+ *   onApplyFilters={handleApplyFilters}
+ * />
+ */
+export const FilterModal: React.FC<FilterModalProps> = ({
   visible,
   isVisible,
   onDismiss,
@@ -49,14 +63,20 @@ export const FilterModal = ({
   initialSort = { field: '', direction: 'asc' },
   activeFilters,
   activeSort
-}: FilterModalProps) => {
-  const theme = useTheme();
-  const isDarkMode = useAppSelector(state => state.settings.darkMode);
+}) => {
+  const { theme } = useThemedStyles();
   
   const isModalVisible = visible || isVisible || false;
   const handleDismiss = onDismiss || onClose || (() => {});
   const initialFilterValues = activeFilters || initialFilters;
   const initialSortValue = activeSort || initialSort;
+  
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(Dimensions.get('window').height)).current;
+  
+  // Get active filter and sort counts
+  const [activeFilterCount, setActiveFilterCount] = useState(0);
   
   const [filters, setFilters] = useState<Record<string, string[]>>(() => {
     const initialState: Record<string, string[]> = {};
@@ -67,6 +87,61 @@ export const FilterModal = ({
   });
   
   const [sort, setSort] = useState<{ field: string; direction: 'asc' | 'desc' }>(initialSortValue);
+  
+  // Handle animation when visibility changes
+  useEffect(() => {
+    if (isModalVisible) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 8,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: Dimensions.get('window').height,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [isModalVisible, fadeAnim, slideAnim]);
+  
+  // Handle back button press to close modal
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (isModalVisible) {
+        handleDismiss();
+        return true;
+      }
+      return false;
+    });
+    
+    return () => backHandler.remove();
+  }, [isModalVisible, handleDismiss]);
+  
+  // Update active filter count
+  useEffect(() => {
+    let count = 0;
+    Object.values(filters).forEach(groupFilters => {
+      count += groupFilters.length;
+    });
+    if (sort.field !== '') count++;
+    setActiveFilterCount(count);
+  }, [filters, sort]);
   
   const handleToggleFilter = (groupId: string, optionId: string, multiSelect?: boolean) => {
     setFilters(prev => {
@@ -134,199 +209,338 @@ export const FilterModal = ({
   
   const hasActiveFilters = Object.values(filters).some(group => group.length > 0) || sort.field !== '';
   
+  const closeModal = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: Dimensions.get('window').height,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      handleDismiss();
+    });
+  };
+  
   return (
     <Modal
       visible={isModalVisible}
-      animationType="slide"
+      animationType="none"
       transparent={true}
-      onRequestClose={handleDismiss}
+      onRequestClose={closeModal}
+      statusBarTranslucent
     >
-      <View 
-        style={[
-          styles.modalContainer,
-          { backgroundColor: 'rgba(0, 0, 0, 0.5)' }
-        ]}
-      >
-        <View 
+      <View style={styles(theme).modalContainer}>
+        <Animated.View 
           style={[
-            styles.modalContent,
-            { 
-              backgroundColor: isDarkMode ? '#1e1e1e' : '#fff',
-              borderColor: isDarkMode ? '#333' : '#eee' 
-            }
+            styles(theme).overlay,
+            { opacity: fadeAnim }
           ]}
         >
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: isDarkMode ? '#fff' : '#333' }]}>
-              Filters & Sorting
-            </Text>
-            <TouchableOpacity onPress={handleDismiss} style={styles.closeButton}>
-              <X size={24} color={isDarkMode ? '#fff' : '#333'} />
-            </TouchableOpacity>
-          </View>
-          
-          <Divider style={styles.divider} />
-          
-          <ScrollView style={styles.scrollView}>
-            {config?.filterGroups?.map(group => (
-              <View key={group.id} style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: isDarkMode ? '#fff' : '#333' }]}>
-                  {group.name}
-                </Text>
-                
-                <View style={styles.optionsContainer}>
-                  {group.options.map(option => (
-                    <Chip
-                      key={option.id}
-                      selected={filters[group.id]?.includes(option.id)}
-                      onPress={() => handleToggleFilter(group.id, option.id, group.multiSelect)}
-                      style={[
-                        styles.filterChip,
-                        filters[group.id]?.includes(option.id) && 
-                          { backgroundColor: theme.colors.primary }
-                      ]}
-                      textStyle={{
-                        color: filters[group.id]?.includes(option.id) ? '#fff' : isDarkMode ? '#fff' : '#333'
-                      }}
+          <TouchableOpacity 
+            style={styles(theme).overlayTouchable} 
+            activeOpacity={1} 
+            onPress={closeModal}
+            accessibilityRole="button"
+            accessibilityLabel="Close filters"
+          />
+        </Animated.View>
+        
+        <Animated.View 
+          style={[
+            styles(theme).modalWrap,
+            { transform: [{ translateY: slideAnim }] }
+          ]}
+        >
+          <Surface style={styles(theme).modalContent} elevation={ElevationLevel.Level3}>
+            <View style={styles(theme).modalOverflowContainer}>
+              <View style={styles(theme).header}>
+                <View style={styles(theme).headerContent}>
+                  <Filter size={20} color={theme.colors.primary} style={styles(theme).headerIcon} />
+                  <Text variant="titleLarge" style={styles(theme).title}>
+                    Filters & Sorting
+                  </Text>
+                  {activeFilterCount > 0 && (
+                    <Chip 
+                      mode="flat" 
+                      style={styles(theme).countChip}
+                      textStyle={{ color: theme.colors.onPrimary }}
                     >
-                      {option.label}
+                      {activeFilterCount}
                     </Chip>
-                  ))}
-                </View>
-              </View>
-            ))}
-            
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: isDarkMode ? '#fff' : '#333' }]}>
-                Sort By
-              </Text>
-              
-              {config?.sortOptions?.map(option => (
-                <TouchableOpacity
-                  key={option.id}
-                  style={[
-                    styles.sortOption,
-                    { backgroundColor: isDarkMode ? '#333' : '#f5f5f5' }
-                  ]}
-                  onPress={() => handleSort(option.id)}
-                >
-                  <View style={styles.sortOptionContent}>
-                    <RadioButton
-                      value={option.id}
-                      status={sort.field === option.id ? 'checked' : 'unchecked'}
-                      onPress={() => handleSort(option.id)}
-                      color={theme.colors.primary}
-                    />
-                    <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>
-                      {option.label}
-                    </Text>
-                  </View>
-                  
-                  {sort.field === option.id && (
-                    sort.direction === 'asc' ? 
-                      <ArrowUp size={20} color={theme.colors.primary} /> :
-                      <ArrowDown size={20} color={theme.colors.primary} />
                   )}
-                </TouchableOpacity>
-              ))}
+                </View>
+                <IconButton
+                  icon={() => <X size={22} color={theme.colors.onSurfaceVariant} />}
+                  onPress={closeModal}
+                  accessibilityLabel="Close filters"
+                />
+              </View>
+              
+              <Divider style={styles(theme).divider} />
+              
+              <ScrollView 
+                style={styles(theme).scrollView}
+                contentContainerStyle={styles(theme).scrollContent}
+                showsVerticalScrollIndicator={false}
+                bounces={false}
+              >
+                {config?.filterGroups?.map(group => (
+                  <View key={group.id} style={styles(theme).section}>
+                    <Text variant="titleMedium" style={styles(theme).sectionTitle}>
+                      {group.name}
+                    </Text>
+                    
+                    <View style={styles(theme).optionsContainer}>
+                      {group.options.map(option => {
+                        const isSelected = filters[group.id]?.includes(option.id);
+                        return (
+                          <Chip
+                            key={option.id}
+                            selected={isSelected}
+                            onPress={() => handleToggleFilter(group.id, option.id, group.multiSelect)}
+                            style={[
+                              styles(theme).filterChip,
+                              isSelected && { backgroundColor: theme.colors.primaryContainer }
+                            ]}
+                            textStyle={{
+                              color: isSelected 
+                                ? theme.colors.onPrimaryContainer
+                                : theme.colors.onSurfaceVariant
+                            }}
+                            showSelectedCheck={false}
+                            accessibilityRole="checkbox"
+                            accessibilityState={{ checked: isSelected }}
+                            accessibilityLabel={`${option.label} filter ${isSelected ? 'active' : 'inactive'}`}
+                          >
+                            {option.label}
+                          </Chip>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ))}
+                
+                {config?.sortOptions?.length > 0 && (
+                  <View style={styles(theme).section}>
+                    <View style={styles(theme).sectionHeader}>
+                      <SortAsc size={20} color={theme.colors.primary} style={{ marginRight: 8 }} />
+                      <Text variant="titleMedium" style={styles(theme).sectionTitle}>
+                        Sort By
+                      </Text>
+                    </View>
+                    
+                    {config?.sortOptions?.map(option => {
+                      const isSelected = sort.field === option.id;
+                      const isAscending = sort.direction === 'asc';
+                      
+                      return (
+                        <Surface
+                          key={option.id}
+                          style={[
+                            styles(theme).sortOption,
+                            isSelected && styles(theme).selectedSortOption
+                          ]}
+                          elevation={isSelected ? ElevationLevel.Level2 : ElevationLevel.Level1}
+                        >
+                          <TouchableOpacity
+                            style={styles(theme).sortOptionContent}
+                            onPress={() => handleSort(option.id)}
+                            accessibilityRole="radio"
+                            accessibilityState={{ checked: isSelected }}
+                            accessibilityLabel={`Sort by ${option.label} ${isSelected ? (isAscending ? 'ascending' : 'descending') : ''}`}
+                          >
+                            <View style={styles(theme).sortOptionTextContainer}>
+                              <RadioButton
+                                value={option.id}
+                                status={isSelected ? 'checked' : 'unchecked'}
+                                onPress={() => handleSort(option.id)}
+                                color={theme.colors.primary}
+                              />
+                              <Text variant="bodyLarge" style={styles(theme).sortOptionText}>
+                                {option.label}
+                              </Text>
+                            </View>
+                            
+                            {isSelected && (
+                              <View style={styles(theme).directionIcon}>
+                                {isAscending ? (
+                                  <ArrowUp size={20} color={theme.colors.primary} />
+                                ) : (
+                                  <ArrowDown size={20} color={theme.colors.primary} />
+                                )}
+                              </View>
+                            )}
+                          </TouchableOpacity>
+                        </Surface>
+                      );
+                    })}
+                  </View>
+                )}
+              </ScrollView>
+              
+              <Surface 
+                style={styles(theme).footer} 
+                elevation={ElevationLevel.Level2}
+              >
+                <Button
+                  mode="outlined"
+                  onPress={handleReset}
+                  style={styles(theme).resetButton}
+                  labelStyle={{ color: theme.colors.error }}
+                  disabled={!hasActiveFilters}
+                  accessibilityLabel="Reset all filters and sorting"
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: !hasActiveFilters }}
+                >
+                  Reset
+                </Button>
+                
+                <Button
+                  mode="contained"
+                  onPress={handleApply}
+                  style={styles(theme).applyButton}
+                  accessibilityLabel={`Apply ${activeFilterCount} filters`}
+                  accessibilityRole="button"
+                >
+                  Apply
+                </Button>
+              </Surface>
             </View>
-          </ScrollView>
-          
-          <Divider style={styles.divider} />
-          
-          <View style={styles.footer}>
-            <Button
-              mode="outlined"
-              onPress={handleReset}
-              style={styles.resetButton}
-              disabled={!hasActiveFilters}
-            >
-              Reset
-            </Button>
-            <Button
-              mode="contained"
-              onPress={handleApply}
-              style={styles.applyButton}
-            >
-              Apply
-            </Button>
-          </View>
-        </View>
+          </Surface>
+        </Animated.View>
       </View>
     </Modal>
   );
 };
 
-const styles = StyleSheet.create({
+const styles = (theme: AppTheme) => StyleSheet.create({
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
+    width: '100%',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  overlayTouchable: {
+    flex: 1,
+  },
+  modalWrap: {
+    width: '100%',
+    maxHeight: '90%',
+    borderTopLeftRadius: theme.roundness * 3,
+    borderTopRightRadius: theme.roundness * 3,
+    overflow: 'hidden',
   },
   modalContent: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderWidth: 1,
-    paddingTop: 16,
-    maxHeight: '80%',
+    width: '100%',
+    backgroundColor: theme.colors.surface,
+    borderTopLeftRadius: theme.roundness * 3,
+    borderTopRightRadius: theme.roundness * 3,
+  },
+  modalOverflowContainer: {
+    overflow: 'hidden',
+    borderTopLeftRadius: theme.roundness * 3,
+    borderTopRightRadius: theme.roundness * 3,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: theme.spacing.m,
+    paddingVertical: theme.spacing.s,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerIcon: {
+    marginRight: theme.spacing.xs,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    color: theme.colors.onSurface,
   },
-  closeButton: {
-    padding: 4,
+  countChip: {
+    backgroundColor: theme.colors.primary,
+    height: 26,
+    marginLeft: theme.spacing.s,
   },
   divider: {
-    height: 1,
+    backgroundColor: theme.colors.outlineVariant,
   },
   scrollView: {
-    padding: 16,
+    maxHeight: '70%',
+  },
+  scrollContent: {
+    paddingBottom: theme.spacing.l,
   },
   section: {
-    marginBottom: 24,
+    padding: theme.spacing.m,
+    paddingBottom: theme.spacing.s,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.s,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 12,
+    color: theme.colors.onSurface,
+    marginBottom: theme.spacing.s,
   },
   optionsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    marginTop: theme.spacing.xs,
   },
   filterChip: {
-    margin: 4,
+    margin: theme.spacing.xs,
+    backgroundColor: theme.colors.surfaceVariant,
   },
   sortOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
+    marginBottom: theme.spacing.s,
+    borderRadius: theme.roundness,
+    backgroundColor: theme.colors.surface,
+  },
+  selectedSortOption: {
+    backgroundColor: theme.colors.surfaceVariant + '40',
   },
   sortOptionContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: theme.spacing.s,
+  },
+  sortOptionTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sortOptionText: {
+    marginLeft: theme.spacing.s,
+    color: theme.colors.onSurface,
+  },
+  directionIcon: {
+    padding: theme.spacing.xs,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 16,
+    padding: theme.spacing.m,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.outlineVariant,
+    backgroundColor: theme.colors.surface,
   },
   resetButton: {
     flex: 1,
-    marginRight: 8,
+    marginRight: theme.spacing.s,
+    borderColor: theme.colors.error,
   },
   applyButton: {
     flex: 1,
-    marginLeft: 8,
   },
 });

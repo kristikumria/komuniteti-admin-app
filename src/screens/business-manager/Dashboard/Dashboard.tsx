@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
-import { Text, Card, Surface, useTheme, ActivityIndicator, Button, SegmentedButtons } from 'react-native-paper';
+import { Text, Card, ActivityIndicator, Button, SegmentedButtons } from 'react-native-paper';
 import { 
   Building2, 
   Users, 
@@ -31,6 +31,7 @@ import { STATUS_COLORS } from '../../../utils/constants';
 import { useThemedStyles } from '../../../hooks/useThemedStyles';
 import type { AppTheme } from '../../../theme/theme';
 import { SafeSurface } from '../../../utils/componentUtils';
+import { ElevationLevel } from '../../../theme';
 
 // Define a proper navigation type for the business manager dashboard
 type DashboardNavigationProp = CompositeNavigationProp<
@@ -115,6 +116,13 @@ export const Dashboard = () => {
   const totalResidents = buildings.length * 3; // Assuming an average of 3 residents per building
   const totalIssues = buildings.length * 2; // Assuming an average of 2 issues per building
   const avgOccupancy = 85;
+
+  // Map for KPI card colors using theme colors
+  const kpiCardColors = {
+    buildings: theme.colors.primary,
+    units: theme.colors.secondary,
+    residents: theme.colors.tertiary
+  };
   
   // Render KPI Summary Cards
   const renderKPISummary = () => {
@@ -134,39 +142,39 @@ export const Dashboard = () => {
             style={styles(theme).accountFilterButton}
             onPress={() => {}}
           >
-            <Text style={styles(theme).accountFilterText}>By Account</Text>
+            <Text variant="labelMedium" style={styles(theme).accountFilterText}>By Account</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles(theme).kpiCardsRow}>
           <TouchableOpacity
-            style={[styles(theme).kpiCard, { backgroundColor: '#4B63F3' }]}
+            style={[styles(theme).kpiCard, { backgroundColor: kpiCardColors.buildings }]}
             onPress={navigateToBuildings}
           >
             <View style={styles(theme).kpiIconContainer}>
-              <Building2 size={24} color="#FFFFFF" />
+              <Building2 size={24} color={theme.colors.onPrimary} />
             </View>
             <Text style={styles(theme).kpiValue}>{buildings.length}</Text>
             <Text style={styles(theme).kpiLabel}>Buildings</Text>
           </TouchableOpacity>
           
           <TouchableOpacity
-            style={[styles(theme).kpiCard, { backgroundColor: '#FF5D8E' }]}
+            style={[styles(theme).kpiCard, { backgroundColor: kpiCardColors.units }]}
             onPress={navigateToBuildings}
           >
             <View style={styles(theme).kpiIconContainer}>
-              <Home size={24} color="#FFFFFF" />
+              <Home size={24} color={theme.colors.onSecondary} />
             </View>
             <Text style={styles(theme).kpiValue}>{totalUnits}</Text>
             <Text style={styles(theme).kpiLabel}>Units</Text>
           </TouchableOpacity>
           
           <TouchableOpacity
-            style={[styles(theme).kpiCard, { backgroundColor: '#6AD797' }]}
+            style={[styles(theme).kpiCard, { backgroundColor: kpiCardColors.residents }]}
             onPress={() => {}}
           >
             <View style={styles(theme).kpiIconContainer}>
-              <Users size={24} color="#FFFFFF" />
+              <Users size={24} color={theme.colors.onTertiary} />
             </View>
             <Text style={styles(theme).kpiValue}>{totalResidents}</Text>
             <Text style={styles(theme).kpiLabel}>Residents</Text>
@@ -183,7 +191,7 @@ export const Dashboard = () => {
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text 
             variant="bodyMedium" 
-            style={{ marginTop: theme.spacing.m }}
+            style={{ marginTop: theme.spacing.m, color: theme.colors.onBackground }}
           >
             Loading dashboard...
           </Text>
@@ -208,12 +216,14 @@ export const Dashboard = () => {
         {renderKPISummary()}
         
         {/* Welcome Section */}
-        <SafeSurface style={styles(theme).welcomeSection}>
+        <SafeSurface elevation={ElevationLevel.Level2} style={styles(theme).welcomeSection} contentStyle={{overflow: 'hidden'}}>
           <View style={styles(theme).welcomeContent}>
-            <Text style={styles(theme).greeting}>{greeting},</Text>
-            <Text style={styles(theme).userName}>{user?.name || 'Manager'}</Text>
-            <Text style={styles(theme).welcomeSubtitle}>
-              Here's what's happening today in your properties
+            <Text variant="labelLarge" style={styles(theme).greeting}>{greeting},</Text>
+            <Text variant="headlineSmall" style={styles(theme).userName}>
+              {user?.name || 'Business Manager'}
+            </Text>
+            <Text variant="bodyMedium" style={styles(theme).welcomeSubtitle}>
+              Welcome to your dashboard
             </Text>
           </View>
         </SafeSurface>
@@ -221,31 +231,31 @@ export const Dashboard = () => {
         {/* Quick Actions */}
         <View style={styles(theme).quickActions}>
           <TouchableOpacity style={styles(theme).quickActionButton} onPress={navigateToBuildings}>
-            <View style={[styles(theme).quickActionIcon, { backgroundColor: theme.colors.primary + '20' }]}>
+            <SafeSurface elevation={ElevationLevel.Level1} style={[styles(theme).quickActionIcon, { backgroundColor: theme.colors.primaryContainer }]} contentStyle={{overflow: 'hidden'}}>
               <Building2 size={24} color={theme.colors.primary} />
-            </View>
-            <Text variant="labelMedium">Buildings</Text>
+            </SafeSurface>
+            <Text variant="labelSmall" style={styles(theme).quickActionText}>Buildings</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles(theme).quickActionButton} onPress={navigateToReports}>
-            <View style={[styles(theme).quickActionIcon, { backgroundColor: STATUS_COLORS.error + '20' }]}>
-              <AlertCircle size={24} color={STATUS_COLORS.error} />
-            </View>
-            <Text variant="labelMedium">Reports</Text>
+            <SafeSurface elevation={ElevationLevel.Level1} style={[styles(theme).quickActionIcon, { backgroundColor: theme.colors.errorContainer }]} contentStyle={{overflow: 'hidden'}}>
+              <AlertCircle size={24} color={theme.colors.error} />
+            </SafeSurface>
+            <Text variant="labelSmall" style={styles(theme).quickActionText}>Issues</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles(theme).quickActionButton} onPress={navigateToMessages}>
-            <View style={[styles(theme).quickActionIcon, { backgroundColor: STATUS_COLORS.success + '20' }]}>
-              <MessageSquare size={24} color={STATUS_COLORS.success} />
-            </View>
-            <Text variant="labelMedium">Messages</Text>
+            <SafeSurface elevation={ElevationLevel.Level1} style={[styles(theme).quickActionIcon, { backgroundColor: theme.colors.tertiaryContainer }]} contentStyle={{overflow: 'hidden'}}>
+              <MessageSquare size={24} color={theme.colors.tertiary} />
+            </SafeSurface>
+            <Text variant="labelSmall" style={styles(theme).quickActionText}>Messages</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles(theme).quickActionButton} onPress={navigateToInfoPoints}>
-            <View style={[styles(theme).quickActionIcon, { backgroundColor: STATUS_COLORS.info + '20' }]}>
-              <FileText size={24} color={STATUS_COLORS.info} />
-            </View>
-            <Text variant="labelMedium">Info</Text>
+            <SafeSurface elevation={ElevationLevel.Level1} style={[styles(theme).quickActionIcon, { backgroundColor: theme.colors.secondaryContainer }]} contentStyle={{overflow: 'hidden'}}>
+              <FileText size={24} color={theme.colors.secondary} />
+            </SafeSurface>
+            <Text variant="labelSmall" style={styles(theme).quickActionText}>Info Points</Text>
           </TouchableOpacity>
         </View>
         
@@ -269,14 +279,14 @@ export const Dashboard = () => {
             title="Total Units"
             value={totalUnits}
             icon={<Home size={24} color="white" />}
-            color="#1976d2"
+            color={theme.colors.secondary}
           />
           
           <InfoCard
             title="Residents"
             value={totalResidents}
             icon={<Users size={24} color="white" />}
-            color="#00897b"
+            color={theme.colors.tertiary}
             trend={4}
             trendLabel="This month"
           />
@@ -285,7 +295,7 @@ export const Dashboard = () => {
             title="Open Issues"
             value={totalIssues}
             icon={<AlertCircle size={24} color="white" />}
-            color="#e53935"
+            color={theme.colors.error}
             trend={-3}
             trendLabel="From last week"
           />
@@ -294,7 +304,7 @@ export const Dashboard = () => {
             title="Avg. Occupancy"
             value={`${avgOccupancy}%`}
             icon={<Users size={24} color="white" />}
-            color="#8e24aa"
+            color={theme.colors.secondary}
             trend={1}
             trendLabel="This month"
           />
@@ -303,7 +313,7 @@ export const Dashboard = () => {
             title="Monthly Revenue"
             value="€24,500"
             icon={<Wallet size={24} color="white" />}
-            color="#43a047"
+            color={theme.colors.tertiary}
             trend={5}
             trendLabel="From last month"
           />
@@ -315,15 +325,14 @@ export const Dashboard = () => {
             Recent Buildings
           </Text>
           <TouchableOpacity onPress={navigateToBuildings}>
-            <Text style={styles(theme).viewAllLink}>
+            <Text variant="labelLarge" style={styles(theme).viewAllLink}>
               View All
             </Text>
           </TouchableOpacity>
         </View>
         
         <View style={styles(theme).cardWrapper}>
-          <SafeSurface elevation={1} style={styles(theme).sectionCard}>
-            <View style={styles(theme).cardContent}>
+          <SafeSurface elevation={ElevationLevel.Level1} style={styles(theme).sectionCard} contentStyle={styles(theme).cardContent}>
             {buildings.length > 0 ? (
               buildings.slice(0, 3).map((building) => (
                 <ListItem
@@ -337,9 +346,10 @@ export const Dashboard = () => {
                   onPress={() => handleBuildingPress(building.id)}
                   badge={{
                     text: "2", // Mock issues count
-                    color: STATUS_COLORS.error,
+                    color: theme.colors.error,
                   }}
                   showDivider={building.id !== buildings[Math.min(buildings.length - 1, 2)].id}
+                  elevationLevel={ElevationLevel.Level0}
                 />
               ))
             ) : (
@@ -360,7 +370,6 @@ export const Dashboard = () => {
                 </Button>
               </View>
             )}
-            </View>
           </SafeSurface>
         </View>
         
@@ -370,15 +379,14 @@ export const Dashboard = () => {
             Recent Issues
           </Text>
           <TouchableOpacity onPress={navigateToReports}>
-            <Text style={styles(theme).viewAllLink}>
+            <Text variant="labelLarge" style={styles(theme).viewAllLink}>
               View All
             </Text>
           </TouchableOpacity>
         </View>
         
         <View style={[styles(theme).cardWrapper, { marginBottom: theme.spacing.xl }]}>
-          <SafeSurface elevation={1} style={styles(theme).sectionCard}>
-            <View style={styles(theme).cardContent}>
+          <SafeSurface elevation={ElevationLevel.Level1} style={styles(theme).sectionCard} contentStyle={styles(theme).cardContent}>
             <View style={styles(theme).emptyState}>
               <AlertCircle size={40} color={theme.colors.outlineVariant} />
               <Text 
@@ -394,7 +402,6 @@ export const Dashboard = () => {
               >
                 View Reports
               </Button>
-              </View>
             </View>
           </SafeSurface>
         </View>
@@ -403,7 +410,7 @@ export const Dashboard = () => {
   };
   
   return (
-    <View style={[commonStyles.screenContainer]}>
+    <View style={commonStyles.screenContainer}>
       <Header
         title="Dashboard"
         showContextSwitcher={true}
@@ -434,24 +441,22 @@ const styles = (theme: AppTheme) => StyleSheet.create({
     marginBottom: theme.spacing.m,
     backgroundColor: theme.colors.primary,
     marginHorizontal: theme.spacing.m,
+    borderRadius: theme.roundness * 2,
   },
   welcomeContent: {
     paddingHorizontal: theme.spacing.s,
   },
   greeting: {
-    fontSize: 16,
     color: theme.colors.onPrimary,
     opacity: 0.9,
     fontWeight: '500',
   },
   userName: {
-    fontSize: 24,
     fontWeight: 'bold',
     color: theme.colors.onPrimary,
     marginBottom: 4,
   },
   welcomeSubtitle: {
-    fontSize: 14,
     color: theme.colors.onPrimary,
     opacity: 0.8,
   },
@@ -503,11 +508,11 @@ const styles = (theme: AppTheme) => StyleSheet.create({
   kpiValue: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: theme.colors.onPrimary,
   },
   kpiLabel: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: theme.colors.onPrimary,
     opacity: 0.9,
   },
   quickActions: {
@@ -528,6 +533,9 @@ const styles = (theme: AppTheme) => StyleSheet.create({
     alignItems: 'center',
     marginBottom: theme.spacing.s,
   },
+  quickActionText: {
+    color: theme.colors.onBackground,
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -539,7 +547,6 @@ const styles = (theme: AppTheme) => StyleSheet.create({
     color: theme.colors.onBackground,
   },
   viewAllLink: {
-    fontSize: 14,
     color: theme.colors.primary,
   },
   statsContainer: {
@@ -556,6 +563,7 @@ const styles = (theme: AppTheme) => StyleSheet.create({
   sectionCard: {
     borderRadius: theme.roundness * 1.5,
     overflow: 'hidden',
+    backgroundColor: theme.colors.surface,
   },
   cardContent: {
     overflow: 'hidden',

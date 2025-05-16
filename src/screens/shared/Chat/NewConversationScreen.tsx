@@ -1,915 +1,498 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Image,
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+  View, 
+  StyleSheet, 
+  FlatList, 
   Text,
+  TouchableOpacity,
   ActivityIndicator,
-  TextInput,
-  Platform,
-  KeyboardAvoidingView,
-  Alert,
   StatusBar
 } from 'react-native';
-import { Appbar, Checkbox, Chip, Divider, FAB, useTheme } from 'react-native-paper';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useSelector } from 'react-redux';
-import { RootState } from '../../../store/store';
+import { 
+  Searchbar, 
+  Divider, 
+  Checkbox, 
+  Button, 
+  Avatar,
+  useTheme, 
+  Chip,
+  Surface
+} from 'react-native-paper';
+import { Header } from '../../../components/Header';
+import { useNavigation } from '@react-navigation/native';
+import { useThemedStyles } from '../../../hooks/useThemedStyles';
+import { ChatParticipant } from '../../../navigation/types';
 import { useAppSelector } from '../../../store/hooks';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ElevationLevel } from '../../../theme';
 
-// Mock data for user selection
-const MOCK_USERS = [
+// Mock user data for demonstration - in production, this would be moved to mockData.ts
+const MOCK_USERS: ChatParticipant[] = [
   {
     id: '101',
     name: 'Arben Hoxha',
     role: 'admin',
     image: 'https://randomuser.me/api/portraits/men/32.jpg',
-    department: 'Administration',
-    email: 'arben.hoxha@example.com'
+    isOnline: true,
   },
   {
     id: '102',
     name: 'Sara Mati',
     role: 'admin',
     image: 'https://randomuser.me/api/portraits/women/44.jpg',
-    department: 'Administration',
-    email: 'sara.mati@example.com'
+    isOnline: false,
+    lastSeen: '2023-05-15T14:30:00Z',
   },
   {
     id: '103',
     name: 'Elton Zholi',
-    role: 'manager',
+    role: 'admin',
     image: 'https://randomuser.me/api/portraits/men/55.jpg',
-    department: 'Building B',
-    email: 'elton.zholi@example.com'
+    isOnline: false,
+    lastSeen: '2023-05-15T10:15:00Z',
   },
   {
     id: '104',
     name: 'Drita Koka',
     role: 'admin',
     image: 'https://randomuser.me/api/portraits/women/33.jpg',
-    department: 'Building B',
-    email: 'drita.koka@example.com'
+    isOnline: true,
   },
   {
     id: '105',
     name: 'Gezim Basha',
-    role: 'manager',
+    role: 'admin',
     image: 'https://randomuser.me/api/portraits/men/65.jpg',
-    department: 'Maintenance',
-    email: 'gezim.basha@example.com'
+    isOnline: false,
+    lastSeen: '2023-05-14T18:20:00Z',
   },
   {
     id: '106',
     name: 'Teuta Leka',
     role: 'admin',
     image: 'https://randomuser.me/api/portraits/women/22.jpg',
-    department: 'Maintenance',
-    email: 'teuta.leka@example.com'
+    isOnline: true,
   },
   {
     id: '107',
     name: 'Dritan Mema',
-    role: 'resident',
+    role: 'admin',
     image: 'https://randomuser.me/api/portraits/men/41.jpg',
-    department: 'Building A',
-    email: 'dritan.mema@example.com',
-    apartment: 'A-201'
+    isOnline: true,
   },
   {
     id: '108',
     name: 'Liri Berisha',
     role: 'resident',
     image: 'https://randomuser.me/api/portraits/women/68.jpg',
-    department: 'Building C',
-    email: 'liri.berisha@example.com',
-    apartment: 'C-101'
+    isOnline: true,
   },
   {
     id: '109',
-    name: 'Altin Krasniqi',
+    name: 'Klajdi Prendi',
     role: 'resident',
-    image: 'https://randomuser.me/api/portraits/men/78.jpg',
-    department: 'Building A',
-    email: 'altin.krasniqi@example.com',
-    apartment: 'A-305'
+    image: 'https://randomuser.me/api/portraits/men/91.jpg',
+    isOnline: false,
   },
   {
     id: '110',
-    name: 'Mirela Hasa',
+    name: 'Anjeza Kuka',
     role: 'resident',
-    image: 'https://randomuser.me/api/portraits/women/55.jpg',
-    department: 'Building B',
-    email: 'mirela.hasa@example.com',
-    apartment: 'B-102'
-  }
+    image: 'https://randomuser.me/api/portraits/women/85.jpg',
+    isOnline: true,
+  },
 ];
 
 // Export the props interface
 export interface NewConversationScreenProps {
-  userRole?: 'administrator' | 'business-manager';
   onConversationCreated?: (conversationId: string) => void;
+  onCancel?: () => void;
+  userRole?: 'administrator' | 'business-manager';
 }
 
-const NewConversationScreen: React.FC<NewConversationScreenProps> = ({ 
+/**
+ * Screen for creating a new conversation
+ * Allows selecting users and creating either 1:1 or group chats
+ */
+const NewConversationScreen: React.FC<NewConversationScreenProps> = ({
+  onConversationCreated,
+  onCancel,
   userRole = 'administrator',
-  onConversationCreated
 }) => {
-  const navigation = useNavigation<any>();
-  const route = useRoute<any>();
+  const { theme, commonStyles } = useThemedStyles();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const theme = useTheme();
-  const isDarkMode = useAppSelector(state => state.settings?.darkMode) || false;
-  const currentUser = useSelector((state: RootState) => state.auth.user);
+  const user = useAppSelector(state => state.auth.user);
   
-  // State for user selection and search
+  // State
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedUsers, setSelectedUsers] = useState<typeof MOCK_USERS[0][]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<ChatParticipant[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<ChatParticipant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creatingConversation, setCreatingConversation] = useState(false);
   const [isGroup, setIsGroup] = useState(false);
-  const [filteredUsers, setFilteredUsers] = useState(MOCK_USERS);
   const [groupName, setGroupName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<'select' | 'name'>('select');
   
-  // Filter users based on search query and selected users
+  // Load users
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredUsers(MOCK_USERS.filter(user => 
-        !selectedUsers.some(selected => selected.id === user.id) &&
-        // Filter out current user
-        user.id !== currentUser?.id
-      ));
+    const loadUsers = async () => {
+      try {
+        setLoading(true);
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // In a real app, this would come from an API
+        setFilteredUsers(MOCK_USERS);
+      } catch (error) {
+        console.error('Error loading users', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadUsers();
+  }, []);
+  
+  // Filter users based on search query
+  useEffect(() => {
+    if (!searchQuery) {
+      setFilteredUsers(MOCK_USERS);
+      return;
+    }
+    
+    const query = searchQuery.toLowerCase();
+    const filtered = MOCK_USERS.filter(
+      user => user.name.toLowerCase().includes(query) ||
+              user.role.toLowerCase().includes(query)
+    );
+    
+    setFilteredUsers(filtered);
+  }, [searchQuery]);
+  
+  // Handle user selection
+  const toggleUserSelection = (user: ChatParticipant) => {
+    const isSelected = selectedUsers.some(u => u.id === user.id);
+    
+    if (isSelected) {
+      setSelectedUsers(selectedUsers.filter(u => u.id !== user.id));
     } else {
-      const query = searchQuery.toLowerCase();
-      const filtered = MOCK_USERS.filter(
-        user => 
-          (user.name.toLowerCase().includes(query) || 
-           user.email.toLowerCase().includes(query) ||
-           user.department.toLowerCase().includes(query)) &&
-          !selectedUsers.some(selected => selected.id === user.id) &&
-          user.id !== currentUser?.id
-      );
-      setFilteredUsers(filtered);
+      setSelectedUsers([...selectedUsers, user]);
     }
-  }, [searchQuery, selectedUsers, currentUser]);
+  };
   
-  const handleSelectUser = useCallback((user: typeof MOCK_USERS[0]) => {
-    setSelectedUsers(prev => [...prev, user]);
-    setSearchQuery('');
-  }, []);
+  // Remove a selected user
+  const removeSelectedUser = (userId: string) => {
+    setSelectedUsers(selectedUsers.filter(u => u.id !== userId));
+  };
   
-  const handleRemoveUser = useCallback((userId: string) => {
-    setSelectedUsers(prev => prev.filter(user => user.id !== userId));
-  }, []);
-  
-  const handleCreateConversation = useCallback(() => {
-    if (selectedUsers.length === 0) {
-      Alert.alert('Error', 'Please select at least one user to chat with');
-      return;
-    }
+  // Create the conversation
+  const handleCreateConversation = async () => {
+    if (selectedUsers.length === 0) return;
     
-    if (isGroup && !groupName.trim()) {
-      Alert.alert('Error', 'Please enter a name for the group chat');
-      return;
-    }
-    
-    setLoading(true);
-    
-    // Simulate API call to create conversation
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      setCreatingConversation(true);
       
-      // Generate a mock conversation ID
-      const newConversationId = `conv-${Math.floor(Math.random() * 10000)}`;
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Create a conversation ID (in a real app, this would come from the backend)
+      const newConversationId = `new_${Date.now()}`;
       
       // Navigate to the new conversation
       if (onConversationCreated) {
         onConversationCreated(newConversationId);
       } else {
-        // For backward compatibility, navigate directly
-        navigation.navigate('ChatConversation', { conversationId: newConversationId });
+        // @ts-ignore
+        navigation.replace('ChatConversation', { conversationId: newConversationId });
       }
-    }, 1500);
-  }, [selectedUsers, isGroup, groupName, navigation, onConversationCreated]);
+    } catch (error) {
+      console.error('Error creating conversation', error);
+    } finally {
+      setCreatingConversation(false);
+    }
+  };
   
-  const handleBack = useCallback(() => {
-    if (step === 'name') {
-      setStep('select');
+  // Handle back navigation
+  const handleGoBack = () => {
+    if (onCancel) {
+      onCancel();
     } else {
       navigation.goBack();
     }
-  }, [step, navigation]);
+  };
   
-  const handleNext = useCallback(() => {
-    if (selectedUsers.length === 0) {
-      Alert.alert('Error', 'Please select at least one user to chat with');
-      return;
-    }
+  // Render a user item
+  const renderUserItem = ({ item }: { item: ChatParticipant }) => {
+    const isSelected = selectedUsers.some(u => u.id === item.id);
     
-    if (selectedUsers.length === 1) {
-      // For one-on-one chat, create directly
-      handleCreateConversation();
-    } else {
-      // For multiple users, ask for group name
-      setIsGroup(true);
-      setStep('name');
-    }
-  }, [selectedUsers, handleCreateConversation]);
-  
-  const renderUserItem = useCallback(({ item }: { item: typeof MOCK_USERS[0] }) => (
-    <TouchableOpacity
-      style={[
-        styles.userItem, 
-        isDarkMode && styles.userItemDark
-      ]}
-      onPress={() => handleSelectUser(item)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.userAvatar}>
-        {item.image ? (
-          <Image source={{ uri: item.image }} style={styles.avatar} />
-        ) : (
-          <View style={[
-            styles.defaultAvatar, 
-            { backgroundColor: theme.colors.primary }
-          ]}>
-            <Text style={styles.avatarText}>
-              {item.name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
-      </View>
-      
-      <View style={styles.userInfo}>
-        <Text style={[
-          styles.userName,
-          isDarkMode && styles.textDark
-        ]}>
-          {item.name}
-        </Text>
-        <Text style={[
-          styles.userRole,
-          isDarkMode && styles.textLightDark
-        ]}>
-          {item.role === 'resident' 
-            ? `Resident (${item.apartment})` 
-            : `${item.role.charAt(0).toUpperCase() + item.role.slice(1)} (${item.department})`}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  ), [handleSelectUser, isDarkMode, theme.colors.primary]);
-  
-  const renderSelectScreen = () => (
-    <>
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={[
-            styles.searchInput,
-            isDarkMode && styles.searchInputDark
-          ]}
-          placeholder="Search users..."
-          placeholderTextColor={isDarkMode ? '#aaa' : '#999'}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          autoCapitalize="none"
-        />
-        {searchQuery ? (
-          <TouchableOpacity 
-            style={styles.clearButton} 
-            onPress={() => setSearchQuery('')}
-          >
-            <MaterialIcons 
-              name="clear" 
-              size={20} 
-              color={isDarkMode ? '#aaa' : '#999'} 
-            />
-          </TouchableOpacity>
-        ) : null}
-      </View>
-      
-      {selectedUsers.length > 0 && (
-        <View style={styles.selectedUsersContainer}>
-          <Text style={[
-            styles.sectionTitle,
-            isDarkMode && styles.textDark
-          ]}>
-            Selected {selectedUsers.length > 1 ? `users (${selectedUsers.length})` : 'user'}:
-          </Text>
-          
-          <View style={styles.chipsContainer}>
-            {selectedUsers.map(user => (
-              <Chip
-                key={user.id}
-                style={[
-                  styles.userChip,
-                  isDarkMode && styles.userChipDark
-                ]}
-                textStyle={isDarkMode ? styles.textDark : undefined}
-                onClose={() => handleRemoveUser(user.id)}
-                avatar={
-                  user.image ? (
-                    <Image source={{ uri: user.image }} style={styles.chipAvatar} />
-                  ) : undefined
-                }
-              >
-                {user.name}
-              </Chip>
-            ))}
-          </View>
-          
-          {selectedUsers.length > 1 && (
-            <View style={styles.groupOptionContainer}>
-              <Checkbox
-                status={isGroup ? 'checked' : 'unchecked'}
-                onPress={() => setIsGroup(!isGroup)}
-                color={theme.colors.primary}
-              />
-              <Text 
-                style={[
-                  styles.groupOptionText,
-                  isDarkMode && styles.textDark
-                ]}
-                onPress={() => setIsGroup(!isGroup)}
-              >
-                Create as group chat
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
-      
-      <Divider style={isDarkMode ? styles.dividerDark : undefined} />
-      
-      <Text style={[
-        styles.sectionTitle,
-        styles.usersListTitle,
-        isDarkMode && styles.textDark
-      ]}>
-        {filteredUsers.length > 0 
-          ? 'Select users to chat with:' 
-          : searchQuery 
-            ? 'No matching users found' 
-            : 'All users have been selected'}
-      </Text>
-      
-      <FlatList
-        data={filteredUsers}
-        keyExtractor={(item) => item.id}
-        renderItem={renderUserItem}
-        showsVerticalScrollIndicator={false}
-        ItemSeparatorComponent={() => (
-          <Divider style={isDarkMode ? styles.dividerDark : undefined} />
-        )}
-        contentContainerStyle={[
-          styles.userList,
-          !filteredUsers.length && styles.emptyList
-        ]}
-        ListEmptyComponent={
-          searchQuery ? (
-            <View style={styles.emptyContainer}>
-              <MaterialIcons 
-                name="search-off" 
-                size={48} 
-                color={isDarkMode ? '#555' : '#ccc'} 
-              />
-              <Text style={[
-                styles.emptyText,
-                isDarkMode && styles.textDark
-              ]}>
-                No users match your search
-              </Text>
-              <Text style={[
-                styles.emptySubText,
-                isDarkMode && styles.textLightDark
-              ]}>
-                Try a different search term
-              </Text>
-            </View>
-          ) : selectedUsers.length > 0 ? (
-            <View style={styles.emptyContainer}>
-              <MaterialIcons 
-                name="check-circle" 
-                size={48} 
-                color={theme.colors.primary} 
-              />
-              <Text style={[
-                styles.emptyText,
-                isDarkMode && styles.textDark
-              ]}>
-                All users have been selected
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.emptyContainer}>
-              <MaterialIcons 
-                name="person-search" 
-                size={48} 
-                color={isDarkMode ? '#555' : '#ccc'} 
-              />
-              <Text style={[
-                styles.emptyText,
-                isDarkMode && styles.textDark
-              ]}>
-                No users available
-              </Text>
-            </View>
-          )
-        }
-      />
-      
-      {selectedUsers.length > 0 && (
-        <View style={[
-          styles.bottomButtonContainer,
-          { paddingBottom: Math.max(insets.bottom, 16) }
-        ]}>
-          <TouchableOpacity
-            style={[
-              styles.nextButton,
-              { backgroundColor: theme.colors.primary }
-            ]}
-            onPress={handleNext}
-          >
-            <Text style={styles.nextButtonText}>
-              {selectedUsers.length === 1 ? 'Start Chat' : 'Next'}
-            </Text>
-            <MaterialIcons name="arrow-forward" size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      )}
-    </>
-  );
-  
-  const renderNameScreen = () => (
-    <View style={styles.groupNameContainer}>
-      <Text style={[
-        styles.groupNameTitle,
-        isDarkMode && styles.textDark
-      ]}>
-        Name your group chat
-      </Text>
-      
-      <Text style={[
-        styles.groupNameSubtitle,
-        isDarkMode && styles.textLightDark
-      ]}>
-        Give your group a name that participants will recognize
-      </Text>
-      
-      <View style={[
-        styles.groupAvatarContainer,
-        { backgroundColor: theme.colors.primary }
-      ]}>
-        <MaterialIcons name="group" size={48} color="#fff" />
-      </View>
-      
-      <TextInput
+    return (
+      <TouchableOpacity
         style={[
-          styles.groupNameInput,
-          isDarkMode && styles.groupNameInputDark
+          styles.userItem,
+          { backgroundColor: isSelected ? theme.colors.primaryContainer : theme.colors.surface }
         ]}
-        placeholder="Enter group name"
-        placeholderTextColor={isDarkMode ? '#aaa' : '#999'}
-        value={groupName}
-        onChangeText={setGroupName}
-        autoFocus
-      />
-      
-      <View style={styles.groupParticipantsContainer}>
-        <Text style={[
-          styles.participantsTitle,
-          isDarkMode && styles.textDark
-        ]}>
-          Participants ({selectedUsers.length})
+        onPress={() => toggleUserSelection(item)}
+      >
+        <View style={styles.userInfo}>
+          {item.image ? (
+            <Avatar.Image size={40} source={{ uri: item.image }} />
+          ) : (
+            <Avatar.Text size={40} label={item.name.substring(0, 1)} />
+          )}
+          
+          <View style={styles.userDetails}>
+            <Text style={[
+              styles.userName, 
+              { 
+                color: isSelected ? theme.colors.primary : theme.colors.onSurface,
+                fontWeight: isSelected ? '700' : '500'
+              }
+            ]}>
+              {item.name}
+            </Text>
+            <Text style={[styles.userRole, { color: theme.colors.onSurfaceVariant }]}>
+              {item.role === 'admin' ? 'Administrator' : 'Resident'}
+            </Text>
+          </View>
+        </View>
+        
+        <Checkbox
+          status={isSelected ? 'checked' : 'unchecked'}
+          color={theme.colors.primary}
+        />
+      </TouchableOpacity>
+    );
+  };
+  
+  // Render selected user chips
+  const renderSelectedUsers = () => {
+    if (selectedUsers.length === 0) return null;
+    
+    return (
+      <Surface
+        style={styles.selectedUsersContainer}
+        elevation={ElevationLevel.Level1}
+      >
+        <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+          {isGroup ? 'Group Members' : 'Recipients'}
         </Text>
         
-        <View style={styles.participantsList}>
+        <View style={styles.chipContainer}>
           {selectedUsers.map(user => (
-            <View key={user.id} style={styles.participantItem}>
-              {user.image ? (
-                <Image source={{ uri: user.image }} style={styles.participantAvatar} />
-              ) : (
-                <View style={[
-                  styles.defaultParticipantAvatar,
-                  { backgroundColor: theme.colors.primary }
-                ]}>
-                  <Text style={styles.avatarText}>
-                    {user.name.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-              )}
-              <Text 
-                style={[
-                  styles.participantName,
-                  isDarkMode && styles.textDark
-                ]}
-                numberOfLines={1}
-              >
-                {user.name}
-              </Text>
-            </View>
+            <Chip
+              key={user.id}
+              mode="outlined"
+              onClose={() => removeSelectedUser(user.id)}
+              style={styles.chip}
+              textStyle={{ color: theme.colors.onSurface }}
+            >
+              {user.name}
+            </Chip>
           ))}
         </View>
-      </View>
-      
-      <View style={[
-        styles.bottomButtonContainer,
-        { paddingBottom: Math.max(insets.bottom, 16) }
-      ]}>
-        <TouchableOpacity
-          style={[
-            styles.createButton,
-            { backgroundColor: theme.colors.primary }
-          ]}
-          onPress={handleCreateConversation}
-          disabled={!groupName.trim() || loading}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <>
-              <Text style={styles.createButtonText}>
-                Create Group Chat
-              </Text>
-              <MaterialIcons name="done" size={20} color="#fff" />
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+      </Surface>
+    );
+  };
+  
+  // Render group settings
+  const renderGroupSettings = () => {
+    // Only show for multiple selections
+    if (selectedUsers.length <= 1) return null;
+    
+    return (
+      <Surface 
+        style={styles.groupSettingsContainer}
+        elevation={ElevationLevel.Level1}
+      >
+        <View style={styles.groupTypeRow}>
+          <Text style={[styles.groupTypeText, { color: theme.colors.onSurface }]}>
+            Create as group conversation
+          </Text>
+          <Checkbox
+            status={isGroup ? 'checked' : 'unchecked'}
+            onPress={() => setIsGroup(!isGroup)}
+            color={theme.colors.primary}
+          />
+        </View>
+        
+        {isGroup && (
+          <Searchbar
+            placeholder="Enter group name"
+            value={groupName}
+            onChangeText={setGroupName}
+            style={[styles.groupNameInput, { backgroundColor: theme.colors.surfaceVariant }]}
+            inputStyle={{ color: theme.colors.onSurface }}
+            placeholderTextColor={theme.colors.onSurfaceVariant}
+          />
+        )}
+      </Surface>
+    );
+  };
   
   return (
-    <KeyboardAvoidingView 
-      style={[
-        styles.container,
-        isDarkMode && styles.containerDark
-      ]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
-    >
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <StatusBar 
-        barStyle={isDarkMode ? "light-content" : "dark-content"} 
-        backgroundColor={isDarkMode ? '#121212' : '#FFFFFF'} 
+        barStyle={theme.dark ? "light-content" : "dark-content"} 
+        backgroundColor={theme.colors.surface}
+        translucent={false}
       />
       
-      <Appbar.Header 
-        style={[
-          styles.header,
-          isDarkMode && styles.headerDark
-        ]}
-        statusBarHeight={insets.top}
+      <Header
+        title="New Conversation"
+        showBackButton={true}
+        onBackPress={handleGoBack}
+      />
+      
+      <View style={styles.content}>
+        <Searchbar
+          placeholder="Search people"
+          onChangeText={setSearchQuery}
+          value={searchQuery}
+          style={[styles.searchBar, { backgroundColor: theme.colors.surfaceVariant }]}
+          iconColor={theme.colors.onSurfaceVariant}
+          inputStyle={{ color: theme.colors.onSurface }}
+          placeholderTextColor={theme.colors.onSurfaceVariant}
+        />
+        
+        {renderSelectedUsers()}
+        {renderGroupSettings()}
+        
+        {loading ? (
+          <ActivityIndicator size="large" color={theme.colors.primary} style={styles.loader} />
+        ) : (
+          <FlatList
+            data={filteredUsers}
+            keyExtractor={item => item.id}
+            renderItem={renderUserItem}
+            ItemSeparatorComponent={() => <Divider style={styles.divider} />}
+            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={() => (
+              <View style={styles.emptyState}>
+                <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
+                  No users found matching your search
+                </Text>
+              </View>
+            )}
+          />
+        )}
+      </View>
+      
+      <Surface 
+        style={[styles.buttonContainer, { backgroundColor: theme.colors.surface }]}
+        elevation={ElevationLevel.Level2}
       >
-        <Appbar.BackAction 
-          onPress={handleBack} 
-          color={isDarkMode ? '#FFFFFF' : '#000000'} 
-        />
-        <Appbar.Content 
-          title={step === 'select' 
-            ? 'New Conversation' 
-            : 'Create Group'
-          } 
-          titleStyle={[
-            styles.headerTitle,
-            isDarkMode && styles.headerTitleDark
-          ]} 
-        />
-      </Appbar.Header>
-      
-      {step === 'select' 
-        ? renderSelectScreen() 
-        : renderNameScreen()
-      }
-      
-      {loading && step === 'select' && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={[
-            styles.loadingText,
-            isDarkMode && styles.textDark
-          ]}>
-            Creating conversation...
-          </Text>
-        </View>
-      )}
-    </KeyboardAvoidingView>
+        <Button
+          mode="contained"
+          onPress={handleCreateConversation}
+          loading={creatingConversation}
+          disabled={selectedUsers.length === 0 || creatingConversation}
+          style={styles.createButton}
+        >
+          {selectedUsers.length === 1 ? 'Start Conversation' : 'Create Group'}
+        </Button>
+      </Surface>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
-  containerDark: {
-    backgroundColor: '#121212',
+  content: {
+    flex: 1,
+    padding: 16,
   },
-  header: {
-    backgroundColor: '#fff',
-    elevation: 1,
-  },
-  headerDark: {
-    backgroundColor: '#121212',
-    borderBottomColor: '#333',
-    borderBottomWidth: 0.5,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  headerTitleDark: {
-    color: '#fff',
-  },
-  searchContainer: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 8,
-    position: 'relative',
-  },
-  searchInput: {
-    height: 48,
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    backgroundColor: '#f5f5f5',
-    color: '#333',
-  },
-  searchInputDark: {
-    backgroundColor: '#2a2a2a',
-    color: '#f0f0f0',
-  },
-  clearButton: {
-    position: 'absolute',
-    right: 16,
-    top: 14,
+  searchBar: {
+    elevation: 0,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   selectedUsersContainer: {
-    marginHorizontal: 16,
-    marginBottom: 8,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 8,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
-    color: '#333',
   },
-  textDark: {
-    color: '#f0f0f0',
-  },
-  textLightDark: {
-    color: '#a0a0a0',
-  },
-  chipsContainer: {
+  chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
-  userChip: {
-    marginRight: 8,
-    marginBottom: 8,
-    backgroundColor: '#f0f0f0',
+  chip: {
+    margin: 4,
   },
-  userChipDark: {
-    backgroundColor: '#2a2a2a',
+  groupSettingsContainer: {
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 8,
   },
-  chipAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-  },
-  groupOptionContainer: {
+  groupTypeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    justifyContent: 'space-between',
+    paddingVertical: 8,
   },
-  groupOptionText: {
-    marginLeft: 8,
+  groupTypeText: {
     fontSize: 16,
-    color: '#333',
   },
-  dividerDark: {
-    backgroundColor: '#333',
-  },
-  usersListTitle: {
-    marginHorizontal: 16,
+  groupNameInput: {
+    elevation: 0,
+    borderRadius: 8,
     marginTop: 8,
-  },
-  userList: {
-    paddingHorizontal: 16,
-    paddingBottom: 80,
-  },
-  emptyList: {
-    flex: 1,
-    justifyContent: 'center',
   },
   userItem: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 12,
-    alignItems: 'center',
-  },
-  userItemDark: {
-    backgroundColor: '#121212',
-  },
-  userAvatar: {
-    marginRight: 16,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  defaultAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    paddingHorizontal: 8,
+    borderRadius: 8,
   },
   userInfo: {
-    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  userDetails: {
+    marginLeft: 16,
   },
   userName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: '500',
   },
   userRole: {
     fontSize: 14,
-    color: '#757575',
-    marginTop: 2,
   },
-  emptyContainer: {
+  listContent: {
+    flexGrow: 1,
+  },
+  emptyState: {
+    padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
+    flex: 1,
   },
   emptyText: {
+    textAlign: 'center',
     fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 16,
-    textAlign: 'center',
   },
-  emptySubText: {
-    fontSize: 14,
-    color: '#757575',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  bottomButtonContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'transparent',
+  buttonContainer: {
     padding: 16,
-    paddingTop: 8,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 4,
-  },
-  nextButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 48,
-    borderRadius: 24,
-    paddingHorizontal: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  nextButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginRight: 8,
-  },
-  groupNameContainer: {
-    padding: 16,
-    flex: 1,
-  },
-  groupNameTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  groupNameSubtitle: {
-    fontSize: 16,
-    color: '#757575',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  groupAvatarContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    alignSelf: 'center',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  groupNameInput: {
-    height: 56,
-    borderRadius: 8,
-    fontSize: 18,
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 16,
-    marginBottom: 24,
-    color: '#333',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  groupNameInputDark: {
-    backgroundColor: '#2a2a2a',
-    borderColor: '#444',
-    color: '#f0f0f0',
-  },
-  groupParticipantsContainer: {
-    flex: 1,
-  },
-  participantsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 16,
-    color: '#333',
-  },
-  participantsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  participantItem: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    width: 72,
-    marginRight: 12,
-    marginBottom: 16,
-  },
-  participantAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    marginBottom: 4,
-  },
-  defaultParticipantAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  participantName: {
-    fontSize: 12,
-    color: '#333',
-    textAlign: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
   },
   createButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 48,
-    borderRadius: 24,
-    paddingHorizontal: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    borderRadius: 8,
   },
-  createButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginRight: 8,
+  loader: {
+    marginTop: 20,
   },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginTop: 16,
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.05)',
   },
 });
 

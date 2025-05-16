@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Chip, useTheme, Text, Divider } from 'react-native-paper';
+import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { Chip, Text, Divider } from 'react-native-paper';
 import { useContextData } from '../hooks/useContextData';
-import { Building } from '../store/slices/contextSlice';
+import { useThemedStyles } from '../hooks/useThemedStyles';
+import type { AppTheme } from '../theme/theme';
 
 interface ContextFilterProps {
   onFilterChange: (buildingId: string | null) => void;
@@ -13,6 +14,7 @@ interface ContextFilterProps {
 
 /**
  * A component that allows filtering data by building context
+ * Following MD3 design principles for chips and typography
  */
 export const ContextFilter: React.FC<ContextFilterProps> = ({
   onFilterChange,
@@ -20,11 +22,10 @@ export const ContextFilter: React.FC<ContextFilterProps> = ({
   label = 'Filter by:',
   showAllOption = true,
 }) => {
-  const theme = useTheme();
+  const { theme } = useThemedStyles();
   const { 
     userRole, 
     currentBusinessAccount, 
-    currentBuilding, 
     assignedBuildings 
   } = useContextData();
   
@@ -48,27 +49,30 @@ export const ContextFilter: React.FC<ContextFilterProps> = ({
   };
   
   return (
-    <View style={styles.container}>
-      <View style={styles.labelContainer}>
-        <Text variant="bodyMedium" style={styles.label}>{label}</Text>
+    <View style={styles(theme).container}>
+      <View style={styles(theme).labelContainer}>
+        <Text variant="bodyMedium" style={styles(theme).label}>{label}</Text>
         {currentBusinessAccount && (
-          <Text variant="bodySmall" style={styles.businessName}>
+          <Text variant="bodySmall" style={styles(theme).businessName}>
             {currentBusinessAccount.name}
           </Text>
         )}
       </View>
-      <Divider style={styles.divider} />
-      <View style={styles.chipsContainer}>
+      <Divider style={styles(theme).divider} />
+      <View style={styles(theme).chipsContainer}>
         {showAllOption && (
           <Chip
             mode={selectedBuildingId === null ? 'flat' : 'outlined'}
             selected={selectedBuildingId === null}
             onPress={() => handleSelectFilter(null)}
             style={[
-              styles.chip,
+              styles(theme).chip,
               selectedBuildingId === null && { backgroundColor: theme.colors.primaryContainer }
             ]}
-            textStyle={selectedBuildingId === null ? { color: theme.colors.primary } : undefined}
+            showSelectedCheck={false}
+            textStyle={selectedBuildingId === null ? 
+              { color: theme.colors.onPrimaryContainer } : 
+              { color: theme.colors.onSurfaceVariant }}
           >
             All Buildings
           </Chip>
@@ -81,10 +85,13 @@ export const ContextFilter: React.FC<ContextFilterProps> = ({
             selected={selectedBuildingId === building.id}
             onPress={() => handleSelectFilter(building.id)}
             style={[
-              styles.chip,
+              styles(theme).chip,
               selectedBuildingId === building.id && { backgroundColor: theme.colors.primaryContainer }
             ]}
-            textStyle={selectedBuildingId === building.id ? { color: theme.colors.primary } : undefined}
+            showSelectedCheck={false}
+            textStyle={selectedBuildingId === building.id ? 
+              { color: theme.colors.onPrimaryContainer } : 
+              { color: theme.colors.onSurfaceVariant }}
           >
             {building.name}
           </Chip>
@@ -94,32 +101,34 @@ export const ContextFilter: React.FC<ContextFilterProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = (theme: AppTheme) => StyleSheet.create({
   container: {
-    marginVertical: 8,
+    marginVertical: theme.spacing.s,
   },
   labelContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: theme.spacing.s,
   },
   label: {
     fontWeight: '500',
+    color: theme.colors.onSurface,
   },
   businessName: {
-    opacity: 0.7,
+    color: theme.colors.onSurfaceVariant,
   },
   chipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 8,
+    marginTop: theme.spacing.s,
   },
   chip: {
-    marginRight: 8,
-    marginBottom: 8,
+    marginRight: theme.spacing.s,
+    marginBottom: theme.spacing.s,
   },
   divider: {
-    marginVertical: 4,
+    marginVertical: theme.spacing.xs,
+    backgroundColor: theme.colors.outlineVariant,
   },
 }); 

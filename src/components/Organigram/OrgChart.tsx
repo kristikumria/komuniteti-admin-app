@@ -1,17 +1,31 @@
 import React from 'react';
 import { View, StyleSheet, Image } from 'react-native';
-import { Text, Avatar, Surface, useTheme } from 'react-native-paper';
-import { useAppSelector } from '../../store/hooks';
+import { Text, Avatar, Surface } from 'react-native-paper';
+import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
+import { useThemedStyles } from '../../hooks/useThemedStyles';
 import { OrgNode } from '../../services/organizationService';
+import { ElevationLevel } from '../../theme';
+import type { AppTheme } from '../../theme/theme';
 
 interface OrgChartProps {
   node: OrgNode;
   level?: number;
+  animationDelay?: number;
 }
 
-const OrgChart: React.FC<OrgChartProps> = ({ node, level = 0 }) => {
-  const theme = useTheme();
-  const isDarkMode = useAppSelector(state => state.settings.darkMode);
+/**
+ * Organization chart component that displays organizational hierarchy
+ * following Material Design 3 guidelines with proper elevation and animations.
+ * 
+ * @example
+ * <OrgChart node={organizationData} />
+ */
+const OrgChart: React.FC<OrgChartProps> = ({ 
+  node, 
+  level = 0,
+  animationDelay = 0
+}) => {
+  const { theme } = useThemedStyles();
   const isRoot = level === 0;
   
   // Get color based on node role
@@ -23,55 +37,38 @@ const OrgChart: React.FC<OrgChartProps> = ({ node, level = 0 }) => {
         return theme.colors.secondary;
       case 'Building':
       case 'Residential':
-        return '#4CAF50'; // Green
+        return theme.colors.tertiary; // Using tertiary instead of hardcoded green
       case 'Commercial':
-        return '#FF9800'; // Orange
+        return theme.colors.tertiaryContainer; // Using tertiaryContainer instead of hardcoded orange
       case 'Building Type':
-        return '#607D8B'; // Blue Grey
+        return theme.colors.surfaceVariant;
       case 'Units':
-        return '#00BCD4'; // Cyan
+        return theme.colors.secondaryContainer;
       case 'Residents':
-        return '#9C27B0'; // Purple
+        return theme.colors.primaryContainer;
       default:
         return theme.colors.surfaceVariant;
     }
   };
   
-  // Get border color based on the node color but lighter
+  // Get border color based on the node color
   const getBorderColor = () => {
-    const color = getNodeColor();
-    // If dark mode, lighten; if light mode, darken slightly
-    return isDarkMode 
-      ? lightenColor(color, 30) 
-      : darkenColor(color, 10);
+    return theme.colors.outline;
   };
   
   // Get text color based on background color brightness
   const getTextColor = () => {
     const color = getNodeColor();
-    // Check if the color is light or dark and return appropriate text color
-    return isLightColor(color) ? '#000000' : '#FFFFFF';
-  };
-  
-  // Utility to check if a color is light
-  const isLightColor = (color: string) => {
-    // Simple heuristic for light/dark determination
-    const hexColor = color.replace('#', '');
-    const r = parseInt(hexColor.substr(0, 2), 16);
-    const g = parseInt(hexColor.substr(2, 2), 16);
-    const b = parseInt(hexColor.substr(4, 2), 16);
-    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-    return brightness > 128;
-  };
-  
-  // Utility to lighten a color
-  const lightenColor = (color: string, amount: number) => {
-    return color; // Simplified for now
-  };
-  
-  // Utility to darken a color
-  const darkenColor = (color: string, amount: number) => {
-    return color; // Simplified for now
+    // Use Material Design's on-color tokens
+    if (color === theme.colors.primary) return theme.colors.onPrimary;
+    if (color === theme.colors.secondary) return theme.colors.onSecondary;
+    if (color === theme.colors.tertiary) return theme.colors.onTertiary;
+    if (color === theme.colors.primaryContainer) return theme.colors.onPrimaryContainer;
+    if (color === theme.colors.secondaryContainer) return theme.colors.onSecondaryContainer;
+    if (color === theme.colors.tertiaryContainer) return theme.colors.onTertiaryContainer;
+    if (color === theme.colors.surfaceVariant) return theme.colors.onSurfaceVariant;
+    
+    return theme.colors.onSurface;
   };
   
   // Get appropriate node width based on level
@@ -87,48 +84,57 @@ const OrgChart: React.FC<OrgChartProps> = ({ node, level = 0 }) => {
   // Determine if the node has any children
   const hasChildren = node.children && node.children.length > 0;
   
+  // Calculate animation delay based on level and position
+  const delay = animationDelay + (level * 150);
+  
   return (
-    <View style={[styles.container, isRoot && styles.rootContainer]}>
+    <Animated.View 
+      style={[styles(theme).container, isRoot && styles(theme).rootContainer]}
+      entering={FadeIn.delay(delay).duration(300)}
+    >
       <Surface 
         style={[
-          styles.nodeContainer, 
+          styles(theme).nodeContainer, 
           { 
             backgroundColor: getNodeColor(),
             borderColor: getBorderColor(),
             width: getNodeWidth(),
-            shadowColor: isDarkMode ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.2)',
-            shadowOffset: { width: 0, height: isRoot ? 4 : 2 },
-            shadowOpacity: isRoot ? 0.3 : 0.2,
-            shadowRadius: isRoot ? 5 : 3,
           }
         ]}
+        elevation={isRoot ? ElevationLevel.Level3 : ElevationLevel.Level1}
       >
-        <View style={styles.nodeContent}>
+        <View 
+          style={styles(theme).nodeContent}
+          accessibilityLabel={`${node.name}, ${node.role}`}
+          accessibilityRole="text"
+        >
           {node.image ? (
             <Avatar.Image 
               size={40} 
               source={{ uri: node.image }} 
-              style={styles.avatar}
+              style={styles(theme).avatar}
             />
           ) : (
             <Avatar.Text 
               size={40} 
               label={node.name.substring(0, 2).toUpperCase()} 
-              style={[styles.avatar, { backgroundColor: isDarkMode ? '#444' : '#ddd' }]}
-              labelStyle={{ color: isDarkMode ? '#fff' : '#333' }}
+              style={[styles(theme).avatar, { backgroundColor: theme.colors.surfaceVariant }]}
+              labelStyle={{ color: theme.colors.onSurfaceVariant }}
             />
           )}
           
-          <View style={styles.textContainer}>
+          <View style={styles(theme).textContainer}>
             <Text 
-              style={[styles.nameText, { color: getTextColor() }]}
+              variant="labelLarge"
+              style={{ color: getTextColor() }}
               numberOfLines={1}
               ellipsizeMode="tail"
             >
               {node.name}
             </Text>
             <Text 
-              style={[styles.roleText, { color: getTextColor() + 'CC' /* 80% opacity */ }]}
+              variant="bodySmall"
+              style={{ color: getTextColor(), opacity: 0.8 }}
               numberOfLines={1}
             >
               {node.role}
@@ -138,46 +144,49 @@ const OrgChart: React.FC<OrgChartProps> = ({ node, level = 0 }) => {
       </Surface>
       
       {hasChildren && (
-        <View style={styles.childrenContainer}>
-          <View style={[styles.verticalLine, { backgroundColor: isDarkMode ? '#555' : '#ccc' }]} />
+        <View style={styles(theme).childrenContainer}>
+          <View style={[styles(theme).verticalLine, { backgroundColor: theme.colors.outlineVariant }]} />
           
-          <View style={styles.childrenRow}>
+          <View style={styles(theme).childrenRow}>
             {node.children!.map((child, index) => (
-              <View key={child.id} style={styles.childWrapper}>
+              <View key={child.id} style={styles(theme).childWrapper}>
                 {/* Horizontal connector line */}
                 {node.children!.length > 1 && (
                   <View 
                     style={[
-                      styles.horizontalConnector, 
-                      { backgroundColor: isDarkMode ? '#555' : '#ccc' }
+                      styles(theme).horizontalConnector, 
+                      { backgroundColor: theme.colors.outlineVariant }
                     ]} 
                   />
                 )}
                 
                 {/* Child node */}
-                <OrgChart node={child} level={level + 1} />
+                <OrgChart 
+                  node={child} 
+                  level={level + 1} 
+                  animationDelay={delay + (index * 100)}
+                />
               </View>
             ))}
           </View>
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 };
 
-const styles = StyleSheet.create({
+const styles = (theme: AppTheme) => StyleSheet.create({
   container: {
     alignItems: 'center',
-    marginHorizontal: 12,
-    marginBottom: 20,
+    marginHorizontal: theme.spacing.s,
+    marginBottom: theme.spacing.m,
   },
   rootContainer: {
-    marginTop: 20,
+    marginTop: theme.spacing.m,
   },
   nodeContainer: {
-    borderRadius: 8,
-    padding: 10,
-    elevation: 4,
+    borderRadius: theme.roundness,
+    padding: theme.spacing.s,
     borderWidth: 1,
     borderColor: 'transparent',
   },
@@ -186,40 +195,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatar: {
-    marginRight: 12,
-    backgroundColor: '#888',
+    marginRight: theme.spacing.s,
   },
   textContainer: {
     flex: 1,
     overflow: 'hidden',
   },
-  nameText: {
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  roleText: {
-    fontSize: 12,
-    marginTop: 2,
-  },
   childrenContainer: {
-    marginTop: 24,
+    marginTop: theme.spacing.m + theme.spacing.s,
   },
   verticalLine: {
     width: 2,
-    height: 24,
-    backgroundColor: '#ccc',
+    height: theme.spacing.m + theme.spacing.xs,
+    backgroundColor: theme.colors.outlineVariant,
     alignSelf: 'center',
   },
   childrenRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     flexWrap: 'wrap',
-    marginTop: 8,
+    marginTop: theme.spacing.s,
   },
   childWrapper: {
     alignItems: 'center',
     position: 'relative',
-    marginHorizontal: 8,
+    marginHorizontal: theme.spacing.s,
   },
   horizontalConnector: {
     position: 'absolute',
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     left: -50,
     right: -50,
     height: 2,
-    backgroundColor: '#ccc',
+    backgroundColor: theme.colors.outlineVariant,
   },
 });
 

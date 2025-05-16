@@ -121,9 +121,6 @@ Business managers oversee company operations on the Komuniteti.al platform. They
 #### Services
 - Create, view, edit, and delete company service offerings
 
-#### Reports
-- Generate and export company-wide financial, operational, and resident-engagement reports
-
 #### Resident Management
 - Add, list, edit, and remove residents
 
@@ -220,7 +217,7 @@ Administrator
 - Display outstanding invoices
 - Process resident payments
 
-#### Reports
+#### Maintenance Reports
 - View maintenance and incident reports submitted by residents
 
 #### Notifications

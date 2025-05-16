@@ -31,9 +31,10 @@ import { NotificationsScreen } from '../screens/shared/Notifications/Notificatio
 import { NotificationDetails } from '../screens/shared/Notifications/NotificationDetails';
 import { NotificationSettings } from '../screens/shared/Settings/NotificationSettings';
 import { ChatListScreen, ChatConversationScreen, NewConversationScreen } from '../screens/shared/Chat';
-import { InfoPointsScreen } from '../screens/shared/InfoPoints/InfoPointsScreen';
-import { PollsScreen } from '../screens/shared/Polls/PollsScreen';
+import { InfoPointsScreen } from '../screens/business-manager/InfoPoints/InfoPointsScreen';
+import { PollsScreen } from '../screens/business-manager/Polls/PollsScreen';
 import { PollDetailsScreen } from '../screens/shared/Polls/PollDetailsScreen';
+import { AccountSettingsScreen } from '../screens/business-manager/AccountSettings/AccountSettingsScreen';
 import { OrganigramScreen } from '../screens/business-manager/Organigram/OrganigramScreen';
 import { AnalyticsScreen } from '../screens/business-manager/Analytics/AnalyticsScreen';
 import { SettingsScreen } from '../screens/shared/Settings/SettingsScreen';
@@ -45,6 +46,12 @@ import { BusinessAccountDetails } from '../screens/business-manager/BusinessAcco
 import { BusinessAccountDocumentsScreen } from '../screens/business-manager/BusinessAccounts/BusinessAccountDocumentsScreen';
 import { BusinessAccountFinancialReportsScreen } from '../screens/business-manager/BusinessAccounts/BusinessAccountFinancialReportsScreen';
 import { BuildingsComparisonScreen } from '../screens/business-manager/Buildings/BuildingsComparisonScreen';
+import { MD3ElevationShowcase } from '../screens/dev/MD3ElevationShowcase';
+import { ComponentShowcase } from '../screens/dev/ComponentShowcase';
+import { ThemeShowcase } from '../screens/dev/ThemeShowcase';
+import { ResponsiveLayoutShowcase } from '../screens/dev/ResponsiveLayoutShowcase';
+import { FormShowcase } from '../screens/dev/FormShowcase';
+import { MaintenanceList, MaintenanceDetail, MaintenanceForm, MaintenanceWorkers, MaintenanceWorkerDetail, MaintenanceAnalytics } from '../screens/business-manager/Maintenance';
 
 const Tab = createBottomTabNavigator<BusinessManagerTabParamList>();
 const Stack = createNativeStackNavigator<BusinessManagerStackParamList>();
@@ -107,12 +114,12 @@ const MoreStack = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MoreMain" component={MoreScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="AccountSettings" component={AccountSettingsScreen} />
       <Stack.Screen name="InfoPointsScreen" component={InfoPointsScreen} />
       <Stack.Screen name="NotificationsTab" component={NotificationsScreen} />
       <Stack.Screen name="Messages" component={ChatListScreen} />
       <Stack.Screen name="ChatConversation" component={ChatConversationScreen} />
       <Stack.Screen name="NewConversation" component={NewConversationScreen} />
-      <Stack.Screen name="PollsScreen" component={PollsScreen} />
       <Stack.Screen name="PollDetails" component={PollDetailsScreen} />
       <Stack.Screen name="ReportsStack" component={ReportsStack} />
       <Stack.Screen name="Organigram" component={OrganigramScreen} />
@@ -125,6 +132,17 @@ const MoreStack = () => {
       <Stack.Screen name="NotificationDetails" component={NotificationDetails} />
       <Stack.Screen name="NotificationSettings" component={NotificationSettings} />
       <Stack.Screen name="BuildingsByBusinessAccount" component={BuildingsByBusinessAccount} />
+      <Stack.Screen name="MaintenanceRequests" component={MaintenanceList} />
+      <Stack.Screen name="MaintenanceDetail" component={MaintenanceDetail} />
+      <Stack.Screen name="MaintenanceForm" component={MaintenanceForm} />
+      <Stack.Screen name="MaintenanceWorkers" component={MaintenanceWorkers} />
+      <Stack.Screen name="MaintenanceWorkerDetail" component={MaintenanceWorkerDetail} />
+      <Stack.Screen name="MaintenanceAnalytics" component={MaintenanceAnalytics} />
+      <Stack.Screen name="MD3ElevationShowcase" component={MD3ElevationShowcase} />
+      <Stack.Screen name="ComponentShowcase" component={ComponentShowcase} />
+      <Stack.Screen name="ThemeShowcase" component={ThemeShowcase} />
+      <Stack.Screen name="ResponsiveLayoutShowcase" component={ResponsiveLayoutShowcase} />
+      <Stack.Screen name="FormShowcase" component={FormShowcase} />
     </Stack.Navigator>
   );
 };

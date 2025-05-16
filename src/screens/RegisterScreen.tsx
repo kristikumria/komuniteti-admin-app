@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useTheme, Button, TextInput, RadioButton } from 'react-native-paper';
+import { Text, Button, TextInput, RadioButton, Surface } from 'react-native-paper';
 import { authService } from '../services/authService';
 import { UserRole } from '../store/slices/authSlice';
 import { registerSchema } from '../utils/validationSchemas';
+import { useThemedStyles } from '../hooks/useThemedStyles';
+import type { AppTheme } from '../theme/theme';
 
 interface RegisterFormData {
   name: string;
@@ -16,7 +18,7 @@ interface RegisterFormData {
 }
 
 export const RegisterScreen = ({ navigation }: any) => {
-  const theme = useTheme();
+  const { theme, commonStyles } = useThemedStyles();
   const [loading, setLoading] = useState(false);
   
   const { control, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
@@ -49,23 +51,23 @@ export const RegisterScreen = ({ navigation }: any) => {
   };
   
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles(theme).scrollContainer}>
+      <View style={styles(theme).container}>
         <TouchableOpacity 
-          style={styles.backButton} 
+          style={styles(theme).backButton} 
           onPress={() => navigation.goBack()}
         >
-          <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>← Back to Login</Text>
+          <Text variant="labelLarge" style={styles(theme).backButtonText}>← Back to Login</Text>
         </TouchableOpacity>
         
-        <View style={styles.headerContainer}>
-          <Text style={[styles.title, { color: theme.colors.onSurface }]}>Create Account</Text>
-          <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
+        <Surface style={styles(theme).headerContainer} elevation={0}>
+          <Text variant="headlineMedium" style={styles(theme).title}>Create Account</Text>
+          <Text variant="bodyLarge" style={styles(theme).subtitle}>
             Join Komuniteti to start managing your properties efficiently.
           </Text>
-        </View>
+        </Surface>
         
-        <View style={styles.formContainer}>
+        <Surface style={styles(theme).formContainer} elevation={1}>
           {/* Name Field */}
           <Controller
             control={control}
@@ -79,12 +81,13 @@ export const RegisterScreen = ({ navigation }: any) => {
                 error={!!errors.name}
                 mode="outlined"
                 left={<TextInput.Icon icon="account" />}
-                style={styles.textInput}
+                style={styles(theme).textInput}
+                outlineStyle={{ borderRadius: theme.shapes.corner.small }}
               />
             )}
           />
           {errors.name && (
-            <Text style={[styles.errorText, { color: theme.colors.error }]}>
+            <Text variant="labelSmall" style={styles(theme).errorText}>
               {errors.name.message}
             </Text>
           )}
@@ -104,12 +107,13 @@ export const RegisterScreen = ({ navigation }: any) => {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 left={<TextInput.Icon icon="email" />}
-                style={styles.textInput}
+                style={styles(theme).textInput}
+                outlineStyle={{ borderRadius: theme.shapes.corner.small }}
               />
             )}
           />
           {errors.email && (
-            <Text style={[styles.errorText, { color: theme.colors.error }]}>
+            <Text variant="labelSmall" style={styles(theme).errorText}>
               {errors.email.message}
             </Text>
           )}
@@ -128,12 +132,13 @@ export const RegisterScreen = ({ navigation }: any) => {
                 mode="outlined"
                 secureTextEntry
                 left={<TextInput.Icon icon="lock" />}
-                style={styles.textInput}
+                style={styles(theme).textInput}
+                outlineStyle={{ borderRadius: theme.shapes.corner.small }}
               />
             )}
           />
           {errors.password && (
-            <Text style={[styles.errorText, { color: theme.colors.error }]}>
+            <Text variant="labelSmall" style={styles(theme).errorText}>
               {errors.password.message}
             </Text>
           )}
@@ -152,136 +157,159 @@ export const RegisterScreen = ({ navigation }: any) => {
                 mode="outlined"
                 secureTextEntry
                 left={<TextInput.Icon icon="lock-check" />}
-                style={styles.textInput}
+                style={styles(theme).textInput}
+                outlineStyle={{ borderRadius: theme.shapes.corner.small }}
               />
             )}
           />
           {errors.confirmPassword && (
-            <Text style={[styles.errorText, { color: theme.colors.error }]}>
+            <Text variant="labelSmall" style={styles(theme).errorText}>
               {errors.confirmPassword.message}
             </Text>
           )}
           
           {/* Role Selection */}
-          <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+          <Text variant="titleMedium" style={styles(theme).sectionTitle}>
             Select Your Role
           </Text>
-          <Controller
-            control={control}
-            name="role"
-            render={({ field: { onChange, value } }) => (
-              <RadioButton.Group onValueChange={onChange as (value: string) => void} value={value}>
-                <View style={styles.roleOption}>
-                  <RadioButton
-                    value="administrator"
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.roleText}>Administrator</Text>
-                </View>
-                <View style={styles.roleOption}>
-                  <RadioButton
-                    value="business_manager"
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.roleText}>Business Manager</Text>
-                </View>
-              </RadioButton.Group>
-            )}
-          />
+          
+          <Surface style={styles(theme).roleSelectionContainer} elevation={0}>
+            <Controller
+              control={control}
+              name="role"
+              render={({ field: { onChange, value } }) => (
+                <RadioButton.Group onValueChange={onChange as (value: string) => void} value={value}>
+                  <View style={styles(theme).roleOption}>
+                    <RadioButton
+                      value="administrator"
+                      color={theme.colors.primary}
+                    />
+                    <Text variant="bodyMedium" style={styles(theme).roleText}>Administrator</Text>
+                  </View>
+                  <View style={styles(theme).roleOption}>
+                    <RadioButton
+                      value="business_manager"
+                      color={theme.colors.primary}
+                    />
+                    <Text variant="bodyMedium" style={styles(theme).roleText}>Business Manager</Text>
+                  </View>
+                </RadioButton.Group>
+              )}
+            />
+          </Surface>
           
           <Button
             mode="contained"
             onPress={handleSubmit(onSubmit)}
             loading={loading}
             disabled={loading}
-            style={styles.submitButton}
+            style={styles(theme).submitButton}
+            contentStyle={{ height: 48 }}
+            labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
           >
             Create Account
           </Button>
-          
-          <View style={styles.loginPrompt}>
-            <Text style={styles.promptText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={[styles.promptLink, { color: theme.colors.primary }]}>
-                Login
-              </Text>
-            </TouchableOpacity>
-          </View>
+        </Surface>
+        
+        <View style={styles(theme).loginPrompt}>
+          <Text variant="bodyMedium" style={styles(theme).promptText}>Already have an account? </Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <Text variant="bodyMedium" style={styles(theme).promptLink}>
+              Login
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     </ScrollView>
   );
 };
 
-const styles = StyleSheet.create({
+const styles = (theme: AppTheme) => StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
+    backgroundColor: theme.colors.background,
   },
   container: {
     flex: 1,
-    padding: 24,
-    backgroundColor: '#fff',
+    padding: theme.spacing.l,
   },
   backButton: {
-    marginTop: 16,
-    marginBottom: 24,
+    marginTop: theme.spacing.m,
+    marginBottom: theme.spacing.l,
   },
   backButtonText: {
-    fontSize: 16,
     fontWeight: '500',
+    color: theme.colors.primary,
   },
   headerContainer: {
-    marginBottom: 24,
+    marginBottom: theme.spacing.l,
+    padding: theme.spacing.m,
+    borderRadius: theme.shapes.corner.medium,
+    backgroundColor: theme.colors.surfaceContainerLow,
   },
   title: {
-    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: theme.spacing.s,
+    color: theme.colors.onSurface,
   },
   subtitle: {
-    fontSize: 16,
+    color: theme.colors.onSurfaceVariant,
     lineHeight: 22,
   },
   formContainer: {
     width: '100%',
+    padding: theme.spacing.m,
+    borderRadius: theme.shapes.corner.medium,
+    backgroundColor: theme.colors.surfaceContainer,
+    marginBottom: theme.spacing.m,
   },
   textInput: {
-    marginBottom: 8,
+    marginBottom: theme.spacing.s,
+    backgroundColor: theme.colors.surfaceContainerHighest,
   },
   errorText: {
-    fontSize: 12,
-    marginBottom: 12,
+    marginBottom: theme.spacing.s,
+    marginTop: -theme.spacing.xs,
+    marginLeft: theme.spacing.s,
+    color: theme.colors.error,
   },
   sectionTitle: {
-    fontSize: 16,
     fontWeight: '500',
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: theme.spacing.m,
+    marginBottom: theme.spacing.s,
+    color: theme.colors.onSurface,
+  },
+  roleSelectionContainer: {
+    borderRadius: theme.shapes.corner.small,
+    backgroundColor: theme.colors.surfaceContainerHigh,
+    padding: theme.spacing.s,
+    marginBottom: theme.spacing.m,
   },
   roleOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 4,
+    marginVertical: theme.spacing.xs,
   },
   roleText: {
-    fontSize: 16,
-    marginLeft: 8,
+    marginLeft: theme.spacing.s,
+    color: theme.colors.onSurface,
   },
   submitButton: {
-    marginTop: 24,
-    paddingVertical: 6,
+    marginTop: theme.spacing.l,
+    borderRadius: theme.shapes.corner.small,
+    backgroundColor: theme.colors.primary,
   },
   loginPrompt: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 16,
+    marginTop: theme.spacing.m,
+    padding: theme.spacing.m,
   },
   promptText: {
-    fontSize: 14,
-    color: '#666',
+    color: theme.colors.onSurfaceVariant,
   },
   promptLink: {
-    fontSize: 14,
     fontWeight: '500',
+    color: theme.colors.primary,
   },
 });

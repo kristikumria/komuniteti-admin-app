@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { Text, TextInput, useTheme, Button, HelperText, Switch, Divider } from 'react-native-paper';
+import { Text, TextInput, Button, HelperText, Switch, Divider, Surface, useTheme } from 'react-native-paper';
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { Building } from '../navigation/types';
 import { useAppSelector } from '../store/hooks';
+import { Home, MapPin, Building2, Stars, Square, Calendar, FileText } from 'lucide-react-native';
+import { useThemedStyles } from '../hooks/useThemedStyles';
+import { ElevationLevel } from '../theme';
+import type { AppTheme } from '../theme/theme';
+import Animated, { FadeInUp, FadeOut } from 'react-native-reanimated';
 
 export interface BuildingFormData {
   name: string;
@@ -56,15 +61,26 @@ interface BuildingFormProps {
   isLoading: boolean;
 }
 
-export const BuildingForm = ({ 
+/**
+ * A form component for creating and updating building information.
+ * Follows Material Design 3 guidelines with proper field organization, validation,
+ * animations, and accessibility features.
+ * 
+ * @example
+ * <BuildingForm
+ *   initialData={buildingData}
+ *   onSubmit={handleSubmit}
+ *   isLoading={isSubmitting}
+ * />
+ */
+export const BuildingForm: React.FC<BuildingFormProps> = ({ 
   initialData, 
   onSubmit,
   isLoading
-}: BuildingFormProps) => {
-  const theme = useTheme();
-  const isDarkMode = useAppSelector(state => state.settings.darkMode);
+}) => {
+  const { theme } = useThemedStyles();
   
-  const { control, handleSubmit, formState: { errors } } = useForm<BuildingFormData>({
+  const { control, handleSubmit, formState: { errors, dirtyFields } } = useForm<BuildingFormData>({
     defaultValues: {
       name: initialData?.name || '',
       address: initialData?.address || '',
@@ -87,315 +103,314 @@ export const BuildingForm = ({
       Alert.alert('Error', error.message || 'Something went wrong. Please try again.');
     }
   };
+
+  /**
+   * Renders a form section with a title and children using MD3 surface elevation
+   * and animated entrance for a more polished UX
+   */
+  const FormSection = ({ 
+    title, 
+    children,
+    index = 0 
+  }: { 
+    title: string, 
+    children: React.ReactNode,
+    index?: number 
+  }) => (
+    <Animated.View 
+      entering={FadeInUp.delay(100 * index).springify()} 
+      exiting={FadeOut}
+    >
+      <Surface style={styles(theme).formSection} elevation={ElevationLevel.Level1}>
+        <View style={styles(theme).sectionOverflowContainer}>
+          <Text variant="titleMedium" style={styles(theme).sectionTitle}>
+            {title}
+          </Text>
+          {children}
+        </View>
+      </Surface>
+    </Animated.View>
+  );
+
+  /**
+   * Renders a form field with a label, input, and error message
+   * Follows MD3 guidelines for text inputs and error states
+   */
+  const FormField = ({ 
+    name, 
+    control, 
+    label, 
+    icon, 
+    multiline = false, 
+    keyboardType = 'default',
+    placeholder = '',
+    transformValue = (v) => v,
+    parseValue = (v) => v,
+  }: { 
+    name: keyof BuildingFormData, 
+    control: any,
+    label: string, 
+    icon: React.ReactNode,
+    multiline?: boolean,
+    keyboardType?: 'default' | 'numeric' | 'email-address',
+    placeholder?: string,
+    transformValue?: (value: any) => any,
+    parseValue?: (text: string) => any,
+  }) => (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field: { onChange, onBlur, value } }) => (
+        <View style={styles(theme).inputContainer}>
+          <TextInput
+            label={label}
+            value={transformValue(value)?.toString()}
+            onChangeText={(text) => onChange(parseValue(text))}
+            onBlur={onBlur}
+            error={!!errors[name]}
+            mode="outlined"
+            style={styles(theme).input}
+            left={<TextInput.Icon icon={() => icon} />}
+            multiline={multiline}
+            numberOfLines={multiline ? 4 : 1}
+            keyboardType={keyboardType}
+            placeholder={placeholder}
+            outlineStyle={{ 
+              borderRadius: theme.roundness 
+            }}
+            contentStyle={{ 
+              paddingHorizontal: theme.spacing.s 
+            }}
+            accessibilityLabel={label}
+            accessibilityHint={errors[name]?.message?.toString()}
+            accessibilityState={{ 
+              disabled: isLoading
+            }}
+          />
+          {errors[name] && (
+            <Animated.View 
+              entering={FadeInUp.springify()} 
+              exiting={FadeOut}
+            >
+              <HelperText type="error" visible={true}>
+                {errors[name]?.message}
+              </HelperText>
+            </Animated.View>
+          )}
+        </View>
+      )}
+    />
+  );
   
   return (
-    <ScrollView style={styles.container}>
-      <Text style={[styles.sectionTitle, { color: isDarkMode ? '#fff' : '#333' }]}>
-        Basic Information
-      </Text>
-      
-      {/* Building Name */}
-      <Controller
-        control={control}
-        name="name"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.inputContainer}>
-            <TextInput
-              label="Building Name"
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              error={!!errors.name}
-              mode="outlined"
-              style={styles.input}
-              left={<TextInput.Icon icon="domain" />}
-              outlineStyle={{ borderRadius: 8 }}
-            />
-            {errors.name && (
-              <HelperText type="error" visible={true}>
-                {errors.name.message}
-              </HelperText>
-            )}
-          </View>
-        )}
-      />
-      
-      {/* Address */}
-      <Controller
-        control={control}
-        name="address"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.inputContainer}>
-            <TextInput
-              label="Address"
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              error={!!errors.address}
-              mode="outlined"
-              style={styles.input}
-              left={<TextInput.Icon icon="map-marker" />}
-              outlineStyle={{ borderRadius: 8 }}
-            />
-            {errors.address && (
-              <HelperText type="error" visible={true}>
-                {errors.address.message}
-              </HelperText>
-            )}
-          </View>
-        )}
-      />
-      
-      {/* Property Type */}
-      <Controller
-        control={control}
-        name="propertyType"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.inputContainer}>
-            <TextInput
-              label="Property Type"
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              error={!!errors.propertyType}
-              mode="outlined"
-              style={styles.input}
-              left={<TextInput.Icon icon="home" />}
-              outlineStyle={{ borderRadius: 8 }}
-              placeholder="e.g. Residential, Commercial, Mixed-use"
-            />
-            {errors.propertyType && (
-              <HelperText type="error" visible={true}>
-                {errors.propertyType.message}
-              </HelperText>
-            )}
-          </View>
-        )}
-      />
-      
-      <Divider style={styles.divider} />
-      
-      <Text style={[styles.sectionTitle, { color: isDarkMode ? '#fff' : '#333' }]}>
-        Building Details
-      </Text>
-      
-      {/* Units */}
-      <Controller
-        control={control}
-        name="units"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.inputContainer}>
-            <TextInput
-              label="Number of Units"
-              value={value?.toString()}
-              onChangeText={(text) => onChange(text ? parseInt(text, 10) : '')}
-              onBlur={onBlur}
-              error={!!errors.units}
-              mode="outlined"
-              style={styles.input}
-              keyboardType="numeric"
-              left={<TextInput.Icon icon="office-building" />}
-              outlineStyle={{ borderRadius: 8 }}
-            />
-            {errors.units && (
-              <HelperText type="error" visible={true}>
-                {errors.units.message}
-              </HelperText>
-            )}
-          </View>
-        )}
-      />
-      
-      {/* Floors */}
-      <Controller
-        control={control}
-        name="floors"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.inputContainer}>
-            <TextInput
-              label="Number of Floors"
-              value={value?.toString()}
-              onChangeText={(text) => onChange(text ? parseInt(text, 10) : '')}
-              onBlur={onBlur}
-              error={!!errors.floors}
-              mode="outlined"
-              style={styles.input}
-              keyboardType="numeric"
-              left={<TextInput.Icon icon="elevator" />}
-              outlineStyle={{ borderRadius: 8 }}
-            />
-            {errors.floors && (
-              <HelperText type="error" visible={true}>
-                {errors.floors.message}
-              </HelperText>
-            )}
-          </View>
-        )}
-      />
-      
-      {/* Total Area */}
-      <Controller
-        control={control}
-        name="totalArea"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.inputContainer}>
-            <TextInput
-              label="Total Area (m²)"
-              value={value?.toString()}
-              onChangeText={(text) => onChange(text ? parseFloat(text) : '')}
-              onBlur={onBlur}
-              error={!!errors.totalArea}
-              mode="outlined"
-              style={styles.input}
-              keyboardType="numeric"
-              left={<TextInput.Icon icon="ruler-square" />}
-              outlineStyle={{ borderRadius: 8 }}
-            />
-            {errors.totalArea && (
-              <HelperText type="error" visible={true}>
-                {errors.totalArea.message}
-              </HelperText>
-            )}
-          </View>
-        )}
-      />
-      
-      {/* Year Built */}
-      <Controller
-        control={control}
-        name="yearBuilt"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.inputContainer}>
-            <TextInput
-              label="Year Built"
-              value={value?.toString()}
-              onChangeText={(text) => onChange(text ? parseInt(text, 10) : '')}
-              onBlur={onBlur}
-              error={!!errors.yearBuilt}
-              mode="outlined"
-              style={styles.input}
-              keyboardType="numeric"
-              left={<TextInput.Icon icon="calendar" />}
-              outlineStyle={{ borderRadius: 8 }}
-            />
-            {errors.yearBuilt && (
-              <HelperText type="error" visible={true}>
-                {errors.yearBuilt.message}
-              </HelperText>
-            )}
-          </View>
-        )}
-      />
-      
-      <Divider style={styles.divider} />
-      
-      <Text style={[styles.sectionTitle, { color: isDarkMode ? '#fff' : '#333' }]}>
-        Additional Information
-      </Text>
-      
-      {/* Description */}
-      <Controller
-        control={control}
-        name="description"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.inputContainer}>
-            <TextInput
-              label="Description"
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              error={!!errors.description}
-              mode="outlined"
-              style={styles.input}
-              multiline
-              numberOfLines={4}
-              outlineStyle={{ borderRadius: 8 }}
-            />
-            {errors.description && (
-              <HelperText type="error" visible={true}>
-                {errors.description.message}
-              </HelperText>
-            )}
-          </View>
-        )}
-      />
-      
-      {/* Amenities */}
-      <View style={styles.switchesContainer}>
-        <Controller
-          control={control}
-          name="hasParking"
-          render={({ field: { onChange, value } }) => (
-            <View style={styles.switchContainer}>
-              <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>Has Parking</Text>
-              <Switch
-                value={value}
-                onValueChange={onChange}
-                color={theme.colors.primary}
-              />
-            </View>
-          )}
+    <ScrollView 
+      style={styles(theme).container}
+      contentContainerStyle={styles(theme).contentContainer}
+      showsVerticalScrollIndicator={false}
+    >
+      <FormSection title="Basic Information" index={0}>
+        <FormField 
+          name="name" 
+          control={control} 
+          label="Building Name" 
+          icon={<Building2 size={24} color={theme.colors.primary} />} 
         />
         
-        <Controller
-          control={control}
-          name="hasSecurity"
-          render={({ field: { onChange, value } }) => (
-            <View style={styles.switchContainer}>
-              <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>Has Security</Text>
-              <Switch
-                value={value}
-                onValueChange={onChange}
-                color={theme.colors.primary}
-              />
-            </View>
-          )}
+        <FormField 
+          name="address" 
+          control={control} 
+          label="Address" 
+          icon={<MapPin size={24} color={theme.colors.primary} />} 
         />
-      </View>
+        
+        <FormField 
+          name="propertyType" 
+          control={control} 
+          label="Property Type" 
+          icon={<Home size={24} color={theme.colors.primary} />}
+          placeholder="e.g. Residential, Commercial, Mixed-use"
+        />
+      </FormSection>
       
-      <Button
-        mode="contained"
-        onPress={handleSubmit(handleFormSubmit)}
-        style={styles.submitButton}
-        loading={isLoading}
-        disabled={isLoading}
+      <FormSection title="Building Details" index={1}>
+        <FormField 
+          name="units" 
+          control={control} 
+          label="Number of Units" 
+          icon={<Building2 size={24} color={theme.colors.primary} />}
+          keyboardType="numeric"
+          parseValue={(text) => text ? parseInt(text, 10) : ''}
+        />
+        
+        <FormField 
+          name="floors" 
+          control={control} 
+          label="Number of Floors" 
+          icon={<Stars size={24} color={theme.colors.primary} />}
+          keyboardType="numeric"
+          parseValue={(text) => text ? parseInt(text, 10) : ''}
+        />
+        
+        <FormField 
+          name="totalArea" 
+          control={control} 
+          label="Total Area (m²)" 
+          icon={<Square size={24} color={theme.colors.primary} />}
+          keyboardType="numeric"
+          parseValue={(text) => text ? parseFloat(text) : ''}
+        />
+        
+        <FormField 
+          name="yearBuilt" 
+          control={control} 
+          label="Year Built" 
+          icon={<Calendar size={24} color={theme.colors.primary} />}
+          keyboardType="numeric"
+          parseValue={(text) => text ? parseInt(text, 10) : ''}
+        />
+      </FormSection>
+      
+      <FormSection title="Additional Information" index={2}>
+        <FormField 
+          name="description" 
+          control={control} 
+          label="Description" 
+          icon={<FileText size={24} color={theme.colors.primary} />}
+          multiline={true}
+        />
+        
+        <Surface style={styles(theme).switchesSurface} elevation={ElevationLevel.Level0}>
+          <View style={styles(theme).sectionOverflowContainer}>
+            <Controller
+              control={control}
+              name="hasParking"
+              render={({ field: { onChange, value } }) => (
+                <View style={styles(theme).switchContainer}>
+                  <Text variant="bodyMedium" style={styles(theme).switchLabel}>
+                    Has Parking
+                  </Text>
+                  <Switch
+                    value={value}
+                    onValueChange={onChange}
+                    color={theme.colors.primary}
+                    accessibilityLabel="Has Parking"
+                    accessibilityRole="switch"
+                    accessibilityState={{ 
+                      checked: value,
+                      disabled: isLoading
+                    }}
+                  />
+                </View>
+              )}
+            />
+            
+            <Divider style={styles(theme).switchDivider} />
+            
+            <Controller
+              control={control}
+              name="hasSecurity"
+              render={({ field: { onChange, value } }) => (
+                <View style={styles(theme).switchContainer}>
+                  <Text variant="bodyMedium" style={styles(theme).switchLabel}>
+                    Has Security
+                  </Text>
+                  <Switch
+                    value={value}
+                    onValueChange={onChange}
+                    color={theme.colors.primary}
+                    accessibilityLabel="Has Security"
+                    accessibilityRole="switch"
+                    accessibilityState={{ 
+                      checked: value,
+                      disabled: isLoading
+                    }}
+                  />
+                </View>
+              )}
+            />
+          </View>
+        </Surface>
+      </FormSection>
+      
+      <Animated.View 
+        entering={FadeInUp.delay(300).springify()} 
+        style={styles(theme).buttonContainer}
       >
-        {initialData ? 'Update Building' : 'Add Building'}
-      </Button>
+        <Button
+          mode="contained"
+          onPress={handleSubmit(handleFormSubmit)}
+          style={styles(theme).submitButton}
+          contentStyle={{
+            paddingVertical: theme.spacing.xs,
+          }}
+          loading={isLoading}
+          disabled={isLoading}
+          accessibilityLabel={initialData ? 'Update Building' : 'Add Building'}
+          accessibilityHint="Submit the building form"
+          accessibilityRole="button"
+        >
+          {initialData ? 'Update Building' : 'Add Building'}
+        </Button>
+      </Animated.View>
     </ScrollView>
   );
 };
 
-const styles = StyleSheet.create({
+const styles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    backgroundColor: theme.colors.background,
+  },
+  contentContainer: {
+    padding: theme.spacing.m,
+    gap: theme.spacing.m,
+  },
+  formSection: {
+    marginBottom: theme.spacing.m,
+    borderRadius: theme.roundness,
+  },
+  sectionOverflowContainer: {
+    overflow: 'hidden',
+    borderRadius: theme.roundness,
+    padding: theme.spacing.m,
   },
   sectionTitle: {
-    fontSize: 18,
+    color: theme.colors.onSurface,
+    marginBottom: theme.spacing.m,
     fontWeight: 'bold',
-    marginVertical: 16,
   },
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: theme.spacing.m,
   },
   input: {
     backgroundColor: 'transparent',
   },
-  divider: {
-    marginVertical: 8,
+  switchesSurface: {
+    borderRadius: theme.roundness,
+    marginTop: theme.spacing.s,
+    backgroundColor: theme.colors.surfaceVariant,
   },
   switchesContainer: {
-    marginVertical: 16,
+    marginTop: theme.spacing.s,
   },
   switchContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: theme.spacing.s,
+    paddingHorizontal: theme.spacing.m,
+  },
+  switchLabel: {
+    color: theme.colors.onSurfaceVariant,
+  },
+  switchDivider: {
+    backgroundColor: theme.colors.outlineVariant,
+  },
+  buttonContainer: {
+    marginTop: theme.spacing.s,
   },
   submitButton: {
-    marginVertical: 24,
-    paddingVertical: 8,
+    marginVertical: theme.spacing.m,
+    borderRadius: theme.roundness,
   }
 });

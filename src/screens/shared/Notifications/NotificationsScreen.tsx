@@ -8,12 +8,14 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Header } from '../../../components/Header';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { fetchNotifications, markAsRead, markAllAsRead, deleteNotification } from '../../../store/slices/notificationsSlice';
-import { Notification, AdministratorStackParamList } from '../../../navigation/types';
+import { Notification, AdministratorStackParamList, BusinessManagerStackParamList } from '../../../navigation/types';
 import { formatDateTime } from '../../../utils/formatters';
 import { getNotificationIcon, getRelativeTimeText } from '../../../utils/notificationUtils';
 
-// Define the navigation prop type
-type NotificationsScreenNavigationProp = NativeStackNavigationProp<AdministratorStackParamList>;
+// Define the navigation prop type to handle both navigation stacks
+type NotificationsScreenNavigationProp = NativeStackNavigationProp<
+  AdministratorStackParamList | BusinessManagerStackParamList
+>;
 
 export const NotificationsScreen = () => {
   const theme = useTheme();

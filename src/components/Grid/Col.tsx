@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { View, StyleSheet, StyleProp, ViewStyle, DimensionValue } from 'react-native';
 import { Breakpoint } from '../../hooks/useBreakpoint';
 
 export type ColSize = number | 'auto' | 'content';
@@ -37,33 +37,27 @@ export const Col: React.FC<ColProps> = ({
   align = 'auto',
 }) => {
   // Calculate column width based on size
-  const getWidth = (colSize: ColSize | undefined): string | number => {
+  const getWidth = (colSize: ColSize | undefined): DimensionValue | undefined => {
     if (colSize === undefined) return 'auto';
     if (colSize === 'auto') return 'auto';
     if (colSize === 'content') return 'auto';
     if (typeof colSize === 'number') {
       // Grid system is based on 12 columns
-      return `${(colSize / 12) * 100}%`;
+      return `${(colSize / 12) * 100}%` as DimensionValue;
     }
     return 'auto';
   };
   
-  const getStyles = () => {
-    const base = {
-      paddingHorizontal: spacing / 2,
-      marginBottom: spacing,
-      alignSelf: align === 'auto' ? 'stretch' : align,
-    };
-    
-    // Simplify for this implementation, just use xs as default
-    // In a real implementation, you would use the current breakpoint
-    const width = getWidth(xs);
-    
-    return { ...base, width };
+  // Create proper styles as a ViewStyle object
+  const columnStyles: ViewStyle = {
+    paddingHorizontal: spacing / 2,
+    marginBottom: spacing,
+    alignSelf: align === 'auto' ? 'stretch' : align,
+    width: getWidth(xs),
   };
   
   return (
-    <View style={[styles.col, getStyles(), style]}>
+    <View style={[styles.col, columnStyles, style]}>
       {children}
     </View>
   );

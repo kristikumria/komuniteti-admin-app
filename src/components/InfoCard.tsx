@@ -1,8 +1,10 @@
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Card, Text, useTheme } from 'react-native-paper';
-import { useAppSelector } from '../store/hooks';
+import { Card, Text, Surface } from 'react-native-paper';
+import { useThemedStyles } from '../hooks/useThemedStyles';
 import { TrendingUp, TrendingDown } from 'lucide-react-native';
+import { ElevationLevel } from '../theme';
+import type { AppTheme } from '../theme/theme';
 
 interface InfoCardProps {
   title: string;
@@ -25,70 +27,64 @@ export const InfoCard: React.FC<InfoCardProps> = ({
   trend,
   trendLabel,
 }) => {
-  const theme = useTheme();
-  const isDarkMode = useAppSelector((state) => state.settings?.darkMode) ?? false;
+  const { theme } = useThemedStyles();
   
-  const cardBgColor = isDarkMode ? '#1e1e1e' : '#ffffff';
   const iconBgColor = color || theme.colors.primary;
+  const successColor = theme.colors.success; // Using theme success color
   
   const CardWrapper = onPress ? TouchableOpacity : View;
   
   return (
-    <View style={styles.cardWrapper}>
-      <Card 
-        style={styles.card}
-        elevation={2}
-      >
-        <View style={styles.cardInnerWrapper}>
+    <View style={styles(theme).cardWrapper}>
+      <Surface elevation={ElevationLevel.Level1} style={styles(theme).card}>
+        <View style={styles(theme).cardInnerWrapper}>
           <CardWrapper
-            style={[styles.cardContent, { backgroundColor: cardBgColor }]}
+            style={styles(theme).cardContent}
             onPress={onPress}
           >
-            <View style={[styles.iconContainer, { backgroundColor: iconBgColor }]}>
+            <View style={[styles(theme).iconContainer, { backgroundColor: iconBgColor }]}>
               {icon}
             </View>
             
-            <View style={styles.textContent}>
-              <Text style={[styles.title, { color: isDarkMode ? '#e0e0e0' : '#666' }]}>{title}</Text>
-              <Text style={[styles.value, { color: isDarkMode ? '#fff' : '#333' }]}>{value}</Text>
+            <View style={styles(theme).textContent}>
+              <Text variant="labelMedium" style={styles(theme).title}>{title}</Text>
+              <Text variant="headlineSmall" style={styles(theme).value}>{value}</Text>
               
               {subtitle && (
-                <Text style={[styles.subtitle, { color: isDarkMode ? '#aaa' : '#888' }]}>
+                <Text variant="labelSmall" style={styles(theme).subtitle}>
                   {subtitle}
                 </Text>
               )}
               
               {trend !== undefined && (
-                <View style={styles.trendContainer}>
+                <View style={styles(theme).trendContainer}>
                   {trend > 0 ? (
                     <TrendingUp 
                       size={14} 
-                      color="#4caf50" 
+                      color={successColor} 
                       style={{ marginRight: 4 }} 
                     />
                   ) : trend < 0 ? (
                     <TrendingDown 
                       size={14} 
-                      color="#f44336" 
+                      color={theme.colors.error} 
                       style={{ marginRight: 4 }} 
                     />
                   ) : null}
                   <Text style={[
-                    styles.trend, 
+                    styles(theme).trend, 
                     { 
                       color: trend > 0 
-                        ? '#4caf50' 
+                        ? successColor
                         : trend < 0 
-                          ? '#f44336' 
-                          : isDarkMode 
-                            ? '#aaa' 
-                            : '#888' 
+                          ? theme.colors.error 
+                          : theme.colors.onSurfaceVariant
                     }
                   ]}>
                     {trend > 0 ? '+' : ''}{trend}%
                   </Text>
                   {trendLabel && (
-                    <Text style={[styles.trendLabel, { color: isDarkMode ? '#aaa' : '#888' }]}>
+                    <Text variant="labelSmall" style={styles(theme).trendLabel}>
                       {trendLabel}
                     </Text>
                   )}
@@ -97,26 +93,27 @@ export const InfoCard: React.FC<InfoCardProps> = ({
             </View>
           </CardWrapper>
         </View>
-      </Card>
+      </Surface>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const styles = (theme: AppTheme) => StyleSheet.create({
   cardWrapper: {
     width: '47%', // To fit 2 per row with some margin
-    marginVertical: 8,
+    marginVertical: theme.spacing.s,
   },
   card: {
-    borderRadius: 12,
+    borderRadius: theme.roundness * 1.5,
   },
   cardInnerWrapper: {
     overflow: 'hidden',
-    borderRadius: 12,
+    borderRadius: theme.roundness * 1.5,
   },
   cardContent: {
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: theme.roundness * 1.5,
+    padding: theme.spacing.m,
+    backgroundColor: theme.colors.surface,
   },
   content: {
     flexDirection: 'row',
@@ -128,34 +125,34 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: theme.spacing.s,
   },
   textContent: {
     width: '100%',
   },
   title: {
-    fontSize: 14,
+    color: theme.colors.onSurfaceVariant,
     marginBottom: 4,
   },
   value: {
-    fontSize: 22,
+    color: theme.colors.onSurface,
     fontWeight: 'bold',
     marginBottom: 2,
   },
   subtitle: {
-    fontSize: 12,
+    color: theme.colors.onSurfaceVariant,
   },
   trendContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: theme.spacing.xs,
   },
   trend: {
     fontSize: 14,
     fontWeight: 'bold',
   },
   trendLabel: {
-    fontSize: 12,
+    color: theme.colors.onSurfaceVariant,
     marginLeft: 4,
   },
 }); 

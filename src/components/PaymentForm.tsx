@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, ScrollView, TouchableOpacity } from 'react-native';
-import { Text, useTheme, TextInput, Button, HelperText, Chip, Menu, Divider } from 'react-native-paper';
+import { Text, TextInput, Button, HelperText, Chip, Menu, Divider, Surface } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { ChevronDown, Calendar, Search } from 'lucide-react-native';
+import Animated, { FadeInUp, FadeOut } from 'react-native-reanimated';
 
 import { Payment, Resident, Building } from '../navigation/types';
 import { useAppSelector } from '../store/hooks';
 import { formatCurrency } from '../utils/formatters';
+import { useThemedStyles } from '../hooks/useThemedStyles';
+import { ElevationLevel } from '../theme';
+import type { AppTheme } from '../theme/theme';
+
+export type PaymentFormData = Omit<Payment, 'id' | 'createdAt' | 'updatedAt' | 'residentName' | 'buildingName' | 'status'>;
 
 // Form validation schema
 const paymentSchema = yup.object({
@@ -20,9 +26,9 @@ const paymentSchema = yup.object({
   dueDate: yup.string().required('Due date is required'),
   description: yup.string().required('Description is required'),
   invoiceNumber: yup.string().required('Invoice number is required'),
+  paymentDate: yup.string().optional(),
+  paymentMethod: yup.string().optional(),
 });
-
-export type PaymentFormData = Omit<Payment, 'id' | 'createdAt' | 'updatedAt' | 'residentName' | 'buildingName' | 'status'>;
 
 interface PaymentFormProps {
   initialData?: Partial<PaymentFormData>;
@@ -32,6 +38,20 @@ interface PaymentFormProps {
   residents: Resident[];
 }
 
+/**
+ * A form component for creating and updating payment information.
+ * Follows Material Design 3 guidelines with proper field organization, validation,
+ * animations, and accessibility features.
+ * 
+ * @example
+ * <PaymentForm
+ *   initialData={paymentData}
+ *   onSubmit={handleSubmit}
+ *   isSubmitting={isSubmitting}
+ *   buildings={buildings}
+ *   residents={residents}
+ * />
+ */
 export const PaymentForm = ({
   initialData,
   onSubmit,
@@ -39,8 +59,7 @@ export const PaymentForm = ({
   buildings,
   residents,
 }: PaymentFormProps) => {
-  const theme = useTheme();
-  const isDarkMode = useAppSelector((state) => state.settings.darkMode);
+  const { theme } = useThemedStyles();
   
   const [showDueDatePicker, setShowDueDatePicker] = useState(false);
   const [showPaymentDatePicker, setShowPaymentDatePicker] = useState(false);
@@ -175,159 +194,196 @@ export const PaymentForm = ({
   const submitForm = (data: PaymentFormData) => {
     onSubmit(data);
   };
+
+  /**
+   * Renders a form section with a title and children
+   */
+  const FormSection = ({ 
+    title, 
+    children, 
+    index = 0 
+  }: { 
+    title: string; 
+    children: React.ReactNode; 
+    index?: number;
+  }) => (
+    <Animated.View
+      entering={FadeInUp.delay(100 * index).springify()}
+      exiting={FadeOut}
+    >
+      <Surface style={styles(theme).section} elevation={ElevationLevel.Level1}>
+        <View style={styles(theme).overflowContainer}>
+          <Text variant="titleMedium" style={styles(theme).sectionTitle}>
+            {title}
+          </Text>
+          {children}
+        </View>
+      </Surface>
+    </Animated.View>
+  );
+  
+  /**
+   * Renders a form field with a label and optional error message
+   */
+  const FormField = ({ 
+    label, 
+    error, 
+    children 
+  }: { 
+    label: string; 
+    error?: string; 
+    children: React.ReactNode;
+  }) => (
+    <View style={styles(theme).inputContainer}>
+      <Text variant="bodyMedium" style={styles(theme).label}>
+        {label}
+      </Text>
+      {children}
+      {error && (
+        <Animated.View
+          entering={FadeInUp.springify()}
+          exiting={FadeOut}
+        >
+          <HelperText type="error" visible={true}>
+            {error}
+          </HelperText>
+        </Animated.View>
+      )}
+    </View>
+  );
   
   return (
     <ScrollView 
-      style={[
-        styles.container,
-        { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }
-      ]}
+      style={styles(theme).container}
+      contentContainerStyle={styles(theme).contentContainer}
+      showsVerticalScrollIndicator={false}
     >
-      <View style={styles.section}>
-        <Text 
-          style={[
-            styles.sectionTitle,
-            { color: isDarkMode ? '#fff' : '#333' }
-          ]}
-        >
-          General Information
-        </Text>
-        
+      <FormSection title="General Information" index={0}>
         {/* Building Selection */}
-        <View style={styles.inputContainer}>
-          <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>
-            Building
-          </Text>
+        <FormField 
+          label="Building" 
+          error={errors.buildingId?.message}
+        >
           <TouchableOpacity
-            style={[
-              styles.dropdown,
-              { backgroundColor: isDarkMode ? '#333' : '#fff' }
-            ]}
+            style={styles(theme).dropdown}
             onPress={() => setShowBuildingMenu(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Select building"
+            accessibilityState={{ disabled: isSubmitting }}
           >
-            <Text style={{ color: selectedBuilding ? (isDarkMode ? '#fff' : '#333') : '#999' }}>
+            <Text style={styles(theme).dropdownText}>
               {selectedBuilding ? selectedBuilding.name : 'Select a building'}
             </Text>
-            <ChevronDown size={20} color={isDarkMode ? '#aaa' : '#666'} />
+            <ChevronDown size={20} color={theme.colors.onSurfaceVariant} />
           </TouchableOpacity>
-          {errors.buildingId && (
-            <HelperText type="error">{errors.buildingId.message}</HelperText>
-          )}
           
           <Menu
             visible={showBuildingMenu}
             onDismiss={() => setShowBuildingMenu(false)}
             anchor={{ x: 0, y: 0 }}
-            style={[
-              styles.menu,
-              { backgroundColor: isDarkMode ? '#333' : '#fff' }
-            ]}
+            style={styles(theme).menu}
+            contentStyle={styles(theme).menuContent}
           >
-            <View style={styles.searchContainer}>
+            <View style={styles(theme).searchContainer}>
               <TextInput
+                mode="outlined"
                 placeholder="Search buildings..."
                 value={buildingSearchQuery}
                 onChangeText={setBuildingSearchQuery}
                 right={<TextInput.Icon icon={() => <Search size={20} color={theme.colors.primary} />} />}
-                style={styles.searchInput}
+                style={styles(theme).searchInput}
+                outlineStyle={{ borderRadius: theme.roundness }}
               />
             </View>
             <Divider />
-            <ScrollView style={styles.menuContent} keyboardShouldPersistTaps="handled">
+            <ScrollView style={styles(theme).menuItems} keyboardShouldPersistTaps="handled">
               {filteredBuildings.map((building) => (
                 <Menu.Item
                   key={building.id}
                   title={building.name}
                   style={[
-                    selectedBuilding?.id === building.id && {
-                      backgroundColor: theme.colors.primary + '20',
-                    }
+                    selectedBuilding?.id === building.id && styles(theme).selectedMenuItem
                   ]}
                   onPress={() => handleBuildingSelect(building)}
                 />
               ))}
             </ScrollView>
           </Menu>
-        </View>
+        </FormField>
         
         {/* Resident Selection */}
-        <View style={styles.inputContainer}>
-          <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>
-            Resident
-          </Text>
+        <FormField 
+          label="Resident" 
+          error={errors.residentId?.message}
+        >
           <TouchableOpacity
-            style={[
-              styles.dropdown,
-              { backgroundColor: isDarkMode ? '#333' : '#fff' }
-            ]}
+            style={styles(theme).dropdown}
             onPress={() => setShowResidentMenu(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Select resident"
+            accessibilityState={{ disabled: isSubmitting }}
           >
-            <Text style={{ color: selectedResident ? (isDarkMode ? '#fff' : '#333') : '#999' }}>
+            <Text style={styles(theme).dropdownText}>
               {selectedResident ? selectedResident.name : 'Select a resident'}
             </Text>
-            <ChevronDown size={20} color={isDarkMode ? '#aaa' : '#666'} />
+            <ChevronDown size={20} color={theme.colors.onSurfaceVariant} />
           </TouchableOpacity>
-          {errors.residentId && (
-            <HelperText type="error">{errors.residentId.message}</HelperText>
-          )}
           
           <Menu
             visible={showResidentMenu}
             onDismiss={() => setShowResidentMenu(false)}
             anchor={{ x: 0, y: 0 }}
-            style={[
-              styles.menu,
-              { backgroundColor: isDarkMode ? '#333' : '#fff' }
-            ]}
+            style={styles(theme).menu}
+            contentStyle={styles(theme).menuContent}
           >
-            <View style={styles.searchContainer}>
+            <View style={styles(theme).searchContainer}>
               <TextInput
+                mode="outlined"
                 placeholder="Search residents..."
                 value={residentSearchQuery}
                 onChangeText={setResidentSearchQuery}
                 right={<TextInput.Icon icon={() => <Search size={20} color={theme.colors.primary} />} />}
-                style={styles.searchInput}
+                style={styles(theme).searchInput}
+                outlineStyle={{ borderRadius: theme.roundness }}
               />
             </View>
             <Divider />
-            <ScrollView style={styles.menuContent} keyboardShouldPersistTaps="handled">
+            <ScrollView style={styles(theme).menuItems} keyboardShouldPersistTaps="handled">
               {filteredResidents.map((resident) => (
                 <Menu.Item
                   key={resident.id}
                   title={`${resident.name} (${resident.unit})`}
                   style={[
-                    selectedResident?.id === resident.id && {
-                      backgroundColor: theme.colors.primary + '20',
-                    }
+                    selectedResident?.id === resident.id && styles(theme).selectedMenuItem
                   ]}
                   onPress={() => handleResidentSelect(resident)}
                 />
               ))}
             </ScrollView>
           </Menu>
-        </View>
+        </FormField>
         
         {/* Payment Type */}
-        <View style={styles.inputContainer}>
-          <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>
-            Payment Type
-          </Text>
+        <FormField 
+          label="Payment Type" 
+          error={errors.type?.message}
+        >
           <Controller
             control={control}
             name="type"
             render={({ field }) => (
               <View>
                 <TouchableOpacity
-                  style={[
-                    styles.dropdown,
-                    { backgroundColor: isDarkMode ? '#333' : '#fff' }
-                  ]}
+                  style={styles(theme).dropdown}
                   onPress={() => setShowTypeMenu(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Select payment type"
+                  accessibilityState={{ disabled: isSubmitting }}
                 >
-                  <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>
+                  <Text style={styles(theme).dropdownText}>
                     {watchType ? paymentTypes.find(t => t.id === watchType)?.label : 'Select payment type'}
                   </Text>
-                  <ChevronDown size={20} color={isDarkMode ? '#aaa' : '#666'} />
+                  <ChevronDown size={20} color={theme.colors.onSurfaceVariant} />
                 </TouchableOpacity>
                 
                 <Menu
@@ -335,29 +391,27 @@ export const PaymentForm = ({
                   onDismiss={() => setShowTypeMenu(false)}
                   anchor={{ x: 0, y: 0 }}
                   style={{ width: '100%' }}
+                  contentStyle={styles(theme).menuContent}
                 >
                   {paymentTypes.map((type) => (
                     <Menu.Item
                       key={type.id}
                       title={type.label}
                       onPress={() => handleTypeSelect(type.id)}
-                      style={field.value === type.id ? { backgroundColor: theme.colors.primary + '20' } : {}}
+                      style={field.value === type.id ? styles(theme).selectedMenuItem : undefined}
                     />
                   ))}
                 </Menu>
               </View>
             )}
           />
-          {errors.type && (
-            <HelperText type="error">{errors.type.message}</HelperText>
-          )}
-        </View>
+        </FormField>
         
         {/* Payment Amount */}
-        <View style={styles.inputContainer}>
-          <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>
-            Amount
-          </Text>
+        <FormField 
+          label="Amount" 
+          error={errors.amount?.message}
+        >
           <Controller
             control={control}
             name="amount"
@@ -367,24 +421,24 @@ export const PaymentForm = ({
                 keyboardType="numeric"
                 value={value?.toString()}
                 onChangeText={(text) => onChange(text ? parseFloat(text) : '')}
-                style={styles.input}
+                style={styles(theme).input}
                 error={!!errors.amount}
                 placeholder="Enter amount"
-                placeholderTextColor="#999"
                 left={<TextInput.Affix text="$" />}
+                outlineStyle={{ borderRadius: theme.roundness }}
+                accessibilityLabel="Payment amount"
+                accessibilityHint="Enter the payment amount"
+                accessibilityState={{ disabled: isSubmitting }}
               />
             )}
           />
-          {errors.amount && (
-            <HelperText type="error">{errors.amount.message}</HelperText>
-          )}
-        </View>
+        </FormField>
         
         {/* Invoice Number */}
-        <View style={styles.inputContainer}>
-          <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>
-            Invoice Number
-          </Text>
+        <FormField 
+          label="Invoice Number" 
+          error={errors.invoiceNumber?.message}
+        >
           <Controller
             control={control}
             name="invoiceNumber"
@@ -393,46 +447,37 @@ export const PaymentForm = ({
                 mode="outlined"
                 value={value}
                 onChangeText={onChange}
-                style={styles.input}
+                style={styles(theme).input}
                 error={!!errors.invoiceNumber}
                 placeholder="Enter invoice number"
-                placeholderTextColor="#999"
+                outlineStyle={{ borderRadius: theme.roundness }}
+                accessibilityLabel="Invoice number"
+                accessibilityHint="Enter the invoice number"
+                accessibilityState={{ disabled: isSubmitting }}
               />
             )}
           />
-          {errors.invoiceNumber && (
-            <HelperText type="error">{errors.invoiceNumber.message}</HelperText>
-          )}
-        </View>
-      </View>
+        </FormField>
+      </FormSection>
       
-      <View style={styles.section}>
-        <Text 
-          style={[
-            styles.sectionTitle,
-            { color: isDarkMode ? '#fff' : '#333' }
-          ]}
-        >
-          Dates
-        </Text>
-        
+      <FormSection title="Dates" index={1}>
         {/* Due Date */}
-        <View style={styles.inputContainer}>
-          <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>
-            Due Date
-          </Text>
+        <FormField 
+          label="Due Date" 
+          error={errors.dueDate?.message}
+        >
           <Controller
             control={control}
             name="dueDate"
             render={({ field: { value } }) => (
               <TouchableOpacity
-                style={[
-                  styles.dateInput,
-                  { backgroundColor: isDarkMode ? '#333' : '#fff' }
-                ]}
+                style={styles(theme).dateInput}
                 onPress={() => setShowDueDatePicker(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Select due date"
+                accessibilityState={{ disabled: isSubmitting }}
               >
-                <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>
+                <Text style={styles(theme).dropdownText}>
                   {new Date(value).toLocaleDateString()}
                 </Text>
                 <Calendar size={20} color={theme.colors.primary} />
@@ -447,28 +492,25 @@ export const PaymentForm = ({
               onChange={handleDueDateChange}
             />
           )}
-          {errors.dueDate && (
-            <HelperText type="error">{errors.dueDate.message}</HelperText>
-          )}
-        </View>
+        </FormField>
         
         {/* Payment Date */}
-        <View style={styles.inputContainer}>
-          <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>
-            Payment Date (optional)
-          </Text>
+        <FormField 
+          label="Payment Date (optional)"
+          error={undefined}
+        >
           <Controller
             control={control}
             name="paymentDate"
             render={({ field: { value } }) => (
               <TouchableOpacity
-                style={[
-                  styles.dateInput,
-                  { backgroundColor: isDarkMode ? '#333' : '#fff' }
-                ]}
+                style={styles(theme).dateInput}
                 onPress={() => setShowPaymentDatePicker(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Select payment date"
+                accessibilityState={{ disabled: isSubmitting }}
               >
-                <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>
+                <Text style={styles(theme).dropdownText}>
                   {value ? new Date(value).toLocaleDateString() : 'Select payment date'}
                 </Text>
                 <Calendar size={20} color={theme.colors.primary} />
@@ -483,43 +525,34 @@ export const PaymentForm = ({
               onChange={handlePaymentDateChange}
             />
           )}
-        </View>
-      </View>
+        </FormField>
+      </FormSection>
       
-      <View style={styles.section}>
-        <Text 
-          style={[
-            styles.sectionTitle,
-            { color: isDarkMode ? '#fff' : '#333' }
-          ]}
-        >
-          Payment Details
-        </Text>
-        
+      <FormSection title="Payment Details" index={2}>
         {/* Payment Method */}
-        <View style={styles.inputContainer}>
-          <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>
-            Payment Method (optional)
-          </Text>
+        <FormField 
+          label="Payment Method (optional)"
+          error={undefined}
+        >
           <Controller
             control={control}
             name="paymentMethod"
             render={({ field }) => (
               <View>
                 <TouchableOpacity
-                  style={[
-                    styles.dropdown,
-                    { backgroundColor: isDarkMode ? '#333' : '#fff' }
-                  ]}
+                  style={styles(theme).dropdown}
                   onPress={() => setShowPaymentMethodMenu(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Select payment method"
+                  accessibilityState={{ disabled: isSubmitting }}
                 >
-                  <Text style={{ color: isDarkMode ? '#fff' : '#333' }}>
+                  <Text style={styles(theme).dropdownText}>
                     {watchPaymentMethod 
                       ? paymentMethods.find(m => m.id === watchPaymentMethod)?.label 
                       : 'Select payment method'
                     }
                   </Text>
-                  <ChevronDown size={20} color={isDarkMode ? '#aaa' : '#666'} />
+                  <ChevronDown size={20} color={theme.colors.onSurfaceVariant} />
                 </TouchableOpacity>
                 
                 <Menu
@@ -527,26 +560,27 @@ export const PaymentForm = ({
                   onDismiss={() => setShowPaymentMethodMenu(false)}
                   anchor={{ x: 0, y: 0 }}
                   style={{ width: '100%' }}
+                  contentStyle={styles(theme).menuContent}
                 >
                   {paymentMethods.map((method) => (
                     <Menu.Item
                       key={method.id}
                       title={method.label}
                       onPress={() => handlePaymentMethodSelect(method.id)}
-                      style={field.value === method.id ? { backgroundColor: theme.colors.primary + '20' } : {}}
+                      style={field.value === method.id ? styles(theme).selectedMenuItem : undefined}
                     />
                   ))}
                 </Menu>
               </View>
             )}
           />
-        </View>
+        </FormField>
         
         {/* Description */}
-        <View style={styles.inputContainer}>
-          <Text style={[styles.label, { color: isDarkMode ? '#aaa' : '#666' }]}>
-            Description
-          </Text>
+        <FormField 
+          label="Description" 
+          error={errors.description?.message}
+        >
           <Controller
             control={control}
             name="description"
@@ -555,95 +589,136 @@ export const PaymentForm = ({
                 mode="outlined"
                 value={value}
                 onChangeText={onChange}
-                style={styles.textArea}
+                style={styles(theme).textArea}
                 multiline
                 numberOfLines={4}
                 error={!!errors.description}
                 placeholder="Enter payment description"
-                placeholderTextColor="#999"
+                outlineStyle={{ borderRadius: theme.roundness }}
+                accessibilityLabel="Payment description"
+                accessibilityHint="Enter a description for this payment"
+                accessibilityState={{ disabled: isSubmitting }}
               />
             )}
           />
-          {errors.description && (
-            <HelperText type="error">{errors.description.message}</HelperText>
-          )}
-        </View>
-      </View>
+        </FormField>
+      </FormSection>
       
-      <Button
-        mode="contained"
-        onPress={handleSubmit(submitForm)}
-        loading={isSubmitting}
-        disabled={isSubmitting}
-        style={styles.submitButton}
+      <Animated.View
+        entering={FadeInUp.delay(300).springify()}
+        style={styles(theme).buttonContainer}
       >
-        {initialData?.residentId ? 'Update Payment' : 'Create Payment'}
-      </Button>
+        <Button
+          mode="contained"
+          onPress={handleSubmit(submitForm)}
+          loading={isSubmitting}
+          disabled={isSubmitting}
+          style={styles(theme).submitButton}
+          contentStyle={{
+            paddingVertical: theme.spacing.xs,
+          }}
+          accessibilityLabel={initialData?.residentId ? 'Update Payment' : 'Create Payment'}
+          accessibilityHint="Submit the payment form"
+          accessibilityRole="button"
+        >
+          {initialData?.residentId ? 'Update Payment' : 'Create Payment'}
+        </Button>
+      </Animated.View>
     </ScrollView>
   );
 };
 
-const styles = StyleSheet.create({
+const styles = (theme: AppTheme) => StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    backgroundColor: theme.colors.background,
+  },
+  contentContainer: {
+    padding: theme.spacing.m,
+    gap: theme.spacing.m,
   },
   section: {
-    marginBottom: 24,
-    backgroundColor: 'transparent',
+    marginBottom: theme.spacing.m,
+    borderRadius: theme.roundness,
+  },
+  overflowContainer: {
+    overflow: 'hidden',
+    borderRadius: theme.roundness,
   },
   sectionTitle: {
-    fontSize: 18,
+    color: theme.colors.onSurface,
+    marginBottom: theme.spacing.m,
     fontWeight: 'bold',
-    marginBottom: 16,
   },
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: theme.spacing.m,
   },
   label: {
-    fontSize: 14,
-    marginBottom: 8,
+    color: theme.colors.onSurfaceVariant,
+    marginBottom: theme.spacing.xs,
   },
   input: {
-    marginBottom: 4,
+    backgroundColor: 'transparent',
+    marginBottom: theme.spacing.xs,
   },
   textArea: {
-    marginBottom: 4,
+    backgroundColor: 'transparent',
+    marginBottom: theme.spacing.xs,
+    minHeight: 100,
   },
   dropdown: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
-    padding: 12,
-    marginBottom: 4,
+    borderColor: theme.colors.outline,
+    borderRadius: theme.roundness,
+    padding: theme.spacing.s,
+    marginBottom: theme.spacing.xs,
+    backgroundColor: theme.colors.surfaceVariant,
+  },
+  dropdownText: {
+    color: theme.colors.onSurfaceVariant,
   },
   dateInput: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
-    padding: 12,
-    marginBottom: 4,
+    borderColor: theme.colors.outline,
+    borderRadius: theme.roundness,
+    padding: theme.spacing.s,
+    marginBottom: theme.spacing.xs,
+    backgroundColor: theme.colors.surfaceVariant,
   },
   menu: {
     width: '90%',
     maxHeight: 300,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.roundness,
   },
   menuContent: {
+    backgroundColor: theme.colors.surface,
+  },
+  menuItems: {
     maxHeight: 250,
   },
   searchContainer: {
-    padding: 8,
+    padding: theme.spacing.s,
+    backgroundColor: theme.colors.surfaceVariant,
   },
   searchInput: {
+    backgroundColor: 'transparent',
     marginBottom: 0,
   },
+  selectedMenuItem: {
+    backgroundColor: theme.colors.primaryContainer,
+  },
+  buttonContainer: {
+    marginTop: theme.spacing.s,
+  },
   submitButton: {
-    marginVertical: 24,
+    marginVertical: theme.spacing.m,
+    borderRadius: theme.roundness,
   },
 });

@@ -1,8 +1,10 @@
 import React from 'react';
 import { StyleSheet, View, TouchableOpacity } from 'react-native';
-import { Text, Avatar, useTheme, Badge, Divider } from 'react-native-paper';
+import { Text, Avatar, Badge, Divider, Surface } from 'react-native-paper';
 import { ChevronRight } from 'lucide-react-native';
-import { useAppSelector } from '../store/hooks';
+import { useThemedStyles } from '../hooks/useThemedStyles';
+import { ElevationLevel } from '../theme';
+import type { AppTheme } from '../theme/theme';
 
 export interface ListItemProps {
   title: string;
@@ -27,6 +29,7 @@ export interface ListItemProps {
   showChevron?: boolean;
   showDivider?: boolean;
   selected?: boolean;
+  elevationLevel?: ElevationLevel;
 }
 
 export const ListItem: React.FC<ListItemProps> = ({
@@ -43,9 +46,9 @@ export const ListItem: React.FC<ListItemProps> = ({
   showChevron = true,
   showDivider = true,
   selected = false,
+  elevationLevel = ElevationLevel.Level0,
 }) => {
-  const theme = useTheme();
-  const isDarkMode = useAppSelector((state) => state.settings.darkMode);
+  const { theme } = useThemedStyles();
   
   const renderAvatar = () => {
     if (leftIcon) {
@@ -62,14 +65,14 @@ export const ListItem: React.FC<ListItemProps> = ({
     if (!avatar) return null;
     
     if (avatar.uri) {
-      return <Avatar.Image size={50} source={{ uri: avatar.uri }} style={styles.avatar} />;
+      return <Avatar.Image size={50} source={{ uri: avatar.uri }} style={styles(theme).avatar} />;
     } else if (avatar.icon) {
       return (
         <Avatar.Icon 
           size={50} 
           icon={() => avatar.icon} 
           style={[
-            styles.avatar,
+            styles(theme).avatar,
             { backgroundColor: avatar.color || theme.colors.primary },
           ]} 
         />
@@ -80,7 +83,7 @@ export const ListItem: React.FC<ListItemProps> = ({
           size={50}
           label={avatar.text || title.charAt(0).toUpperCase()}
           style={[
-            styles.avatar,
+            styles(theme).avatar,
             { backgroundColor: avatar.color || theme.colors.primary },
           ]}
         />
@@ -90,125 +93,138 @@ export const ListItem: React.FC<ListItemProps> = ({
   
   return (
     <View>
-      <TouchableOpacity
+      <Surface 
         style={[
-          styles.container,
-          { backgroundColor: isDarkMode ? '#1e1e1e' : '#fff' },
+          styles(theme).surface,
           selected && { backgroundColor: theme.colors.primaryContainer }
         ]}
-        onPress={onPress}
-        disabled={!onPress}
+        elevation={selected ? ElevationLevel.Level1 : elevationLevel}
       >
-        {renderAvatar()}
-        
-        <View style={styles.content}>
-          <View style={styles.textContainer}>
-            <Text style={[
-              styles.title,
-              { color: isDarkMode ? '#fff' : '#333' },
-              selected && { color: theme.colors.onPrimaryContainer }
-            ]}>
-              {title}
-            </Text>
-            
-            {subtitle && (
-              <Text style={[
-                styles.subtitle,
-                { color: isDarkMode ? '#aaa' : '#666' },
-                selected && { color: theme.colors.onPrimaryContainer }
-              ]}>
-                {subtitle}
-              </Text>
-            )}
-            
-            {description && (
-              <Text style={[
-                styles.description,
-                { color: isDarkMode ? '#888' : '#777' },
-                selected && { color: theme.colors.onPrimaryContainer }
-              ]} numberOfLines={2}>
-                {description}
-              </Text>
-            )}
-          </View>
+        <TouchableOpacity
+          style={styles(theme).container}
+          onPress={onPress}
+          disabled={!onPress}
+        >
+          {renderAvatar()}
           
-          <View style={styles.rightContainer}>
-            {(rightTitle || rightSubtitle) && (
-              <View style={styles.rightTextContainer}>
-                {rightTitle && (
-                  typeof rightTitle === 'string' ? (
-                    <Text style={[
-                      styles.rightTitle,
-                      { color: isDarkMode ? '#fff' : '#333' },
-                      selected && { color: theme.colors.onPrimaryContainer }
-                    ]}>
-                      {rightTitle}
-                    </Text>
-                  ) : rightTitle
-                )}
-                
-                {rightSubtitle && (
-                  typeof rightSubtitle === 'string' ? (
-                    <Text style={[
-                      styles.rightSubtitle,
-                      { color: isDarkMode ? '#aaa' : '#666' },
-                      selected && { color: theme.colors.onPrimaryContainer }
-                    ]}>
-                      {rightSubtitle}
-                    </Text>
-                  ) : rightSubtitle
-                )}
-              </View>
-            )}
-            
-            {badge && (
-              <View style={styles.badgeContainer}>
-                {badge.icon && <View style={styles.badgeIcon}>{badge.icon}</View>}
-                <Badge
-                  size={22}
+          <View style={styles(theme).content}>
+            <View style={styles(theme).textContainer}>
+              <Text 
+                variant="bodyLarge" 
+                style={[
+                  styles(theme).title,
+                  selected && { color: theme.colors.onPrimaryContainer }
+                ]}
+              >
+                {title}
+              </Text>
+              
+              {subtitle && (
+                <Text 
+                  variant="bodyMedium" 
                   style={[
-                    styles.badge,
-                    { backgroundColor: badge.color || theme.colors.primary }
+                    styles(theme).subtitle,
+                    selected && { color: theme.colors.onPrimaryContainer }
                   ]}
                 >
-                  {badge.text}
-                </Badge>
-              </View>
-            )}
+                  {subtitle}
+                </Text>
+              )}
+              
+              {description && (
+                <Text 
+                  variant="bodySmall" 
+                  style={[
+                    styles(theme).description,
+                    selected && { color: theme.colors.onPrimaryContainer }
+                  ]} 
+                  numberOfLines={2}
+                >
+                  {description}
+                </Text>
+              )}
+            </View>
             
-            {rightContent}
-            
-            {showChevron && (
-              <ChevronRight
-                size={18}
-                color={selected ? theme.colors.onPrimaryContainer : isDarkMode ? '#777' : '#999'}
-                style={styles.chevron}
-              />
-            )}
+            <View style={styles(theme).rightContainer}>
+              {(rightTitle || rightSubtitle) && (
+                <View style={styles(theme).rightTextContainer}>
+                  {rightTitle && (
+                    typeof rightTitle === 'string' ? (
+                      <Text 
+                        variant="bodyMedium" 
+                        style={[
+                          styles(theme).rightTitle,
+                          selected && { color: theme.colors.onPrimaryContainer }
+                        ]}
+                      >
+                        {rightTitle}
+                      </Text>
+                    ) : rightTitle
+                  )}
+                  
+                  {rightSubtitle && (
+                    typeof rightSubtitle === 'string' ? (
+                      <Text 
+                        variant="bodySmall" 
+                        style={[
+                          styles(theme).rightSubtitle,
+                          selected && { color: theme.colors.onPrimaryContainer }
+                        ]}
+                      >
+                        {rightSubtitle}
+                      </Text>
+                    ) : rightSubtitle
+                  )}
+                </View>
+              )}
+              
+              {badge && (
+                <View style={styles(theme).badgeContainer}>
+                  {badge.icon && <View style={styles(theme).badgeIcon}>{badge.icon}</View>}
+                  <Badge
+                    size={22}
+                    style={[
+                      styles(theme).badge,
+                      { backgroundColor: badge.color || theme.colors.primary }
+                    ]}
+                  >
+                    {badge.text}
+                  </Badge>
+                </View>
+              )}
+              
+              {rightContent}
+              
+              {showChevron && (
+                <ChevronRight
+                  size={18}
+                  color={selected ? theme.colors.onPrimaryContainer : theme.colors.outline}
+                  style={styles(theme).chevron}
+                />
+              )}
+            </View>
           </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </Surface>
       
       {showDivider && (
-        <Divider
-          style={[
-            styles.divider,
-            { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }
-          ]}
-        />
+        <Divider style={styles(theme).divider} />
       )}
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const styles = (theme: AppTheme) => StyleSheet.create({
+  surface: {
+    backgroundColor: theme.colors.surface,
+  },
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: theme.spacing.m,
   },
   avatar: {
-    marginRight: 16,
+    marginRight: theme.spacing.m,
   },
   content: {
     flex: 1,
@@ -221,50 +237,48 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 16,
-    fontWeight: '500',
     marginBottom: 4,
+    color: theme.colors.onSurface,
   },
   subtitle: {
-    fontSize: 14,
     marginBottom: 2,
+    color: theme.colors.onSurfaceVariant,
   },
   description: {
-    fontSize: 12,
+    color: theme.colors.onSurfaceVariant,
   },
   rightContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    paddingLeft: 16,
+    paddingLeft: theme.spacing.m,
   },
   rightTextContainer: {
-    marginRight: 8,
+    marginRight: theme.spacing.s,
     alignItems: 'flex-end',
   },
   rightTitle: {
-    fontSize: 14,
-    fontWeight: '500',
     marginBottom: 2,
+    color: theme.colors.onSurface,
   },
   rightSubtitle: {
-    fontSize: 12,
+    color: theme.colors.onSurfaceVariant,
   },
   badgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 8,
+    marginRight: theme.spacing.s,
   },
   badgeIcon: {
     marginRight: 4,
   },
   badge: {
-    marginRight: 0,
+    marginVertical: 1,
   },
   chevron: {
-    marginLeft: 8,
+    marginLeft: theme.spacing.xs,
   },
   divider: {
-    marginLeft: 16,
+    backgroundColor: theme.colors.outlineVariant,
   },
 });

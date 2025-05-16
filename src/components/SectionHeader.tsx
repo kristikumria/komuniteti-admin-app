@@ -1,7 +1,8 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
-import { useAppSelector } from '../store/hooks';
+import { Text } from 'react-native-paper';
+import { useThemedStyles } from '../hooks/useThemedStyles';
+import type { AppTheme } from '../theme/theme';
 
 interface SectionHeaderProps {
   title: string;
@@ -13,6 +14,7 @@ interface SectionHeaderProps {
 
 /**
  * A component for consistent section headers across the application.
+ * Follows MD3 design principles for typography and spacing.
  */
 export const SectionHeader: React.FC<SectionHeaderProps> = ({
   title,
@@ -21,39 +23,37 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   marginBottom = 16,
   marginTop = 0,
 }) => {
-  const theme = useTheme();
-  const isDarkMode = useAppSelector((state) => state.settings?.darkMode) ?? false;
+  const { theme } = useThemedStyles();
   
   return (
     <View 
       style={[
-        styles.container, 
+        styles(theme).container, 
         { 
           marginBottom, 
           marginTop,
-          borderBottomColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
         }
       ]}
     >
-      <View style={styles.titleContainer}>
+      <View style={styles(theme).titleContainer}>
         <View>
-          <Text style={[
-            styles.title,
-            { color: isDarkMode ? '#ffffff' : theme.colors.onBackground }
-          ]}>
+          <Text 
+            variant="titleMedium" 
+            style={styles(theme).title}
+          >
             {title}
           </Text>
           {subtitle && (
-            <Text style={[
-              styles.subtitle,
-              { color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : theme.colors.onSurfaceVariant }
-            ]}>
+            <Text 
+              variant="bodyMedium" 
+              style={styles(theme).subtitle}
+            >
               {subtitle}
             </Text>
           )}
         </View>
         {rightContent && (
-          <View style={styles.rightContent}>
+          <View style={styles(theme).rightContent}>
             {rightContent}
           </View>
         )}
@@ -62,10 +62,11 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const styles = (theme: AppTheme) => StyleSheet.create({
   container: {
-    paddingBottom: 8,
+    paddingBottom: theme.spacing.s,
     borderBottomWidth: 1,
+    borderBottomColor: theme.colors.outlineVariant,
   },
   titleContainer: {
     flexDirection: 'row',
@@ -73,12 +74,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    color: theme.colors.onSurface,
+    fontWeight: '500',
   },
   subtitle: {
-    fontSize: 14,
-    marginTop: 2,
+    marginTop: theme.spacing.xs,
+    color: theme.colors.onSurfaceVariant,
   },
   rightContent: {
     flexDirection: 'row',

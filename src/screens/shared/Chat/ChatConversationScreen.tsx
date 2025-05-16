@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, ForwardedRef } from 'react';
 import {
   View,
   FlatList,
@@ -19,8 +19,9 @@ import {
   Alert
 } from 'react-native';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
-import { Appbar, useTheme, Badge, IconButton, MD3Colors, Portal, Dialog, Button, Menu } from 'react-native-paper';
+import { useTheme, Badge, IconButton, Portal, Dialog, Button, Menu, ProgressBar, Avatar, Surface } from 'react-native-paper';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MessageCircle, MoreVertical, ChevronLeft, ArrowLeft, Info } from 'lucide-react-native';
 import { MessageBubble } from '../../../components/Chat/MessageBubble';
 import { MessageInput } from '../../../components/Chat/MessageInput';
 import { ChatMessage, ChatConversation, ChatParticipant, ChatAttachment } from '../../../navigation/types';
@@ -28,340 +29,28 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatDistanceToNow } from 'date-fns';
 import NetInfo from '@react-native-community/netinfo';
 import { useAppSelector } from '../../../store/hooks';
-import { theme } from '../../../theme';
-import { ChatContainer } from '../../../components/Chat/ChatContainer';
+import { useThemedStyles } from '../../../hooks/useThemedStyles';
+import { ScreenContainer } from '../../../components/ScreenContainer';
+import { Header } from '../../../components/Header';
 import socketService from '../../../services/socketService';
+import chatService from '../../../services/chatService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { v4 as uuidv4 } from 'uuid';
 import * as FileSystem from 'expo-file-system';
+import { useKeyboardNavigation } from '../../../hooks/useKeyboardNavigation';
+import { useAccessibility } from '../../../components/AccessibilityProvider';
+import { MOCK_CONVERSATIONS_MAP, MOCK_MESSAGES } from './mockData';
+import { 
+  MessageStatus, 
+  ConnectionState, 
+  MessageContextMenu, 
+  UploadProgressInfo,
+  MessageState,
+  PendingMessage
+} from './types';
 
 // Mock data for prototyping
-const MOCK_CONVERSATIONS: Record<string, ChatConversation> = {
-  '1': {
-    id: '1',
-    title: 'Building A Administrators',
-    participants: [
-      {
-        id: '101',
-        name: 'Arben Hoxha',
-        role: 'admin',
-        image: 'https://randomuser.me/api/portraits/men/32.jpg',
-        isOnline: true,
-      },
-      {
-        id: '102',
-        name: 'Sara Mati',
-        role: 'admin',
-        image: 'https://randomuser.me/api/portraits/women/44.jpg',
-        isOnline: false,
-        lastSeen: '2023-05-15T14:30:00Z',
-      },
-    ],
-    lastMessage: {
-      id: 'm1',
-      conversationId: '1',
-      senderId: '101',
-      senderName: 'Arben Hoxha',
-      senderRole: 'admin',
-      senderImage: 'https://randomuser.me/api/portraits/men/32.jpg',
-      content: 'We need to discuss the maintenance schedule for next month',
-      timestamp: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-      readBy: ['101', '102'],
-      status: 'read',
-    },
-    unreadCount: 0,
-    createdAt: '2023-01-15T09:00:00Z',
-    updatedAt: new Date(Date.now() - 3600000).toISOString(),
-    isGroup: true,
-    image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8MTB8fGJ1aWxkaW5nfGVufDB8fDB8fA%3D%3D&auto=format&fit=crop&w=500&q=60',
-  },
-  '2': {
-    id: '2',
-    title: 'Building B Team',
-    participants: [
-      {
-        id: '103',
-        name: 'Elton Zholi',
-        role: 'admin',
-        image: 'https://randomuser.me/api/portraits/men/55.jpg',
-        isOnline: false,
-        lastSeen: '2023-05-15T10:15:00Z',
-      },
-      {
-        id: '104',
-        name: 'Drita Koka',
-        role: 'admin',
-        image: 'https://randomuser.me/api/portraits/women/33.jpg',
-        isOnline: true,
-      },
-    ],
-    lastMessage: {
-      id: 'm2',
-      conversationId: '2',
-      senderId: '104',
-      senderName: 'Drita Koka',
-      senderRole: 'admin',
-      senderImage: 'https://randomuser.me/api/portraits/women/33.jpg',
-      content: 'The plumber will arrive tomorrow at 10 AM to fix the leak in apartment 302',
-      timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-      readBy: ['104'],
-      status: 'delivered',
-    },
-    unreadCount: 2,
-    createdAt: '2023-02-20T11:30:00Z',
-    updatedAt: new Date(Date.now() - 86400000).toISOString(),
-    isGroup: true,
-    image: 'https://images.unsplash.com/photo-1554435493-93422e8d1a41?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8MTJ8fGJ1aWxkaW5nfGVufDB8fDB8fA%3D%3D&auto=format&fit=crop&w=500&q=60',
-  },
-  '3': {
-    id: '3',
-    title: 'Arben Hoxha',
-    participants: [
-      {
-        id: '101',
-        name: 'Arben Hoxha',
-        role: 'admin',
-        image: 'https://randomuser.me/api/portraits/men/32.jpg',
-        isOnline: true,
-      },
-    ],
-    lastMessage: {
-      id: 'm3',
-      conversationId: '3',
-      senderId: '101',
-      senderName: 'Arben Hoxha',
-      senderRole: 'admin',
-      senderImage: 'https://randomuser.me/api/portraits/men/32.jpg',
-      content: 'Thank you for approving the budget for the lobby renovation',
-      timestamp: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-      readBy: ['101'],
-      status: 'read',
-    },
-    unreadCount: 0,
-    createdAt: '2023-03-10T08:45:00Z',
-    updatedAt: new Date(Date.now() - 172800000).toISOString(),
-    isGroup: false,
-  },
-};
-
-const MOCK_MESSAGES: Record<string, ChatMessage[]> = {
-  '1': [
-    {
-      id: 'm101',
-      conversationId: '1',
-      senderId: '101',
-      senderName: 'Arben Hoxha',
-      senderRole: 'admin',
-      senderImage: 'https://randomuser.me/api/portraits/men/32.jpg',
-      content: 'Good morning everyone. We need to discuss the maintenance schedule for Building A next month.',
-      timestamp: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
-      readBy: ['101', '102', 'manager'],
-      status: 'read',
-    },
-    {
-      id: 'm102',
-      conversationId: '1',
-      senderId: '102',
-      senderName: 'Sara Mati',
-      senderRole: 'admin',
-      senderImage: 'https://randomuser.me/api/portraits/women/44.jpg',
-      content: 'I agree. The elevator needs servicing and we need to schedule a time that minimizes disruption for residents.',
-      timestamp: new Date(Date.now() - 6000000).toISOString(), // 1 hour 40 minutes ago
-      readBy: ['101', '102', 'manager'],
-      status: 'read',
-    },
-    {
-      id: 'm103',
-      conversationId: '1',
-      senderId: 'manager',
-      senderName: 'Elena Koci',
-      senderRole: 'manager',
-      content: 'Good point, Sara. Let\'s schedule the elevator maintenance for a weekday between 10am-2pm when most residents are at work. Arben, can you coordinate with the service provider?',
-      timestamp: new Date(Date.now() - 5400000).toISOString(), // 1 hour 30 minutes ago
-      readBy: ['101', '102', 'manager'],
-      status: 'read',
-    },
-    {
-      id: 'm104',
-      conversationId: '1',
-      senderId: '101',
-      senderName: 'Arben Hoxha',
-      senderRole: 'admin',
-      senderImage: 'https://randomuser.me/api/portraits/men/32.jpg',
-      content: 'Yes, I\'ll contact them today and propose next Tuesday. I\'ll send a notification to residents once it\'s confirmed.',
-      timestamp: new Date(Date.now() - 4800000).toISOString(), // 1 hour 20 minutes ago
-      readBy: ['101', '102', 'manager'],
-      status: 'read',
-    },
-    {
-      id: 'm105',
-      conversationId: '1',
-      senderId: '102',
-      senderName: 'Sara Mati',
-      senderRole: 'admin',
-      senderImage: 'https://randomuser.me/api/portraits/women/44.jpg',
-      content: 'Also, we need to schedule the annual fire safety inspection. The last one was done 11 months ago.',
-      timestamp: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-      readBy: ['101', '102', 'manager'],
-      status: 'read',
-    },
-    {
-      id: 'm106',
-      conversationId: '1',
-      senderId: 'manager',
-      senderName: 'Elena Koci',
-      senderRole: 'manager',
-      content: 'Good reminder. Let\'s do that in the same week as the elevator maintenance. I\'ll allocate budget for both.',
-      timestamp: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
-      readBy: ['101', 'manager'],
-      status: 'delivered',
-    },
-  ],
-  '2': [
-    {
-      id: 'm201',
-      conversationId: '2',
-      senderId: '103',
-      senderName: 'Elton Zholi',
-      senderRole: 'admin',
-      senderImage: 'https://randomuser.me/api/portraits/men/55.jpg',
-      content: 'I received a report about a water leak in apartment 302. The resident says it\'s coming from the ceiling.',
-      timestamp: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
-      readBy: ['103', '104', 'manager'],
-      status: 'read',
-    },
-    {
-      id: 'm202',
-      conversationId: '2',
-      senderId: 'manager',
-      senderName: 'Elena Koci',
-      senderRole: 'manager',
-      content: 'That sounds serious. Have you inspected it yet?',
-      timestamp: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-      readBy: ['103', '104', 'manager'],
-      status: 'read',
-    },
-    {
-      id: 'm203',
-      conversationId: '2',
-      senderId: '103',
-      senderName: 'Elton Zholi',
-      senderRole: 'admin',
-      senderImage: 'https://randomuser.me/api/portraits/men/55.jpg',
-      content: 'Yes, I checked it yesterday. It seems to be coming from a bathroom pipe in the apartment above. I\'ve already contacted a plumber.',
-      timestamp: new Date(Date.now() - 129600000).toISOString(), // 1.5 days ago
-      readBy: ['103', '104', 'manager'],
-      status: 'read',
-    },
-    {
-      id: 'm204',
-      conversationId: '2',
-      senderId: '104',
-      senderName: 'Drita Koka',
-      senderRole: 'admin',
-      senderImage: 'https://randomuser.me/api/portraits/women/33.jpg',
-      content: 'I\'ve spoken with the resident in 402 (the apartment above). They\'ve agreed to provide access for the plumber tomorrow.',
-      timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-      readBy: ['104', 'manager'],
-      status: 'delivered',
-    },
-    {
-      id: 'm205',
-      conversationId: '2',
-      senderId: '104',
-      senderName: 'Drita Koka',
-      senderRole: 'admin',
-      senderImage: 'https://randomuser.me/api/portraits/women/33.jpg',
-      content: 'The plumber will arrive tomorrow at 10 AM to fix the leak in apartment 302',
-      timestamp: new Date(Date.now() - 72000000).toISOString(), // 20 hours ago
-      readBy: ['104'],
-      status: 'delivered',
-    },
-  ],
-  '3': [
-    {
-      id: 'm301',
-      conversationId: '3',
-      senderId: '101',
-      senderName: 'Arben Hoxha',
-      senderRole: 'admin',
-      senderImage: 'https://randomuser.me/api/portraits/men/32.jpg',
-      content: 'Hello Elena, I wanted to discuss the budget for the lobby renovation project in Building A.',
-      timestamp: new Date(Date.now() - 604800000).toISOString(), // 7 days ago
-      readBy: ['101', 'manager'],
-      status: 'read',
-    },
-    {
-      id: 'm302',
-      conversationId: '3',
-      senderId: 'manager',
-      senderName: 'Elena Koci',
-      senderRole: 'manager',
-      content: 'Hi Arben, of course. What\'s your proposal?',
-      timestamp: new Date(Date.now() - 518400000).toISOString(), // 6 days ago
-      readBy: ['101', 'manager'],
-      status: 'read',
-    },
-    {
-      id: 'm303',
-      conversationId: '3',
-      senderId: '101',
-      senderName: 'Arben Hoxha',
-      senderRole: 'admin',
-      senderImage: 'https://randomuser.me/api/portraits/men/32.jpg',
-      content: 'I\'ve received quotes from three contractors. The best offer is 15,000€ for complete renovation including new flooring, paint, lighting, and furniture.',
-      timestamp: new Date(Date.now() - 432000000).toISOString(), // 5 days ago
-      readBy: ['101', 'manager'],
-      status: 'read',
-    },
-    {
-      id: 'm304',
-      conversationId: '3',
-      senderId: 'manager',
-      senderName: 'Elena Koci',
-      senderRole: 'manager',
-      content: 'That sounds reasonable. Can you send me the detailed quotes and a timeline for the work?',
-      timestamp: new Date(Date.now() - 345600000).toISOString(), // 4 days ago
-      readBy: ['101', 'manager'],
-      status: 'read',
-    },
-    {
-      id: 'm305',
-      conversationId: '3',
-      senderId: '101',
-      senderName: 'Arben Hoxha',
-      senderRole: 'admin',
-      senderImage: 'https://randomuser.me/api/portraits/men/32.jpg',
-      content: 'I\'ve just emailed you all the documents. The contractor can start in two weeks and estimates completion within 10 working days.',
-      timestamp: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
-      readBy: ['101', 'manager'],
-      status: 'read',
-    },
-    {
-      id: 'm306',
-      conversationId: '3',
-      senderId: 'manager',
-      senderName: 'Elena Koci',
-      senderRole: 'manager',
-      content: 'I\'ve reviewed the documents and approved the budget. You can proceed with signing the contract.',
-      timestamp: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-      readBy: ['101', 'manager'],
-      status: 'read',
-    },
-    {
-      id: 'm307',
-      conversationId: '3',
-      senderId: '101',
-      senderName: 'Arben Hoxha',
-      senderRole: 'admin',
-      senderImage: 'https://randomuser.me/api/portraits/men/32.jpg',
-      content: 'Thank you for approving the budget for the lobby renovation',
-      timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-      readBy: ['101', 'manager'],
-      status: 'read',
-    },
-  ],
-};
+// DELETE THE MOCK_CONVERSATIONS and MOCK_MESSAGES objects that are already defined in mockData.ts
 
 // Mock current user (Business Manager)
 const CURRENT_USER = {
@@ -376,30 +65,6 @@ const MESSAGE_LOAD_DELAY = 300; // Mock delay for message loading (ms)
 const TYPING_TIMEOUT = 5000; // Time typing indicator displays (ms)
 const HAPTIC_FEEDBACK_ENABLED = true; // Enable haptic feedback
 
-// Interface for improved message handling
-interface MessageState {
-  messages: ChatMessage[];
-  loading: boolean;
-  refreshing: boolean;
-  hasMore: boolean;
-  page: number;
-  error: string | null;
-}
-
-// Interface for connection status
-interface ConnectionState {
-  isConnected: boolean | null;
-  isInternetReachable: boolean | null;
-}
-
-// Interface for message context menu 
-interface MessageContextMenu {
-  visible: boolean;
-  messageId: string | null;
-  x: number;
-  y: number;
-}
-
 // Export the props interface
 export interface ChatConversationScreenProps {
   conversationId?: string;
@@ -407,18 +72,196 @@ export interface ChatConversationScreenProps {
   onGoBack?: () => void;
 }
 
+interface AccessibilityFocusableMessageListProps {
+  messages: ChatMessage[];
+  loading: boolean;
+  refreshing: boolean;
+  error: string | null;
+  onRefresh: () => void;
+  onLoadMore: () => void;
+  onScroll: (event: any) => void;
+  flatListRef: React.RefObject<FlatList<ChatMessage>>;
+  renderEmptyComponent: () => React.ReactNode;
+  renderFooter: () => React.ReactNode;
+  onMessageReply: (message: ChatMessage) => void;
+  onMessageDelete: (messageId: string) => void;
+  onLongPress: (message: ChatMessage, event: any) => void;
+  uploadProgress: any;
+  retryFailedMessage: (messageId: string) => void;
+  userId: string;
+  isDarkMode: boolean;
+}
+
+const AccessibilityFocusableMessageList: React.FC<AccessibilityFocusableMessageListProps> = ({
+  messages,
+  loading,
+  refreshing,
+  error,
+  onRefresh,
+  onLoadMore,
+  onScroll,
+  flatListRef,
+  renderEmptyComponent,
+  renderFooter,
+  onMessageReply,
+  onMessageDelete,
+  onLongPress,
+  uploadProgress,
+  retryFailedMessage,
+  userId,
+  isDarkMode
+}) => {
+  const { settings } = useAccessibility();
+  const { theme } = useThemedStyles();
+  
+  // Set up keyboard navigation if screen reader is enabled
+  const {
+    focusedIndex,
+    setItemRef,
+  } = useKeyboardNavigation(
+    messages.length,
+    0,
+    (index) => {
+      // When an item is selected via keyboard, reply to it
+      if (messages[index]) {
+        onMessageReply(messages[index]);
+      }
+    }
+  );
+
+  // Check if a message should show its date
+  const shouldShowDate = (message: ChatMessage, index: number): boolean => {
+    if (index === messages.length - 1) {
+      return true; // Always show date for last message (first when inverted)
+    }
+    
+    if (index < messages.length - 1) {
+      const currentDate = new Date(message.timestamp).setHours(0, 0, 0, 0);
+      const nextDate = new Date(messages[index + 1].timestamp).setHours(0, 0, 0, 0);
+      
+      return currentDate !== nextDate; // Show date if it's different from the next message
+    }
+    
+    return false;
+  };
+
+  // Custom message renderer with accessibility enhancements
+  const renderItem = ({ item, index }: { item: ChatMessage; index: number }) => {
+    const isFromCurrentUser = item.senderId === userId;
+    const isPreviousMessageFromSameSender = 
+      index < messages.length - 1 && 
+      messages[index + 1].senderId === item.senderId;
+    const isNextMessageFromSameSender = 
+      index > 0 && 
+      messages[index - 1].senderId === item.senderId;
+    
+    const uploadProgressInfo = uploadProgress && 
+      uploadProgress.messageId === item.id ? 
+      uploadProgress : null;
+    
+    return (
+      <View accessible={false}>
+        <MessageBubble
+          message={item}
+          isFromCurrentUser={isFromCurrentUser}
+          showAvatar={!isFromCurrentUser && !isNextMessageFromSameSender}
+          onReply={onMessageReply}
+          onDelete={onMessageDelete}
+          previousMessageSameSender={isPreviousMessageFromSameSender}
+          nextMessageSameSender={isNextMessageFromSameSender}
+          showDate={shouldShowDate(item, index)}
+          isDarkMode={isDarkMode}
+          isFocused={settings.screenReaderEnabled && focusedIndex === index}
+          onFocus={() => {
+            if (settings.screenReaderEnabled && flatListRef.current) {
+              flatListRef.current.scrollToIndex({
+                index,
+                animated: !settings.reduceMotion,
+                viewPosition: 0.5
+              });
+            }
+          }}
+          focusRef={(ref) => settings.screenReaderEnabled && setItemRef(index, ref)}
+        />
+        
+        {uploadProgressInfo && uploadProgressInfo.isUploading && (
+          <View style={styles.uploadProgressIndicator}>
+            <ProgressBar 
+              progress={uploadProgressInfo.progress / 100}
+              color={theme.colors.primary}
+              style={styles.progressBar}
+            />
+            <Text style={styles.uploadProgressText}>
+              {Math.round(uploadProgressInfo.progress)}%
+            </Text>
+          </View>
+        )}
+        
+        {item.status === 'failed' && (
+          <View style={styles.messageErrorContainer}>
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={() => retryFailedMessage(item.id)}
+              accessible={true}
+              accessibilityLabel="Retry sending this message"
+              accessibilityRole="button"
+            >
+              <MaterialIcons name="refresh" size={16} color="white" />
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  return (
+    <FlatList
+      ref={flatListRef as React.RefObject<FlatList<ChatMessage>>}
+      data={messages}
+      renderItem={renderItem}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={styles.messagesList}
+      inverted={true}
+      onEndReached={onLoadMore}
+      onEndReachedThreshold={0.3}
+      onScroll={onScroll}
+      ListEmptyComponent={renderEmptyComponent}
+      ListFooterComponent={renderFooter}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={[theme.colors.primary]}
+          tintColor={theme.colors.primary}
+        />
+      }
+      // Make the list accessible
+      accessibilityRole="list"
+      keyboardDismissMode="on-drag"
+      keyboardShouldPersistTaps="handled"
+    />
+  );
+};
+
 const ChatConversationScreen: React.FC<ChatConversationScreenProps> = ({ 
   conversationId: propConversationId,
   userRole = 'administrator',
   onGoBack
 }) => {
-  const navigation = useNavigation<any>();
-  const route = useRoute<any>();
-  const isDarkMode = useAppSelector(state => state.settings?.darkMode) ?? false;
-  const flatListRef = useRef<FlatList>(null);
-  const inputRef = useRef<any>(null);
+  const { theme, commonStyles } = useThemedStyles();
+  const navigation = useNavigation();
+  const route = useRoute<any>(); // Using any for route.params to fix type issue
   const insets = useSafeAreaInsets();
-  const windowDimensions = Dimensions.get('window');
+  const flatListRef = useRef<FlatList<ChatMessage>>(null);
+  const inputRef = useRef<any>(null); // Add missing inputRef
+  const user = useAppSelector(state => state.auth.user);
+  
+  // Add isDarkMode property derived from theme
+  const isDarkMode = theme.dark;
+  
+  // Check role-based permission
+  const hasPermission = user?.role === 'administrator' || user?.role === 'business_manager';
   
   // Use conversationId from props or route params
   const conversationId = propConversationId || (route.params?.conversationId);
@@ -441,6 +284,7 @@ const ChatConversationScreen: React.FC<ChatConversationScreenProps> = ({
     id: string;
     senderName: string;
     content: string;
+    senderId?: string;
   } | null>(null);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -458,6 +302,9 @@ const ChatConversationScreen: React.FC<ChatConversationScreenProps> = ({
   const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   
+  // Add missing showDeleteConfirmation state
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  
   // Animation values
   const scrollButtonOpacity = useRef(new Animated.Value(0)).current;
   const connectionBannerHeight = useRef(new Animated.Value(0)).current;
@@ -466,10 +313,74 @@ const ChatConversationScreen: React.FC<ChatConversationScreenProps> = ({
   // Queue for messages when offline
   const [messageQueue, setMessageQueue] = useState<{text: string, replyTo?: any}[]>([]);
   
-  // Add these new states
-  const [pendingMessages, setPendingMessages] = useState<ChatMessage[]>([]);
+  // Add these new states with correct typing
+  const [pendingMessages, setPendingMessages] = useState<PendingMessage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgressInfo | null>(null);
+  
+  // Update the handleGoBack function
+  const handleGoBack = () => {
+    if (onGoBack) {
+      onGoBack();
+    } else {
+      navigation.goBack();
+    }
+  };
+  
+  // Add a new function to handle pressing the info button
+  const handleInfoPress = () => {
+    // This would typically navigate to a conversation details screen
+    // or open a modal with participant information
+    Alert.alert(
+      `${conversation?.title || 'Conversation'} Info`,
+      `${conversation?.participants.length || 0} participants`
+    );
+  };
+  
+  // Replace the renderHeader function with proper Header usage
+  const renderHeader = () => {
+    if (!conversation) return (
+      <Header
+        title="Loading..."
+        showBackButton={true}
+        onBackPress={handleGoBack}
+      />
+    );
+    
+    // Determine online status for subtitle
+    const onlineParticipants = conversation.participants.filter(p => p.isOnline).length;
+    let subtitle = '';
+    
+    if (conversation.isGroup) {
+      subtitle = onlineParticipants > 0 
+        ? `${onlineParticipants} ${onlineParticipants === 1 ? 'person' : 'people'} online` 
+        : `${conversation.participants.length} participants`;
+    } else {
+      const participant = conversation.participants[0];
+      subtitle = participant?.isOnline ? 'Online' : participant?.lastSeen 
+        ? `Last seen ${formatDistanceToNow(new Date(participant.lastSeen), { addSuffix: true })}`
+        : 'Offline';
+    }
+    
+    return (
+      <Header
+        title={conversation.title}
+        subtitle={subtitle}
+        showBackButton={true}
+        onBackPress={handleGoBack}
+        rightAction={
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <IconButton
+              icon={({ size, color }) => <Info size={size} color={color} />}
+              iconColor={theme.colors.onSurfaceVariant}
+              size={24}
+              onPress={handleInfoPress}
+            />
+          </View>
+        }
+      />
+    );
+  };
   
   // Check if screen reader is enabled
   useEffect(() => {
@@ -561,7 +472,7 @@ const ChatConversationScreen: React.FC<ChatConversationScreenProps> = ({
     
     // Simulate API call with pagination
     setTimeout(() => {
-      const foundConversation = MOCK_CONVERSATIONS[conversationId];
+      const foundConversation = MOCK_CONVERSATIONS_MAP[conversationId];
       if (foundConversation) {
         setConversation(foundConversation);
         
@@ -665,98 +576,126 @@ const ChatConversationScreen: React.FC<ChatConversationScreenProps> = ({
     }
   };
   
-  // Enhanced handleSendMessage to handle offline scenarios
+  // Enhanced handleSendMessage with improved typing
   const handleSendMessage = (text: string, attachment?: any) => {
-    if ((!text.trim() && !attachment) || !conversation) return;
+    if (!text.trim() && !attachment) return;
     
-    // Generate a temporary ID for the message
-    const messageId = uuidv4();
-    
-    // Get current user info
-    const { user } = useAppSelector(state => state.auth);
-    const userId = user?.id || 'current_user';
-    const userName = user?.name || 'Me';
-    const userRole = user?.role || 'administrator';
-    
-    // Create replyTo object if needed
-    let replyToObject = undefined;
-    if (replyingTo) {
-      replyToObject = {
-        id: replyingTo.id,
-        senderId: replyingTo.senderId || '',
-        senderName: replyingTo.senderName,
-        content: replyingTo.content
+    try {
+      // Generate a new message ID
+      const newMessageId = uuidv4();
+      
+      // Create the message with proper typing
+      const newMessage: ChatMessage = {
+        id: newMessageId,
+        conversationId: conversationId || '',
+        senderId: CURRENT_USER.id,
+        senderName: CURRENT_USER.name,
+        senderRole: CURRENT_USER.role,
+        content: text,
+        timestamp: new Date().toISOString(),
+        readBy: [CURRENT_USER.id],
+        status: 'sending',
+        attachments: [],
+        replyTo: replyingTo ? {
+          id: replyingTo.id,
+          senderId: replyingTo.senderId || '',
+          senderName: replyingTo.senderName,
+          content: replyingTo.content,
+        } : undefined,
       };
-    }
-    
-    // Create a new message with proper typing
-    const newMessage: ChatMessage = {
-      id: messageId,
-      conversationId: conversation.id,
-      senderId: userId,
-      senderName: userName,
-      senderRole: userRole,
-      content: text.trim(),
-      timestamp: new Date().toISOString(),
-      readBy: [userId],
-      status: connectionState.isConnected ? 'sending' : 'failed',
-      replyTo: replyToObject,
-      ...(attachment && { 
-        attachments: Array.isArray(attachment) ? attachment : [attachment] 
-      })
-    };
-
-    // Add the message to the local state
-    setMessageState(prevState => ({
-      ...prevState,
-      messages: [...prevState.messages, newMessage]
-    }));
-
-    // Reset reply state
-    if (replyingTo) {
-      setReplyingTo(null);
-    }
-
-    // Scroll to bottom
-    setTimeout(() => {
-      scrollToBottom();
-    }, 100);
-    
-    // If offline, store message for later and mark as pending
-    if (!connectionState.isConnected || !socketService.isConnected()) {
-      const pendingMessage = { ...newMessage, status: 'failed' };
-      const updatedPendingMessages = [...pendingMessages, pendingMessage];
       
-      setPendingMessages(updatedPendingMessages);
-      // Save to AsyncStorage
-      setTimeout(() => {
+      // Cancel reply mode
+      if (replyingTo) {
+        setReplyingTo(null);
+      }
+      
+      // Add message to state immediately for better UX
+      setMessageState(prev => ({
+        ...prev,
+        messages: [newMessage, ...prev.messages],
+      }));
+      
+      // Handle attachments
+      if (attachment) {
+        setUploadProgress({
+          messageId: newMessageId,
+          progress: 0,
+          isUploading: true,
+        });
+        
+        // Simulate progress
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+          progress += 5;
+          if (progress >= 100) {
+            clearInterval(progressInterval);
+            setUploadProgress({
+              messageId: newMessageId,
+              progress: 100,
+              isUploading: false,
+            });
+            
+            // Update message status to delivered
+            setTimeout(() => {
+              setMessageState(prev => ({
+                ...prev,
+                messages: prev.messages.map(msg => 
+                  msg.id === newMessageId ? { ...msg, status: 'delivered' } : msg
+                ),
+              }));
+              
+              // Later, update to read
+              setTimeout(() => {
+                setMessageState(prev => ({
+                  ...prev,
+                  messages: prev.messages.map(msg => 
+                    msg.id === newMessageId ? { ...msg, status: 'read' } : msg
+                  ),
+                }));
+              }, 2000);
+            }, 500);
+          } else {
+            setUploadProgress({
+              messageId: newMessageId,
+              progress,
+              isUploading: true,
+            });
+          }
+        }, 200);
+      } else {
+        // For text-only messages, update status quickly
+        setTimeout(() => {
+          setMessageState(prev => ({
+            ...prev,
+            messages: prev.messages.map(msg => 
+              msg.id === newMessageId ? { ...msg, status: 'delivered' } : msg
+            ),
+          }));
+          
+          setTimeout(() => {
+            setMessageState(prev => ({
+              ...prev,
+              messages: prev.messages.map(msg => 
+                msg.id === newMessageId ? { ...msg, status: 'read' } : msg
+              ),
+            }));
+          }, 1000);
+        }, 500);
+      }
+      
+      // In offline mode, queue message
+      if (!connectionState.isConnected) {
+        const pendingMessage: PendingMessage = {
+          ...JSON.parse(JSON.stringify(newMessage)) as ChatMessage, // Deep copy to ensure typing works
+          localId: newMessageId,
+          sentAt: Date.now()
+        };
+        setPendingMessages(prev => [...prev, pendingMessage]);
         savePendingMessages();
-      }, 100);
-      
-      // Show offline message
-      Alert.alert(
-        'Offline Mode',
-        'You are currently offline. The message will be sent when you reconnect.',
-        [{ text: 'OK' }]
-      );
-      
-      return;
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
     }
-    
-    // Handle file uploads for attachments
-    if (attachment && (attachment.type === 'image' || attachment.type === 'document')) {
-      handleFileUpload(newMessage, attachment);
-      return;
-    }
-    
-    // Handle multiple image attachments
-    if (attachment && attachment.type === 'multiple_images') {
-      handleMultipleImagesUpload(newMessage, attachment.attachments);
-      return;
-    }
-    
-    // Send regular message through socket
-    socketService.notifyNewMessage(newMessage);
   };
   
   // Simulate typing indicator (in real app would use WebSockets)
@@ -869,33 +808,93 @@ const ChatConversationScreen: React.FC<ChatConversationScreenProps> = ({
   };
   
   // Handle attachment selection
-  const handleAttachmentSelect = (type: 'photo' | 'document' | 'location') => {
-    // In a real app, this would open the camera, file picker, etc.
-    console.log(`Selected attachment type: ${type}`);
-    
-    // Simulate attachment process
-    if (HAPTIC_FEEDBACK_ENABLED) {
-      Vibration.vibrate(100);
+  const handleAttachmentSelect = (attachment: {
+    type: string;
+    id?: string;
+    url?: string;
+    name?: string;
+    size?: number;
+    mimeType?: string;
+    attachments?: Array<{
+      id: string;
+      type: 'image' | 'document' | 'location' | 'contact' | 'voice';
+      url: string;
+      name: string;
+      size?: number;
+      mimeType?: string;
+    }>;
+  }) => {
+    // If no connection, store for later
+    if (!connectionState.isConnected) {
+      Alert.alert(
+        'No Connection',
+        'Your message will be sent when you reconnect.',
+        [{ text: 'OK' }]
+      );
     }
     
-    // Mock sending an attachment message after brief delay
-    if (connectionState.isConnected) {
-      setTimeout(() => {
-        let content = '';
-        switch (type) {
-          case 'photo':
-            content = '📷 Photo attachment';
-            break;
-          case 'document':
-            content = '📄 Document attachment';
-            break;
-          case 'location':
-            content = '📍 Location shared';
-            break;
-        }
-        
-        handleSendMessage(content);
-      }, 1000);
+    // Generate a placeholder message ID
+    const messageId = `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    
+    // Create empty content or appropriate text based on attachment type
+    let content = '';
+    if (attachment.type === 'document') {
+      content = `📄 ${attachment.name || 'Document'}`;
+    } else if (attachment.type === 'location') {
+      content = '📍 Shared a location';
+    } else if (attachment.type === 'multiple_images') {
+      content = '📷 Shared multiple photos';
+    }
+    
+    // Create temporary message
+    const newMessage: ChatMessage = {
+      id: messageId,
+      conversationId: conversationId || '',
+      senderId: CURRENT_USER.id,
+      senderName: CURRENT_USER.name,
+      senderRole: CURRENT_USER.role as any,
+      content: content,
+      timestamp: new Date().toISOString(),
+      readBy: [CURRENT_USER.id],
+      status: 'sending',
+      attachments: attachment.type === 'multiple_images' && attachment.attachments
+        ? attachment.attachments
+        : attachment.type !== 'multiple_images' && attachment.url
+          ? [{
+              id: attachment.id || `att-${Date.now()}`,
+              type: attachment.type as 'image' | 'document' | 'location' | 'contact' | 'voice',
+              url: attachment.url,
+              name: attachment.name || 'Attachment',
+              size: attachment.size,
+              mimeType: attachment.mimeType
+            }]
+          : []
+    };
+    
+    // If replying to a message, add that information
+    if (replyingTo) {
+      newMessage.replyTo = {
+        id: replyingTo.id,
+        senderId: replyingTo.senderId || '',
+        senderName: replyingTo.senderName,
+        content: replyingTo.content
+      };
+      setReplyingTo(null);
+    }
+    
+    // Add message to UI immediately
+    setMessageState(prev => ({
+      ...prev,
+      messages: [newMessage, ...prev.messages]
+    }));
+    
+    scrollToBottom();
+    
+    // Handle file upload with progress
+    if (attachment.type === 'multiple_images' && attachment.attachments) {
+      handleMultipleImagesUpload(newMessage, attachment.attachments);
+    } else if (attachment.url) {
+      handleFileUpload(newMessage, attachment);
     }
   };
 
@@ -922,469 +921,6 @@ const ChatConversationScreen: React.FC<ChatConversationScreenProps> = ({
     
     return '';
   }, [conversation]);
-
-  // Render a message item
-  const renderMessageItem = ({ item }: { item: ChatMessage }) => {
-    const isFromCurrentUser = item.senderId === CURRENT_USER.id;
-    
-    return (
-      <Pressable
-        onLongPress={(e) => handleLongPressMessage(item, e)}
-        accessible={true}
-        accessibilityLabel={`Message from ${item.senderName}: ${item.content}`}
-        accessibilityHint={isFromCurrentUser ? "Double tap to edit, long press for more options" : "Double tap to reply, long press for more options"}
-        accessibilityRole="text"
-      >
-        <MessageBubble
-          message={item}
-          isFromCurrentUser={isFromCurrentUser}
-          showAvatar={!isFromCurrentUser}
-          onReply={handleReply}
-          onDelete={(id) => handleShowDeleteConfirmation(id)}
-        />
-      </Pressable>
-    );
-  };
-
-  // Handle back navigation
-  const handleGoBack = useCallback(() => {
-    if (onGoBack) {
-      onGoBack();
-    } else {
-      navigation.goBack();
-    }
-  }, [onGoBack, navigation]);
-  
-  // Render the chat header
-  const renderHeader = () => {
-    if (!conversation) return null;
-    
-    const displayParticipants = getMemberStatusText();
-    
-    return (
-      <Appbar.Header style={[
-        styles.header, 
-        { backgroundColor: isDarkMode ? '#121212' : '#ffffff' },
-        { elevation: 4 }
-      ]}>
-        <View style={styles.headerContainer}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={handleGoBack} 
-            accessibilityLabel="Go back"
-          >
-            <MaterialIcons 
-              name="arrow-back" 
-              size={24} 
-              color={isDarkMode ? '#ffffff' : '#000000'} 
-            />
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.headerContent}
-            onPress={() => {
-              // Navigate to conversation details
-              if (conversation.isGroup) {
-                // For group conversations, navigate to group details
-                Alert.alert('Info', 'Group details coming soon');
-              } else {
-                // For one-on-one chats, navigate to profile
-                Alert.alert('Info', 'User profile coming soon');
-              }
-            }}
-            accessible={true}
-            accessibilityLabel={`${conversation.title} chat. ${displayParticipants}`}
-            accessibilityRole="button"
-            accessibilityHint="Double tap to view conversation details"
-          >
-            <View style={styles.avatarContainer}>
-              {conversation.isGroup ? (
-                conversation.image ? (
-                  <Image 
-                    source={{ uri: conversation.image }} 
-                    style={styles.avatar}
-                    accessibilityIgnoresInvertColors={true}
-                  />
-                ) : (
-                  <View style={styles.defaultGroupAvatar}>
-                    <MaterialIcons name="group" size={24} color="white" />
-                  </View>
-                )
-              ) : (
-                <View style={styles.avatarWithStatus}>
-                  {conversation.participants[0].image ? (
-                    <Image
-                      source={{ uri: conversation.participants[0].image }}
-                      style={styles.avatar}
-                      accessibilityIgnoresInvertColors={true}
-                    />
-                  ) : (
-                    <View style={styles.defaultAvatar}>
-                      <Text style={styles.avatarTextStyle}>
-                        {conversation.participants[0].name.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                  )}
-                  {conversation.participants[0].isOnline && (
-                    <View style={styles.onlineIndicator} />
-                  )}
-                </View>
-              )}
-            </View>
-            
-            <View style={styles.headerTextContainer}>
-              <Text 
-                style={styles.headerTitle}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {conversation.title}
-              </Text>
-              <Text 
-                style={styles.headerSubtitle}
-                numberOfLines={1}
-              >
-                {displayParticipants}
-              </Text>
-            </View>
-          </TouchableOpacity>
-          
-          <View style={styles.headerActions}>
-            <TouchableOpacity 
-              style={styles.headerButton} 
-              onPress={() => {
-                // Implement search
-                Alert.alert('Info', 'Search coming soon');
-              }}
-              accessibilityLabel="Search in conversation" 
-            >
-              <MaterialIcons name="search" size={24} color="#ffffff" />
-            </TouchableOpacity>
-            
-            <Menu
-              visible={menuVisible}
-              onDismiss={() => setMenuVisible(false)}
-              anchor={
-                <TouchableOpacity 
-                  style={styles.headerButton} 
-                  onPress={() => setMenuVisible(true)}
-                  accessibilityLabel="More options" 
-                >
-                  <MaterialIcons name="more-vert" size={24} color="#ffffff" />
-                </TouchableOpacity>
-              }
-            >
-              <Menu.Item 
-                onPress={() => {
-                  setMenuVisible(false);
-                  // Mute notifications
-                  Alert.alert('Info', 'Notifications muted');
-                }} 
-                title="Mute notifications" 
-                leadingIcon="bell-off-outline"
-              />
-              <Menu.Item 
-                onPress={() => {
-                  setMenuVisible(false);
-                  // Clear chat
-                  Alert.alert(
-                    'Clear chat',
-                    'Are you sure you want to clear all messages?',
-                    [
-                      {
-                        text: 'Cancel',
-                        style: 'cancel',
-                      },
-                      {
-                        text: 'Clear',
-                        style: 'destructive',
-                        onPress: () => {
-                          Alert.alert('Success', 'Chat cleared');
-                        },
-                      },
-                    ]
-                  );
-                }} 
-                title="Clear chat" 
-                leadingIcon="delete-outline"
-              />
-              {conversation.isGroup && (
-                <Menu.Item 
-                  onPress={() => {
-                    setMenuVisible(false);
-                    // Leave group
-                    Alert.alert(
-                      'Leave group',
-                      'Are you sure you want to leave this group?',
-                      [
-                        {
-                          text: 'Cancel',
-                          style: 'cancel',
-                        },
-                        {
-                          text: 'Leave',
-                          style: 'destructive',
-                          onPress: () => {
-                            navigation.goBack();
-                            Alert.alert('Success', 'You left the group');
-                          },
-                        },
-                      ]
-                    );
-                  }} 
-                  title="Leave group" 
-                  leadingIcon="exit-to-app"
-                />
-              )}
-            </Menu>
-          </View>
-        </View>
-      </Appbar.Header>
-    );
-  };
-
-  // Render typing indicator
-  const renderTypingIndicator = () => {
-    if (typingUsers.length === 0) return null;
-    
-    const typingText = typingUsers.length === 1
-      ? `${typingUsers[0]} is typing...`
-      : `${typingUsers.length} people are typing...`;
-      
-    return (
-      <Animated.View style={[
-        styles.typingContainer,
-        { height: typingIndicatorHeight }
-      ]}>
-        <View style={styles.typingContent}>
-          <MaterialCommunityIcons 
-            name="message-text-outline" 
-            size={16} 
-            color={theme.colors.primary} 
-          />
-          <Text style={styles.typingText}>{typingText}</Text>
-        </View>
-      </Animated.View>
-    );
-  };
-
-  // Render connection status banner
-  const renderConnectionBanner = () => {
-    return (
-      <Animated.View style={[
-        styles.connectionBanner,
-        { height: connectionBannerHeight }
-      ]}>
-        <MaterialIcons name="wifi-off" size={16} color="#fff" />
-        <Text style={styles.connectionText}>
-          You're offline. Messages will be sent when you're back online.
-        </Text>
-      </Animated.View>
-    );
-  };
-  
-  // List empty component
-  const renderEmptyComponent = () => {
-    if (messageState.loading) return null;
-    
-    return (
-      <View style={styles.emptyContainer}>
-        <MaterialIcons
-          name="chat-bubble-outline"
-          size={80}
-          color={theme.colors.primary}
-        />
-        <Text 
-          style={[
-            styles.emptyText,
-            { color: isDarkMode ? '#ffffff' : '#212121' }
-          ]}
-        >
-          No messages yet
-        </Text>
-        <Text 
-          style={[
-            styles.emptySubText,
-            { color: isDarkMode ? '#cccccc' : '#757575' }
-          ]}
-        >
-          Send a message to start the conversation
-        </Text>
-        <Button
-          mode="contained"
-          onPress={() => inputRef.current?.focus()}
-          style={styles.startChatButton}
-        >
-          Start Chat
-        </Button>
-      </View>
-    );
-  };
-  
-  // List footer component for pagination loading
-  const renderFooter = () => {
-    if (!messageState.loading || messageState.refreshing) return null;
-    
-    return (
-      <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color={theme.colors.primary} />
-        <Text style={[
-          styles.footerText,
-          { color: isDarkMode ? '#cccccc' : '#757575' }
-        ]}>
-          Loading more messages...
-        </Text>
-      </View>
-    );
-  };
-
-  // Render delete confirmation dialog
-  const renderDeleteConfirmation = () => {
-    return (
-      <Portal>
-        <Dialog
-          visible={confirmDelete !== null}
-          onDismiss={() => setConfirmDelete(null)}
-          style={styles.dialog}
-        >
-          <Dialog.Title>Delete Message</Dialog.Title>
-          <Dialog.Content>
-            <Text>Are you sure you want to delete this message? This action cannot be undone.</Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setConfirmDelete(null)}>Cancel</Button>
-            <Button 
-              onPress={() => confirmDelete && handleDeleteMessage(confirmDelete)}
-              textColor={theme.colors.error}
-            >
-              Delete
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
-    );
-  };
-
-  // Render context menu
-  const renderContextMenu = () => {
-    if (!contextMenu.visible) return null;
-    
-    const selectedMessage = messageState.messages.find(
-      msg => msg.id === contextMenu.messageId
-    );
-    
-    if (!selectedMessage) return null;
-    
-    const isUserMessage = selectedMessage.senderId === CURRENT_USER.id;
-    
-    // Calculate position based on screen dimensions to ensure menu stays on screen
-    const menuX = Math.min(
-      contextMenu.x, 
-      windowDimensions.width - 200
-    );
-    
-    const menuY = Math.min(
-      contextMenu.y, 
-      windowDimensions.height - 200
-    );
-    
-    return (
-      <Portal>
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={handleCloseContextMenu}
-        >
-          <View
-            style={[
-              styles.contextMenu,
-              {
-                left: menuX,
-                top: menuY,
-                backgroundColor: isDarkMode ? '#333333' : '#ffffff'
-              }
-            ]}
-          >
-            <TouchableOpacity
-              style={styles.contextMenuItem}
-              onPress={() => {
-                handleCloseContextMenu();
-                handleReply(selectedMessage);
-              }}
-            >
-              <MaterialIcons 
-                name="reply" 
-                size={20} 
-                color={theme.colors.primary} 
-              />
-              <Text style={[
-                styles.contextMenuText,
-                { color: isDarkMode ? '#ffffff' : '#000000' }
-              ]}>
-                Reply
-              </Text>
-            </TouchableOpacity>
-            
-            {isUserMessage && (
-              <TouchableOpacity
-                style={styles.contextMenuItem}
-                onPress={() => {
-                  handleShowDeleteConfirmation(selectedMessage.id);
-                }}
-              >
-                <MaterialIcons 
-                  name="delete" 
-                  size={20} 
-                  color={theme.colors.error} 
-                />
-                <Text style={[
-                  styles.contextMenuText,
-                  { color: theme.colors.error }
-                ]}>
-                  Delete
-                </Text>
-              </TouchableOpacity>
-            )}
-            
-            <TouchableOpacity
-              style={styles.contextMenuItem}
-              onPress={() => {
-                handleCloseContextMenu();
-                // Copy text to clipboard would be implemented here
-              }}
-            >
-              <MaterialIcons 
-                name="content-copy" 
-                size={20} 
-                color={theme.colors.secondary} 
-              />
-              <Text style={[
-                styles.contextMenuText,
-                { color: isDarkMode ? '#ffffff' : '#000000' }
-              ]}>
-                Copy Text
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </Pressable>
-      </Portal>
-    );
-  };
-
-  // Get a consistent color based on name for avatars
-  const getAvatarColor = (name: string) => {
-    const colors = [
-      '#E57373', '#F06292', '#BA68C8', '#9575CD', 
-      '#7986CB', '#64B5F6', '#4FC3F7', '#4DD0E1',
-      '#4DB6AC', '#81C784', '#AED581', '#DCE775'
-    ];
-    
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    
-    return colors[Math.abs(hash) % colors.length];
-  };
 
   // Add a useEffect to load pending messages from AsyncStorage
   useEffect(() => {
@@ -1433,73 +969,79 @@ const ChatConversationScreen: React.FC<ChatConversationScreenProps> = ({
   const handleFileUpload = async (message: ChatMessage, attachment: any) => {
     try {
       setIsUploading(true);
-      setUploadProgress(0);
-      
-      // In a real app, this would upload to a server
-      // This is a mock implementation
+      setUploadProgress(null);
       
       // Simulate upload progress
       let progress = 0;
       const interval = setInterval(() => {
         progress += 0.1;
-        setUploadProgress(Math.min(progress, 0.95));
+        setUploadProgress({
+          messageId: message.id,
+          progress: Math.min(progress, 0.95),
+          isUploading: true,
+        });
         
         if (progress >= 1) {
           clearInterval(interval);
         }
       }, 300);
       
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Upload file using chatService
+      const uploadedAttachment = await chatService.uploadAttachment({
+        uri: attachment.uri,
+        type: attachment.mimeType || 'application/octet-stream',
+        name: attachment.name,
+        size: attachment.size,
+        width: attachment.width,
+        height: attachment.height
+      });
       
-      // Update message with "uploaded" attachment
-      const updatedMessage: ChatMessage = {
-        ...message,
-        status: 'sent',
-        attachments: [{
-          id: uuidv4(),
-          type: attachment.type as 'image' | 'document',
-          url: attachment.uri,
-          name: attachment.name,
-          size: attachment.size,
-          mimeType: attachment.mimeType
-        }]
-      };
+      // Send message with attachment
+      const updatedMessage = await chatService.sendMessageWithAttachment({
+        conversationId: message.conversationId,
+        content: message.content,
+        attachment: uploadedAttachment,
+        replyToId: message.replyTo?.id
+      });
       
       // Update messages in state
       setMessageState(prev => ({
         ...prev,
         messages: prev.messages.map(msg => 
-          msg.id === message.id ? updatedMessage : msg
+          msg.id === message.id ? {
+            ...updatedMessage,
+            id: message.id // Keep the original ID for UI consistency
+          } : msg
         )
       }));
       
-      // Send message through socket
-      socketService.notifyNewMessage(updatedMessage);
-      
-      setUploadProgress(1);
-      setTimeout(() => {
-        setIsUploading(false);
-        setUploadProgress(0);
-      }, 500);
+      setUploadProgress({
+        messageId: message.id,
+        progress: 1,
+        isUploading: false,
+      });
       
       clearInterval(interval);
     } catch (error) {
       console.error('Error uploading file:', error);
       setIsUploading(false);
-      setUploadProgress(0);
+      setUploadProgress(null);
       
       // Mark message as failed
+      const failedMessage = { 
+        ...message, 
+        status: 'failed' as 'sending' | 'sent' | 'delivered' | 'read' | 'failed' | undefined 
+      };
       setMessageState(prev => ({
         ...prev,
         messages: prev.messages.map(msg => 
-          msg.id === message.id ? { ...msg, status: 'failed' } : msg
+          msg.id === message.id ? failedMessage : msg
         )
       }));
       
       // Add to pending messages
-      const failedMessage = { ...message, status: 'failed' };
-      setPendingMessages([...pendingMessages, failedMessage]);
+      const pendingMessage = { ...message, status: 'failed' };
+      setPendingMessages([...pendingMessages, pendingMessage]);
       savePendingMessages();
       
       Alert.alert(
@@ -1514,75 +1056,86 @@ const ChatConversationScreen: React.FC<ChatConversationScreenProps> = ({
   const handleMultipleImagesUpload = async (message: ChatMessage, attachments: any[]) => {
     try {
       setIsUploading(true);
-      setUploadProgress(0);
+      setUploadProgress(null);
       
       // Simulate upload progress for multiple images
       let progress = 0;
       const interval = setInterval(() => {
         progress += 0.05;
-        setUploadProgress(Math.min(progress, 0.95));
+        setUploadProgress({
+          messageId: message.id,
+          progress: Math.min(progress, 0.95),
+          isUploading: true,
+        });
         
         if (progress >= 1) {
           clearInterval(interval);
         }
       }, 200);
       
-      // Simulate network delay (longer for multiple images)
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Upload all images
+      const uploadPromises = attachments.map(attachment => 
+        chatService.uploadAttachment({
+          uri: attachment.uri,
+          type: attachment.mimeType || 'image/jpeg',
+          name: attachment.name,
+          size: attachment.size,
+          width: attachment.width,
+          height: attachment.height
+        })
+      );
       
-      // Create processed attachments
-      const processedAttachments: ChatAttachment[] = attachments.map(attachment => ({
-        id: uuidv4(),
-        type: 'image',
-        url: attachment.uri,
-        name: attachment.name,
-        size: attachment.size,
-        mimeType: attachment.mimeType,
-        width: attachment.width,
-        height: attachment.height
-      }));
+      const uploadedAttachments = await Promise.all(uploadPromises);
       
-      // Update message with "uploaded" attachments
-      const updatedMessage: ChatMessage = {
-        ...message,
-        status: 'sent',
-        attachments: processedAttachments
-      };
+      // Send message with multiple attachments
+      const updatedMessage = await chatService.sendMessageWithAttachment({
+        conversationId: message.conversationId,
+        content: message.content,
+        attachment: {
+          type: 'multiple_images',
+          attachments: uploadedAttachments
+        },
+        replyToId: message.replyTo?.id
+      });
       
       // Update messages in state
       setMessageState(prev => ({
         ...prev,
         messages: prev.messages.map(msg => 
-          msg.id === message.id ? updatedMessage : msg
+          msg.id === message.id ? {
+            ...updatedMessage,
+            id: message.id // Keep the original ID for UI consistency
+          } : msg
         )
       }));
       
-      // Send message through socket
-      socketService.notifyNewMessage(updatedMessage);
-      
-      setUploadProgress(1);
-      setTimeout(() => {
-        setIsUploading(false);
-        setUploadProgress(0);
-      }, 500);
+      setUploadProgress({
+        messageId: message.id,
+        progress: 1,
+        isUploading: false,
+      });
       
       clearInterval(interval);
     } catch (error) {
       console.error('Error uploading multiple images:', error);
       setIsUploading(false);
-      setUploadProgress(0);
+      setUploadProgress(null);
       
       // Mark message as failed
+      const failedMessage = { 
+        ...message, 
+        status: 'failed' as 'sending' | 'sent' | 'delivered' | 'read' | 'failed' | undefined 
+      };
       setMessageState(prev => ({
         ...prev,
         messages: prev.messages.map(msg => 
-          msg.id === message.id ? { ...msg, status: 'failed' } : msg
+          msg.id === message.id ? failedMessage : msg
         )
       }));
       
       // Add to pending messages
-      const failedMessage = { ...message, status: 'failed' };
-      setPendingMessages([...pendingMessages, failedMessage]);
+      const pendingMessage = { ...message, status: 'failed' };
+      setPendingMessages([...pendingMessages, pendingMessage]);
       savePendingMessages();
       
       Alert.alert(
@@ -1703,9 +1256,9 @@ const ChatConversationScreen: React.FC<ChatConversationScreenProps> = ({
     );
   };
 
-  // Add render function for upload progress indicator
+  // Add renderUploadProgress function
   const renderUploadProgress = () => {
-    if (!isUploading) return null;
+    if (!isUploading || !uploadProgress) return null;
     
     return (
       <View style={styles.uploadProgressContainer}>
@@ -1713,12 +1266,194 @@ const ChatConversationScreen: React.FC<ChatConversationScreenProps> = ({
           <View 
             style={[
               styles.uploadProgressFill, 
-              { width: `${uploadProgress * 100}%` }
+              { width: `${uploadProgress.progress * 100}%` }
             ]} 
           />
         </View>
         <Text style={styles.uploadProgressText}>
-          Uploading... {Math.round(uploadProgress * 100)}%
+          Uploading... {Math.round(uploadProgress.progress * 100)}%
+        </Text>
+      </View>
+    );
+  };
+
+  // Add renderConnectionBanner function
+  const renderConnectionBanner = () => {
+    if (!connectionState.isInternetReachable) {
+      return (
+        <Animated.View style={[styles.connectionBanner, { backgroundColor: theme.colors.error }]}>
+          <MaterialIcons name="wifi-off" size={18} color="white" />
+          <Text style={styles.connectionText}>You are offline</Text>
+        </Animated.View>
+      );
+    }
+    
+    return null;
+  };
+  
+  // Add renderEmptyComponent function
+  const renderEmptyComponent = () => {
+    return (
+      <View style={[
+        styles.emptyContainer,
+        { backgroundColor: theme.colors.background }
+      ]}>
+        <MaterialIcons 
+          name="forum" 
+          size={80} 
+          color={theme.colors.onSurfaceVariant} 
+        />
+        <Text 
+          style={[
+            styles.emptyText,
+            { color: theme.colors.onSurfaceVariant }
+          ]}
+        >
+          No messages yet
+        </Text>
+        <Text 
+          style={[
+            styles.emptySubText,
+            { color: theme.colors.onSurfaceVariant }
+          ]}
+        >
+          Start the conversation by sending a message below.
+        </Text>
+      </View>
+    );
+  };
+  
+  // Add renderFooter function
+  const renderFooter = () => {
+    if (messageState.loading && messageState.messages.length > 0) {
+      return (
+        <View style={styles.footerLoader}>
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+          <Text 
+            style={[
+              styles.footerText,
+              { color: theme.colors.onSurfaceVariant }
+            ]}
+          >
+            Loading more messages...
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  };
+  
+  // Add renderContextMenu function
+  const renderContextMenu = () => {
+    if (!contextMenu.visible) return null;
+    
+    return (
+      <Portal>
+        <Pressable 
+          style={StyleSheet.absoluteFill} 
+          onPress={handleCloseContextMenu}
+        >
+          <View 
+            style={[
+              styles.contextMenu,
+              {
+                top: contextMenu.y - 100,
+                left: contextMenu.x - 160,
+                backgroundColor: theme.colors.surfaceVariant,
+              }
+            ]}
+          >
+            <TouchableOpacity 
+              style={styles.contextMenuItem}
+              onPress={() => {
+                const message = messageState.messages.find(m => m.id === contextMenu.messageId);
+                if (message) {
+                  handleReply(message);
+                }
+                handleCloseContextMenu();
+              }}
+            >
+              <MaterialIcons 
+                name="reply" 
+                size={22} 
+                color={theme.colors.primary} 
+              />
+              <Text 
+                style={[
+                  styles.contextMenuText,
+                  { color: theme.colors.onSurfaceVariant }
+                ]}
+              >
+                Reply
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.contextMenuItem}
+              onPress={() => {
+                if (contextMenu.messageId) {
+                  handleShowDeleteConfirmation(contextMenu.messageId);
+                }
+              }}
+            >
+              <MaterialIcons 
+                name="delete" 
+                size={22} 
+                color={theme.colors.error} 
+              />
+              <Text 
+                style={[
+                  styles.contextMenuText,
+                  { color: theme.colors.onSurfaceVariant }
+                ]}
+              >
+                Delete
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Portal>
+    );
+  };
+  
+  // Add renderDeleteConfirmation function
+  const renderDeleteConfirmation = () => {
+    return (
+      <Portal>
+        <Dialog
+          visible={!!confirmDelete}
+          onDismiss={() => setConfirmDelete(null)}
+          style={styles.dialog}
+        >
+          <Dialog.Title>Delete message?</Dialog.Title>
+          <Dialog.Content>
+            <Text>Are you sure you want to delete this message? This action cannot be undone.</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setConfirmDelete(null)}>Cancel</Button>
+            <Button 
+              onPress={() => {
+                if (confirmDelete) {
+                  handleDeleteMessage(confirmDelete);
+                }
+              }} 
+              textColor={theme.colors.error}
+            >
+              Delete
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    );
+  };
+
+  // Add renderLoadingState function
+  const renderLoadingState = () => {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={{ color: theme.colors.onSurfaceVariant, marginTop: 12 }}>
+          Loading messages...
         </Text>
       </View>
     );
@@ -1728,17 +1463,17 @@ const ChatConversationScreen: React.FC<ChatConversationScreenProps> = ({
     return (
       <View style={[
         styles.loadingContainer,
-        { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }
+        { backgroundColor: theme.colors.background }
       ]}>
         <StatusBar 
-          barStyle={isDarkMode ? "light-content" : "dark-content"}
-          backgroundColor={theme.colors.primary}
+          barStyle={theme.dark ? "light-content" : "dark-content"}
+          backgroundColor={theme.dark ? '#121212' : '#FFFFFF'}
         />
         <ActivityIndicator size="large" color={theme.colors.primary} />
         <Text 
           style={[
             styles.loadingText,
-            { color: isDarkMode ? '#ffffff' : '#000000' }
+            { color: theme.colors.onSurfaceVariant }
           ]}
         >
           Loading conversation...
@@ -1783,47 +1518,139 @@ const ChatConversationScreen: React.FC<ChatConversationScreenProps> = ({
     );
   }
 
+  // If user doesn't have permission, show permission denied view
+  if (!hasPermission) {
+    return (
+      <ScreenContainer>
+        <View style={[styles.centeredContent, { backgroundColor: theme.colors.surfaceVariant }]}>
+          <Text style={{ color: theme.colors.onSurfaceVariant, fontSize: 16 }}>
+            You don't have permission to access this feature
+          </Text>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
   return (
-    <KeyboardAvoidingView
-      style={[
-        styles.container,
-        { backgroundColor: isDarkMode ? '#121212' : '#f5f5f5' }
-      ]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
-      <StatusBar 
-        barStyle={isDarkMode ? "light-content" : "dark-content"}
-        backgroundColor={theme.colors.primary}
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <StatusBar
+        barStyle={theme.dark ? "light-content" : "dark-content"}
+        backgroundColor={theme.colors.surface}
+        translucent={false}
       />
       
-      <ChatContainer
-        messages={messageState.messages}
-        loading={messageState.loading}
-        refreshing={messageState.refreshing}
-        error={messageState.error}
-        onRefresh={handleRefresh}
-        onSendMessage={handleSendMessage}
-        onDeleteMessage={handleDeleteMessage}
-        onTypingStatusChange={simulateTypingIndicator}
-        typingUsers={typingUsers}
-        headerComponent={renderHeader()}
-        userId={CURRENT_USER.id}
-        sending={sending}
-        conversation={conversation}
-        onLoadMore={loadMoreMessages}
-      />
+      {renderHeader()}
       
-      {renderContextMenu()}
-      {renderDeleteConfirmation()}
-    </KeyboardAvoidingView>
+      <KeyboardAvoidingView 
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        {messageState.loading && messageState.messages.length === 0 ? (
+          renderLoadingState()
+        ) : messageState.error ? (
+          <View style={styles.errorContainer}>
+            <MaterialIcons name="error-outline" size={48} color={theme.colors.error} />
+            <Text style={[styles.errorText, { color: theme.colors.onSurface }]}>{messageState.error}</Text>
+            <Button mode="contained" onPress={loadConversation}>
+              Retry
+            </Button>
+          </View>
+        ) : (
+          <>
+            {!connectionState.isConnected && (
+              <View style={[styles.connectionBanner, { backgroundColor: theme.colors.error }]}>
+                <MaterialIcons name="wifi-off" size={18} color="white" />
+                <Text style={styles.connectionText}>You are offline</Text>
+              </View>
+            )}
+            
+            <AccessibilityFocusableMessageList
+              messages={messageState.messages}
+              loading={messageState.loading}
+              refreshing={messageState.refreshing}
+              error={messageState.error}
+              onRefresh={handleRefresh}
+              onLoadMore={loadMoreMessages}
+              onScroll={handleScroll}
+              flatListRef={flatListRef as React.RefObject<FlatList<ChatMessage>>}
+              renderEmptyComponent={renderEmptyComponent}
+              renderFooter={renderFooter}
+              onMessageReply={handleReply}
+              onMessageDelete={handleDeleteMessage}
+              onLongPress={handleLongPressMessage}
+              uploadProgress={uploadProgress}
+              retryFailedMessage={retryFailedMessage}
+              userId={CURRENT_USER.id}
+              isDarkMode={isDarkMode}
+            />
+            
+            {contextMenu.visible && renderContextMenu()}
+            {confirmDelete && renderDeleteConfirmation()}
+            
+            <View style={[styles.inputContainer, { backgroundColor: theme.colors.surface }]}>
+              {replyingTo && (
+                <View style={[styles.replyContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
+                  <View style={styles.replyContent}>
+                    <Text style={[styles.replyLabel, { color: theme.colors.primary }]}>
+                      Reply to {replyingTo.senderName}
+                    </Text>
+                    <Text style={[styles.replyText, { color: theme.colors.onSurface }]} numberOfLines={1}>
+                      {replyingTo.content}
+                    </Text>
+                  </View>
+                  <TouchableOpacity 
+                    onPress={handleCancelReply}
+                    style={styles.replyClose}
+                  >
+                    <MaterialIcons name="close" size={20} color={theme.colors.onSurfaceVariant} />
+                  </TouchableOpacity>
+                </View>
+              )}
+              
+              <MessageInput
+                onSendMessage={handleSendMessage}
+                onAttachmentSelect={handleAttachmentSelect}
+                replyingTo={replyingTo}
+                onCancelReply={handleCancelReply}
+                placeholder={connectionState.isInternetReachable ? "Type a message..." : "You are offline"}
+                isDarkMode={theme.dark}
+              />
+            </View>
+            
+            {uploadProgress && uploadProgress.isUploading && (
+              <View style={[styles.uploadProgressContainer, { backgroundColor: theme.colors.surface }]}>
+                <ProgressBar 
+                  progress={uploadProgress.progress / 100}
+                  color={theme.colors.primary}
+                  style={styles.progressBar}
+                />
+                <Text style={[styles.uploadProgressText, { color: theme.colors.onSurface }]}>
+                  Uploading... {Math.round(uploadProgress.progress)}%
+                </Text>
+              </View>
+            )}
+          </>
+        )}
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  centeredContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    padding: 16,
+    margin: 16,
   },
   loadingContainer: {
     flex: 1,
@@ -2126,13 +1953,64 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     bottom: 0,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#2196F3',
   },
   uploadProgressText: {
     marginTop: 8,
     fontSize: 14,
     fontWeight: 'bold',
     color: '#ffffff',
+  },
+  uploadProgressIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+  },
+  messageErrorContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+  },
+  retryText: {
+    marginLeft: 8,
+    fontSize: 14,
+  },
+  progressBar: {
+    height: 4,
+    width: 200,
+  },
+  inputContainer: {
+    padding: 16,
+  },
+  replyContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+  },
+  replyContent: {
+    flex: 1,
+  },
+  replyLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  replyText: {
+    fontSize: 14,
+  },
+  replyClose: {
+    padding: 8,
   },
 });
 

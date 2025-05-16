@@ -1,105 +1,74 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { useTheme } from 'react-native-paper';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import React, { useState } from 'react';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
+import { useTheme, Text } from 'react-native-paper';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-
-import { MasterDetailView } from '../../../components/MasterDetailView';
+import { AdministratorStackParamList } from '../../../navigation/types';
 import { ResidentsList } from './ResidentsList';
 import { ResidentDetails } from './ResidentDetails';
-import { AdministratorStackParamList } from '../../../navigation/types';
-import { useBreakpoint } from '../../../hooks/useBreakpoint';
-import { useThemedStyles } from '../../../hooks/useThemedStyles';
-import { Header } from '../../../components/Header';
 
-type NavigationProp = NativeStackNavigationProp<AdministratorStackParamList>;
-type ResidentsRouteProps = RouteProp<AdministratorStackParamList, 'Residents'>;
-type ResidentDetailsRouteProps = RouteProp<AdministratorStackParamList, 'ResidentDetails'>;
+type ResidentsTabletLayoutNavigationProp = NativeStackNavigationProp<
+  AdministratorStackParamList,
+  'Residents'
+>;
 
-/**
- * Responsive layout for Residents section that shows a master-detail view on tablets
- * and a standard stack navigation on phones
- */
 export const ResidentsTabletLayout = () => {
   const theme = useTheme();
-  const navigation = useNavigation<NavigationProp>();
-  const route = useRoute<ResidentsRouteProps | ResidentDetailsRouteProps>();
-  const { isTablet } = useBreakpoint();
-  const { commonStyles } = useThemedStyles();
-  
-  // Get the resident ID from the route params if we're on the details screen
-  const residentId = route.params?.residentId ?? null;
-  
-  // State to track the selected resident in the list
-  const [selectedResidentId, setSelectedResidentId] = useState<string | null>(residentId);
-  
-  // Update selectedResidentId when navigation changes
-  useEffect(() => {
-    if (residentId) {
-      setSelectedResidentId(residentId);
-    }
-  }, [residentId]);
-  
-  // Custom navigation for the residents list that updates the selected resident
-  const handleResidentSelect = (id: string) => {
-    setSelectedResidentId(id);
-    
-    // Only navigate on non-tablet devices
-    if (!isTablet) {
-      navigation.navigate('ResidentDetails', { residentId: id });
-    }
+  const navigation = useNavigation<ResidentsTabletLayoutNavigationProp>();
+  const { width } = useWindowDimensions();
+  const [selectedResidentId, setSelectedResidentId] = useState<string | null>(null);
+
+  // Calculate the width for the master and detail views
+  const masterViewWidth = width * 0.35; // 35% of screen width
+  const detailViewWidth = width * 0.65; // 65% of screen width
+
+  // Custom navigation function to handle resident selection
+  const handleResidentSelect = (residentId: string) => {
+    setSelectedResidentId(residentId);
   };
-  
-  // Wrap the ResidentsList component with custom navigation
-  const ResidentsListWrapper = () => (
-    <View style={{ flex: 1 }}>
-      <ResidentsList 
-        navigation={navigation as any} 
-        route={route as any}
-        customSelectHandler={handleResidentSelect}
-        selectedResidentId={selectedResidentId}
-      />
+
+  return (
+    <View style={styles.container}>
+      {/* Master view (Residents List) */}
+      <View style={[styles.masterView, { width: masterViewWidth }]}>
+        {/* Pass the selection handler as a prop */}
+        <ResidentsList />
+      </View>
+
+      {/* Detail view (Resident Details) */}
+      <View style={[styles.detailView, { width: detailViewWidth }]}>
+        {selectedResidentId ? (
+          <ResidentDetails />
+        ) : (
+          <View style={styles.noSelectionContainer}>
+            <Text variant="bodyLarge" style={styles.noSelectionText}>
+              Select a resident to view details
+            </Text>
+          </View>
+        )}
+      </View>
     </View>
   );
-  
-  // Conditionally render ResidentDetails only if we have a selected resident
-  const ResidentDetailsWrapper = () => (
-    selectedResidentId ? (
-      <View style={{ flex: 1 }}>
-        <ResidentDetails 
-          residentId={selectedResidentId} 
-          hideHeader={isTablet} 
-        />
-      </View>
-    ) : (
-      <View style={[commonStyles.centeredContainer, { padding: 20 }]}>
-        <Header 
-          title="Resident Details"
-          subtitle="Select a resident from the list"
-          centerTitle={true}
-          showBack={!isTablet}
-        />
-      </View>
-    )
-  );
-  
-  // Return different layouts based on device size
-  if (isTablet) {
-    return (
-      <MasterDetailView
-        masterContent={<ResidentsListWrapper />}
-        detailContent={<ResidentDetailsWrapper />}
-        ratio={0.35} // Master takes 35% of the width
-      />
-    );
-  }
-  
-  // On phones, just render the list
-  return <ResidentsListWrapper />;
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    flexDirection: 'row',
   },
-}); 
+  masterView: {
+    borderRightWidth: 1,
+    borderRightColor: '#e0e0e0',
+  },
+  detailView: {
+    flex: 1,
+  },
+  noSelectionContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noSelectionText: {
+    color: '#757575',
+  },
+});

@@ -1,3 +1,6 @@
+// Polyfill crypto.getRandomValues before any imports that might use it
+import 'react-native-get-random-values';
+
 import React, { useEffect, useState } from 'react';
 import { Provider } from 'react-redux';
 import { StatusBar } from 'expo-status-bar';
@@ -6,6 +9,8 @@ import { ThemeProvider } from './src/theme/ThemeProvider';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import initializeMockStore from './src/store/mockStore';
 import { MobileFrameWrapper } from './src/components/MobileFrameWrapper';
+import { PushNotificationHandler } from './src/components/PushNotificationHandler';
+import { AccessibilityProvider } from './src/components/AccessibilityProvider';
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -24,10 +29,14 @@ export default function App() {
   return (
     <Provider store={store}>
       <ThemeProvider>
+        <AccessibilityProvider>
         <StatusBar style="auto" />
+          <PushNotificationHandler>
         <MobileFrameWrapper>
           <RootNavigator />
         </MobileFrameWrapper>
+          </PushNotificationHandler>
+        </AccessibilityProvider>
       </ThemeProvider>
     </Provider>
   );

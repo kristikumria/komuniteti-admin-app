@@ -3,12 +3,12 @@ import type { AppTheme } from '../theme/theme';
 
 /**
  * Common styles to be shared across the application
- * Uses theme tokens for consistent design
+ * Uses Material Design 3 tokens for consistent design
  * @param theme The app theme from useTheme hook
  */
 export const getCommonStyles = (theme: AppTheme) => StyleSheet.create({
   /**
-   * Container styles
+   * Container styles using MD3 surface container tokens
    */
   screenContainer: {
     flex: 1,
@@ -16,6 +16,7 @@ export const getCommonStyles = (theme: AppTheme) => StyleSheet.create({
   },
   contentContainer: {
     padding: theme.spacing.m,
+    backgroundColor: theme.colors.surfaceContainerLow,
   },
   centeredContainer: {
     flex: 1,
@@ -25,12 +26,20 @@ export const getCommonStyles = (theme: AppTheme) => StyleSheet.create({
   },
   
   /**
-   * Card styles
+   * Card styles using MD3 elevation and surface tokens
    */
   card: {
     marginBottom: theme.spacing.m,
-    borderRadius: theme.roundness,
+    borderRadius: theme.shapes.corner.medium,
     backgroundColor: theme.colors.surface,
+    ...theme.elevation.level1,
+  },
+  cardContainer: {
+    backgroundColor: theme.colors.surfaceContainer,
+    borderRadius: theme.shapes.corner.medium,
+    padding: theme.spacing.m,
+    marginBottom: theme.spacing.m,
+    ...theme.elevation.level1,
   },
   cardTitle: {
     marginBottom: theme.spacing.s,
@@ -39,7 +48,7 @@ export const getCommonStyles = (theme: AppTheme) => StyleSheet.create({
   },
   
   /**
-   * Text styles
+   * Text styles following MD3 typography system
    */
   heading: {
     marginBottom: theme.spacing.m,
@@ -64,7 +73,7 @@ export const getCommonStyles = (theme: AppTheme) => StyleSheet.create({
   },
   
   /**
-   * Form styles
+   * Form styles using MD3 input tokens
    */
   formGroup: {
     marginBottom: theme.spacing.m,
@@ -73,6 +82,34 @@ export const getCommonStyles = (theme: AppTheme) => StyleSheet.create({
     marginBottom: theme.spacing.s,
     color: theme.colors.onSurface,
     // Use Paper Text component with labelMedium variant instead where possible
+  },
+  formInput: {
+    backgroundColor: theme.colors.surfaceContainerHighest,
+    borderRadius: theme.shapes.corner.small,
+    borderWidth: theme.shapes.border.thin,
+    borderColor: theme.colors.outline,
+    padding: theme.spacing.m,
+  },
+  
+  /**
+   * Button styles using MD3 states and colors
+   */
+  primaryButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.shapes.corner.small,
+    paddingVertical: theme.spacing.s,
+    paddingHorizontal: theme.spacing.m,
+  },
+  secondaryButton: {
+    backgroundColor: theme.colors.secondaryContainer,
+    borderRadius: theme.shapes.corner.small,
+    paddingVertical: theme.spacing.s,
+    paddingHorizontal: theme.spacing.m,
+  },
+  textButton: {
+    borderRadius: theme.shapes.corner.small,
+    paddingVertical: theme.spacing.s,
+    paddingHorizontal: theme.spacing.m,
   },
   
   /**
@@ -87,7 +124,7 @@ export const getCommonStyles = (theme: AppTheme) => StyleSheet.create({
   },
   
   /**
-   * Standard FAB (Floating Action Button) styling
+   * Standard FAB (Floating Action Button) styling using MD3 tokens
    */
   fab: {
     position: 'absolute',
@@ -99,10 +136,11 @@ export const getCommonStyles = (theme: AppTheme) => StyleSheet.create({
     borderRadius: 28,
     zIndex: 9999,
     backgroundColor: theme.colors.primary,
+    ...theme.elevation.level3,
   },
   
   /**
-   * Touch target sizing for proper interactive areas
+   * Touch target sizing for proper interactive areas, following MD3 guidelines
    */
   touchTarget: {
     minWidth: 44,
@@ -124,11 +162,37 @@ export const getCommonStyles = (theme: AppTheme) => StyleSheet.create({
   },
   tabletSidebar: {
     width: '30%',
-    borderRightWidth: 1,
+    borderRightWidth: theme.shapes.border.thin,
     borderRightColor: theme.colors.outlineVariant,
+    backgroundColor: theme.colors.surfaceContainerLow,
   },
   tabletContent: {
     width: '70%',
+    backgroundColor: theme.colors.surfaceContainer,
+  },
+  
+  /**
+   * Surface variants for different container types following MD3 guidelines
+   */
+  surfaceLowest: {
+    backgroundColor: theme.colors.surfaceContainerLowest,
+    borderRadius: theme.shapes.corner.small,
+  },
+  surfaceLow: {
+    backgroundColor: theme.colors.surfaceContainerLow,
+    borderRadius: theme.shapes.corner.small,
+  },
+  surfaceContainer: {
+    backgroundColor: theme.colors.surfaceContainer,
+    borderRadius: theme.shapes.corner.small,
+  },
+  surfaceHigh: {
+    backgroundColor: theme.colors.surfaceContainerHigh,
+    borderRadius: theme.shapes.corner.small,
+  },
+  surfaceHighest: {
+    backgroundColor: theme.colors.surfaceContainerHighest,
+    borderRadius: theme.shapes.corner.small,
   },
   
   /**
@@ -144,18 +208,19 @@ export const getCommonStyles = (theme: AppTheme) => StyleSheet.create({
   p16: { padding: theme.spacing.m },
   
   /**
-   * List items
+   * List items with MD3 styling
    */
   listItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: theme.spacing.m,
-    borderBottomWidth: 1,
+    borderBottomWidth: theme.shapes.border.thin,
     borderBottomColor: theme.colors.outlineVariant,
+    backgroundColor: theme.colors.surface,
   },
   
   /**
-   * Dividers
+   * Dividers following MD3 specs
    */
   divider: {
     height: 1,
@@ -165,15 +230,48 @@ export const getCommonStyles = (theme: AppTheme) => StyleSheet.create({
   },
   
   /**
-   * Responsive typography adjustments
+   * State styles for interactive elements
    */
-  tabletHeading: {
-    // Slightly larger typography for tablet displays
-    // Use Text component with appropriate variants
+  stateLayer: {
+    // Base for pressed/hover states in MD3
+    borderRadius: theme.shapes.corner.small,
   },
-  tabletButton: {
-    // Adjusted button sizing for tablet touch targets
-    paddingVertical: theme.spacing.s,
-    paddingHorizontal: theme.spacing.m,
+  stateLayerHover: {
+    backgroundColor: theme.colors.onSurface + '08', // Using 8% opacity for hover state
+  },
+  stateLayerPressed: {
+    backgroundColor: theme.colors.onSurface + '12', // Using 12% opacity for pressed state
+  },
+  
+  /**
+   * Feedback states following MD3 guidelines
+   */
+  successContainer: {
+    backgroundColor: theme.colors.successContainer,
+    borderRadius: theme.shapes.corner.small,
+    padding: theme.spacing.m,
+    borderLeftWidth: theme.shapes.border.thick,
+    borderLeftColor: theme.colors.success,
+  },
+  errorContainer: {
+    backgroundColor: theme.colors.errorContainer,
+    borderRadius: theme.shapes.corner.small,
+    padding: theme.spacing.m,
+    borderLeftWidth: theme.shapes.border.thick,
+    borderLeftColor: theme.colors.error,
+  },
+  warningContainer: {
+    backgroundColor: theme.colors.warningContainer,
+    borderRadius: theme.shapes.corner.small,
+    padding: theme.spacing.m,
+    borderLeftWidth: theme.shapes.border.thick,
+    borderLeftColor: theme.colors.warning,
+  },
+  infoContainer: {
+    backgroundColor: theme.colors.infoContainer,
+    borderRadius: theme.shapes.corner.small,
+    padding: theme.spacing.m,
+    borderLeftWidth: theme.shapes.border.thick,
+    borderLeftColor: theme.colors.info,
   },
 }); 

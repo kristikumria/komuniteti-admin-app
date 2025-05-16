@@ -18,7 +18,12 @@ import {
   Bookmark,
   FileText,
   Briefcase,
-  Building2
+  Building2,
+  Coffee,
+  Smartphone,
+  ClipboardEdit,
+  MessageSquare,
+  Wrench
 } from 'lucide-react-native';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { toggleDarkMode } from '../../../store/slices/settingsSlice';
@@ -67,8 +72,9 @@ export const MoreScreen = () => {
     // For screens that should be pushed onto the current navigator stack
     const directNavigationScreens = [
       'Settings', 
-      'InfoPointsScreen', 
-      'PollsScreen', 
+      'InfoPoints',
+      'Polls',
+      'NotificationsTab',
       'NotificationsScreen',
       'Organigram',
       'Analytics',
@@ -176,7 +182,7 @@ export const MoreScreen = () => {
             COMMUNITY TOOLS
           </List.Subheader>
           
-          <TouchableOpacity onPress={() => navigateTo('InfoPointsScreen')}>
+          <TouchableOpacity onPress={() => navigateTo('InfoPoints')}>
             <List.Item
               title="Info Points"
               description="Building announcements and information"
@@ -189,7 +195,7 @@ export const MoreScreen = () => {
           
           <Divider style={{ backgroundColor: isDarkMode ? '#333' : '#eee' }} />
           
-          <TouchableOpacity onPress={() => navigateTo('PollsScreen')}>
+          <TouchableOpacity onPress={() => navigateTo('Polls')}>
             <List.Item
               title="Polls & Surveys"
               description="Community feedback and voting"
@@ -202,7 +208,20 @@ export const MoreScreen = () => {
           
           <Divider style={{ backgroundColor: isDarkMode ? '#333' : '#eee' }} />
           
-          <TouchableOpacity onPress={() => navigateTo('NotificationsScreen')}>
+          <TouchableOpacity onPress={() => navigateTo('MaintenanceRequests')}>
+            <List.Item
+              title="Maintenance"
+              description="Maintenance requests and issue reporting"
+              left={props => <Wrench {...props} size={24} color={theme.colors.primary} />}
+              titleStyle={{ color: isDarkMode ? '#fff' : '#333' }}
+              descriptionStyle={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : '#999' }}
+              right={props => <List.Icon {...props} icon="chevron-right" />}
+            />
+          </TouchableOpacity>
+          
+          <Divider style={{ backgroundColor: isDarkMode ? '#333' : '#eee' }} />
+          
+          <TouchableOpacity onPress={() => navigateTo('NotificationsTab')}>
             <List.Item
               title="Notifications"
               description="Alerts and updates"
@@ -279,20 +298,36 @@ export const MoreScreen = () => {
             APP SETTINGS
           </List.Subheader>
           
-          <TouchableOpacity onPress={handleToggleDarkMode}>
+          <TouchableOpacity onPress={navigateToSettings}>
             <List.Item
-              title={isDarkMode ? "Light Mode" : "Dark Mode"}
-              description="Change app appearance"
-              left={props => 
-                isDarkMode 
-                  ? <Sun {...props} size={24} color={theme.colors.primary} /> 
-                  : <Moon {...props} size={24} color={theme.colors.primary} />
-              }
+              title="Settings"
+              description="App preferences and account settings"
+              left={props => <Settings {...props} size={24} color={theme.colors.primary} />}
               titleStyle={{ color: isDarkMode ? '#fff' : '#333' }}
               descriptionStyle={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : '#999' }}
-              right={props => <Switch value={isDarkMode} onValueChange={handleToggleDarkMode} color={theme.colors.primary} />}
+              right={props => <List.Icon {...props} icon="chevron-right" />}
             />
           </TouchableOpacity>
+          
+          <Divider style={{ backgroundColor: isDarkMode ? '#333' : '#eee' }} />
+          
+          <List.Item
+            title="Dark Mode"
+            description="Toggle light and dark theme"
+            left={props => isDarkMode ? 
+              <Moon {...props} size={24} color={theme.colors.primary} /> : 
+              <Sun {...props} size={24} color={theme.colors.primary} />
+            }
+            titleStyle={{ color: isDarkMode ? '#fff' : '#333' }}
+            descriptionStyle={{ color: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : '#999' }}
+            right={() => (
+              <Switch 
+                value={isDarkMode} 
+                onValueChange={handleToggleDarkMode} 
+                color={theme.colors.primary} 
+              />
+            )}
+          />
           
           <Divider style={{ backgroundColor: isDarkMode ? '#333' : '#eee' }} />
           
@@ -335,15 +370,11 @@ export const MoreScreen = () => {
         </List.Section>
 
         {/* Logout Button */}
-        <TouchableOpacity 
-          style={[
-            styles.logoutButton, 
-            { backgroundColor: isDarkMode ? 'rgba(229, 57, 53, 0.1)' : 'rgba(229, 57, 53, 0.05)' }
-          ]} 
-          onPress={handleLogout}
-        >
-          <LogOut size={20} color="#e53935" style={{ marginRight: 10 }} />
-          <Text style={{ color: '#e53935', fontWeight: '500' }}>Logout</Text>
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutContainer}>
+          <View style={styles.logoutButton}>
+            <LogOut size={20} color={isDarkMode ? '#fff' : "#F44336"} style={styles.logoutIcon} />
+            <Text style={[styles.logoutText, { color: isDarkMode ? '#fff' : "#F44336" }]}>Logout</Text>
+          </View>
         </TouchableOpacity>
         
         <View style={styles.versionContainer}>
@@ -413,13 +444,25 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.5,
   },
-  logoutButton: {
+  logoutContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutIcon: {
+    marginRight: 10,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: '500',
   },
   versionContainer: {
     alignItems: 'center',

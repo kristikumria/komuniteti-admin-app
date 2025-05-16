@@ -2,6 +2,7 @@ import React, { ReactNode, useState, useEffect } from 'react';
 import { StyleSheet, View, Platform } from 'react-native';
 import { useThemedStyles } from '../hooks/useThemedStyles';
 import type { AppTheme } from '../theme/theme';
+import { NavigationIndependentTree } from '@react-navigation/native';
 
 interface MobileFrameWrapperProps {
   children: ReactNode;
@@ -10,7 +11,7 @@ interface MobileFrameWrapperProps {
 export const MobileFrameWrapper: React.FC<MobileFrameWrapperProps> = ({ children }) => {
   // Only apply the frame styling on web platform
   if (Platform.OS !== 'web') {
-    return <>{children}</>;
+    return <NavigationIndependentTree>{children}</NavigationIndependentTree>;
   }
   
   const { theme } = useThemedStyles();
@@ -40,7 +41,9 @@ export const MobileFrameWrapper: React.FC<MobileFrameWrapperProps> = ({ children
         <View style={[styles(theme).phoneContainer, { width: phoneWidth, height: phoneHeight }]}>
           <View style={styles(theme).phoneFrame}>
             <View style={styles(theme).phoneContent}>
-              {children}
+              <NavigationIndependentTree>
+                {children}
+              </NavigationIndependentTree>
             </View>
           </View>
         </View>

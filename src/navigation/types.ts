@@ -1,6 +1,15 @@
 import { NavigatorScreenParams } from '@react-navigation/native';
 import { UserRole } from '../store/slices/authSlice';
 
+// Developer tools
+export type DevStackParamList = {
+  MD3ElevationShowcase: undefined;
+  ComponentShowcase: undefined;
+  ThemeShowcase: undefined;
+  ResponsiveLayoutShowcase: undefined;
+  FormShowcase: undefined;
+}
+
 // Auth Stack
 export type AuthStackParamList = {
   Login: undefined;
@@ -52,12 +61,25 @@ export type BusinessManagerStackParamList = {
   Services: undefined;
   MoreMain: undefined;
   MainTabs: undefined;
+  // Dev tools
+  MD3ElevationShowcase: undefined;
+  ComponentShowcase: undefined;
+  ThemeShowcase: undefined;
+  ResponsiveLayoutShowcase: undefined;
+  FormShowcase: undefined;
+  Maintenance: undefined;
+  MaintenanceRequests: undefined;
+  MaintenanceDetail: { requestId: string };
+  MaintenanceForm: { buildingId?: string; unitId?: string };
+  MaintenanceEdit: { requestId: string };
+  MaintenanceWorkers: undefined;
+  MaintenanceWorkerDetail: { workerId: string };
+  MaintenanceAnalytics: { buildingId?: string };
 };
 
 // Administrator Tab Navigator
 export type AdministratorTabParamList = {
   DashboardTab: undefined;
-  ResidentsTab: NavigatorScreenParams<AdministratorStackParamList> | undefined;
   UnitsTab: NavigatorScreenParams<AdministratorStackParamList> | undefined;
   PaymentsTab: NavigatorScreenParams<AdministratorStackParamList> | undefined;
   ChatTab: NavigatorScreenParams<{
@@ -70,64 +92,54 @@ export type AdministratorTabParamList = {
 };
 
 // Administrator Stack
-export type AdministratorStackParamList = {
+export interface AdministratorStackParamList extends Record<string, object | undefined> {
   Dashboard: undefined;
   Residents: undefined;
   ResidentDetails: { residentId: string };
   AddResident: undefined;
   EditResident: { residentId: string };
-  // Units related screens
   Units: undefined;
   UnitDetails: { unitId: string };
   AddUnit: undefined;
   EditUnit: { unitId: string };
+  UnitResidents: { unitId: string; unitNumber: string; buildingName: string };
   ResidentialUnits: undefined;
   BusinessUnits: undefined;
-  BuildingUnits: { buildingId: string };
-  // Payments related screens
+  BuildingUnits: undefined;
   Payments: undefined;
   PaymentDetails: { paymentId: string };
   AddPayment: undefined;
-  EditPayment: { paymentId: string };
-  ProcessPayment: { paymentId: string };
+  ProcessPayment: { residentId: string };
   PaymentHistory: undefined;
-  // Other screens
-  NotificationsTab: undefined;
-  NotificationsScreen: undefined;
-  NotificationDetails: { notificationId: string };
-  NotificationSettings: undefined;
-  Reports: undefined;
-  ReportDetails: { reportId: string };
-  Issues: undefined;
-  IssueDetails: { issueId: string };
-  Notices: undefined;
-  NoticeDetails: { noticeId: string };
   Chat: undefined;
   ChatConversation: { conversationId: string };
   NewConversation: undefined;
-  InfoPoints: undefined;
-  Polls: undefined;
-  PollDetails: { pollId: string };
-  Settings: undefined;
+  Reports: undefined;
+  ReportDetails: { reportId: string };
+  NotificationsTab: undefined;
+  NotificationDetails: { notificationId: string };
+  NotificationSettings: undefined;
   MoreMain: undefined;
+  Settings: undefined;
   InfoPointsScreen: undefined;
   PollsScreen: undefined;
+  PollDetails: { pollId: string };
   ReportsStack: undefined;
   Messages: undefined;
-  MainTabs: undefined;
-  // Main tabs
-  AdministratorTabs: undefined;
-  // Resident management
-  Residents: undefined;
-  ResidentDetails: { residentId: string };
-  AddResident: undefined;
-  EditResident: { residentId: string };
-  // ... existing routes ...
-  // Settings & Profile
-  Settings: undefined;
-  Profile: undefined;
-  NotificationSettings: undefined;
-};
+  OrganizationChart: undefined;
+  Profile: { userId: string };
+  MD3ElevationShowcase: undefined;
+  ChatTestScreen: undefined;
+  Maintenance: undefined;
+  MaintenanceRequests: undefined | { tab?: 'maintenance' | 'reports' };
+  MaintenanceDetail: { requestId: string };
+  MaintenanceForm: { unitId?: string };
+  MaintenanceEdit: { requestId: string };
+  MaintenanceWorkers: undefined;
+  MaintenanceWorkerDetail: { workerId: string };
+  MaintenanceAnalytics: undefined;
+  MaintenanceReports: undefined;
+}
 
 // Root Navigation
 export type RootStackParamList = {
@@ -411,7 +423,6 @@ export interface BusinessAccount {
 
 export type AdministratorBottomTabParamList = {
   DashboardTab: undefined;
-  ResidentsTab: undefined;
   UnitsTab: undefined;
   PaymentsTab: undefined;
   ChatTab: undefined;

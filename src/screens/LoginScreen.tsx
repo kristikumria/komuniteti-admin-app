@@ -1,30 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Image, Text, TouchableOpacity, ScrollView, Platform, Alert } from 'react-native';
-import { useForm, Controller } from 'react-hook-form';
+import { StyleSheet, View, TouchableOpacity, Platform, Alert, KeyboardAvoidingView, ScrollView } from 'react-native';
+import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useTheme, Button, TextInput, Checkbox, Divider, Switch } from 'react-native-paper';
+import { Text, Checkbox, Divider, Surface, useTheme, Button as PaperButton } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { loginRequest, loginSuccess, loginFailure } from '../store/slices/authSlice';
 import { authService } from '../services/authService';
 import { loginSchema } from '../utils/validationSchemas';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Building, Mail, Lock, Fingerprint, User } from 'lucide-react-native';
+import { TextField } from '../components/TextField';
+import { Button } from '../components/Button';
+import { FormLayout } from '../components/FormLayout';
+import { useAccessibility } from '../components/AccessibilityProvider';
+import Haptics from 'expo-haptics';
 
 interface LoginFormData {
   email: string;
   password: string;
 }
 
+type UserRole = 'business_manager' | 'administrator';
+
 export const LoginScreen = ({ navigation }: any) => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const { loading, error } = useAppSelector(state => state.auth);
-  const isDarkMode = useAppSelector(state => state.settings.darkMode);
+  const { settings } = useAccessibility();
   
   const [rememberMe, setRememberMe] = useState(false);
   const [useBiometrics, setUseBiometrics] = useState(false);
   const [isBiometricsAvailable, setIsBiometricsAvailable] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<'business_manager' | 'administrator'>('business_manager');
+  const [selectedRole, setSelectedRole] = useState<UserRole>('business_manager');
   
   const { control, handleSubmit, setValue, formState: { errors } } = useForm<LoginFormData>({
     defaultValues: {
@@ -57,10 +64,20 @@ export const LoginScreen = ({ navigation }: any) => {
   
   const onSubmit = async (data: LoginFormData) => {
     try {
+      // Trigger haptic feedback on submit
+      if (!settings.reduceMotion) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+      
       dispatch(loginRequest());
       const result = await authService.login(data);
       dispatch(loginSuccess(result));
     } catch (error: any) {
+      // Error haptic feedback
+      if (!settings.reduceMotion) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+      
       dispatch(loginFailure(error.message || 'Login failed'));
       Alert.alert('Login Failed', error.message || 'Please check your credentials and try again.');
     }
@@ -68,6 +85,11 @@ export const LoginScreen = ({ navigation }: any) => {
   
   const handleBiometricAuth = async () => {
     try {
+      // Trigger haptic feedback before biometric prompt
+      if (!settings.reduceMotion) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+      
       dispatch(loginRequest());
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Authenticate to continue',
@@ -75,6 +97,11 @@ export const LoginScreen = ({ navigation }: any) => {
       });
       
       if (result.success) {
+        // Success haptic feedback
+        if (!settings.reduceMotion) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+        
         // Use the default credentials based on selected role
         const email = selectedRole === 'business_manager' ? 'business@example.com' : 'property@example.com';
         const loginResult = await authService.login({ email, password: 'password123' });
@@ -83,6 +110,11 @@ export const LoginScreen = ({ navigation }: any) => {
         dispatch(loginFailure('Biometric authentication cancelled'));
       }
     } catch (error: any) {
+      // Error haptic feedback
+      if (!settings.reduceMotion) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+      
       dispatch(loginFailure(error.message || 'Biometric authentication failed'));
       Alert.alert('Authentication Failed', 'Please try again or use email/password login instead.');
     }
@@ -96,49 +128,84 @@ export const LoginScreen = ({ navigation }: any) => {
     navigation.navigate('Register');
   };
   
+  const handleRoleSelection = (role: UserRole) => {
+    // Provide tactile feedback when role is changed
+    if (!settings.reduceMotion) {
+      Haptics.selectionAsync();
+    }
+    setSelectedRole(role);
+  };
+  
   return (
-    <ScrollView 
-      contentContainerStyle={[
-        styles.scrollContainer,
-        { backgroundColor: isDarkMode ? '#121212' : '#ffffff' }
-      ]}
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
     >
-      <View style={styles.container}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.logoContainer}>
-          {/* App logo */}
-          <View style={[styles.logoCircle, { backgroundColor: theme.colors.primaryContainer }]}>
-            <Building size={32} color={theme.colors.primary} />
-          </View>
-          <Text style={[styles.appName, { color: isDarkMode ? '#ffffff' : '#333333' }]}>Komuniteti</Text>
-          <Text style={[styles.appSubtitle, { color: isDarkMode ? '#cccccc' : '#666666' }]}>
+          <Surface style={[styles.logoCircle, { backgroundColor: theme.colors.primaryContainer }]} elevation={2}>
+            <Building size={40} color={theme.colors.onPrimaryContainer} />
+          </Surface>
+          <Text variant="headlineMedium" style={[styles.appName, { color: theme.colors.onBackground }]}>
+            Komuniteti
+          </Text>
+          <Text variant="titleSmall" style={[styles.appSubtitle, { color: theme.colors.onSurfaceVariant }]}>
             Property Management Platform
           </Text>
         </View>
         
-        <View style={styles.formContainer}>
+        <Surface style={styles.formContainer} elevation={2}>
+          <Text variant="titleLarge" style={[styles.welcomeText, { color: theme.colors.onSurface }]}>
+            Welcome Back
+          </Text>
+          <Text variant="bodyMedium" style={[styles.subtitleText, { color: theme.colors.onSurfaceVariant }]}>
+            Sign in to your account
+          </Text>
+          
           {/* Role selection */}
-          <View style={styles.roleSelectionContainer}>
+          <View 
+            style={styles.roleSelectionContainer}
+            accessibilityRole="radiogroup"
+            accessibilityLabel="Select account type"
+          >
             <TouchableOpacity
               style={[
                 styles.roleButton,
-                selectedRole === 'business_manager' && { 
-                  backgroundColor: theme.colors.primaryContainer,
-                  borderColor: theme.colors.primary,
-                  borderWidth: 1
-                }
+                selectedRole === 'business_manager' && [
+                  styles.selectedRoleButton,
+                  { backgroundColor: theme.colors.primaryContainer }
+                ]
               ]}
-              onPress={() => setSelectedRole('business_manager')}
+              onPress={() => handleRoleSelection('business_manager')}
+              activeOpacity={0.7}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: selectedRole === 'business_manager' }}
+              accessibilityLabel="Business Manager"
+              accessibilityHint="Select to login as Business Manager"
             >
               <View style={styles.roleButtonContent}>
                 <User 
-                  size={18} 
-                  color={selectedRole === 'business_manager' ? theme.colors.primary : isDarkMode ? '#cccccc' : '#666666'} 
-                  style={{ marginRight: 8 }}
+                  size={20} 
+                  color={
+                    selectedRole === 'business_manager'
+                      ? theme.colors.onPrimaryContainer
+                      : theme.colors.onSurfaceVariant
+                  }
+                  style={styles.roleIcon}
                 />
-                <Text style={[
-                  styles.roleButtonText,
-                  { color: selectedRole === 'business_manager' ? theme.colors.primary : isDarkMode ? '#cccccc' : '#666666' }
-                ]}>
+                <Text 
+                  variant="labelLarge"
+                  style={[
+                    { 
+                      color: selectedRole === 'business_manager'
+                        ? theme.colors.onPrimaryContainer
+                        : theme.colors.onSurfaceVariant
+                    }
+                  ]}
+                >
                   Business Manager
                 </Text>
               </View>
@@ -147,181 +214,178 @@ export const LoginScreen = ({ navigation }: any) => {
             <TouchableOpacity
               style={[
                 styles.roleButton,
-                selectedRole === 'administrator' && { 
-                  backgroundColor: theme.colors.primaryContainer,
-                  borderColor: theme.colors.primary,
-                  borderWidth: 1
-                }
+                selectedRole === 'administrator' && [
+                  styles.selectedRoleButton,
+                  { backgroundColor: theme.colors.primaryContainer }
+                ]
               ]}
-              onPress={() => setSelectedRole('administrator')}
+              onPress={() => handleRoleSelection('administrator')}
+              activeOpacity={0.7}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: selectedRole === 'administrator' }}
+              accessibilityLabel="Administrator"
+              accessibilityHint="Select to login as Administrator"
             >
               <View style={styles.roleButtonContent}>
                 <Building 
-                  size={18} 
-                  color={selectedRole === 'administrator' ? theme.colors.primary : isDarkMode ? '#cccccc' : '#666666'}
-                  style={{ marginRight: 8 }}
+                  size={20} 
+                  color={
+                    selectedRole === 'administrator'
+                      ? theme.colors.onPrimaryContainer
+                      : theme.colors.onSurfaceVariant
+                  }
+                  style={styles.roleIcon}
                 />
-                <Text style={[
-                  styles.roleButtonText,
-                  { color: selectedRole === 'administrator' ? theme.colors.primary : isDarkMode ? '#cccccc' : '#666666' }
-                ]}>
+                <Text 
+                  variant="labelLarge"
+                  style={[
+                    { 
+                      color: selectedRole === 'administrator'
+                        ? theme.colors.onPrimaryContainer
+                        : theme.colors.onSurfaceVariant
+                    }
+                  ]}
+                >
                   Administrator
                 </Text>
               </View>
             </TouchableOpacity>
           </View>
           
-          {/* Email input */}
-          <Controller
+          {/* Form Fields */}
+          <TextField
             control={control}
             name="email"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                label="Email"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                error={!!errors.email}
-                mode="outlined"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                left={<TextInput.Icon icon={() => <Mail size={20} color={isDarkMode ? '#cccccc' : '#666666'} />} />}
-                style={styles.textInput}
-                outlineStyle={{ borderRadius: 8 }}
-                contentStyle={{ paddingVertical: 12 }}
-                theme={{ 
-                  colors: { 
-                    onSurfaceVariant: isDarkMode ? '#cccccc' : '#666666' 
-                  } 
-                }}
-              />
-            )}
+            label="Email"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            left={<Mail size={20} color={theme.colors.onSurfaceVariant} />}
+            accessibilityHint="Enter your email address"
+            required
+            testID="email-input"
+            style={styles.textField}
           />
-          {errors.email && (
-            <Text style={[styles.errorText, { color: theme.colors.error }]}>
-              {errors.email.message}
-            </Text>
-          )}
           
-          {/* Password input */}
-          <Controller
+          <TextField
             control={control}
             name="password"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                label="Password"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                error={!!errors.password}
-                mode="outlined"
-                secureTextEntry
-                left={<TextInput.Icon icon={() => <Lock size={20} color={isDarkMode ? '#cccccc' : '#666666'} />} />}
-                right={<TextInput.Icon icon="eye" onPress={() => {}} />}
-                style={styles.textInput}
-                outlineStyle={{ borderRadius: 8 }}
-                contentStyle={{ paddingVertical: 12 }}
-                theme={{ 
-                  colors: { 
-                    onSurfaceVariant: isDarkMode ? '#cccccc' : '#666666' 
-                  } 
-                }}
-              />
-            )}
+            label="Password"
+            secureTextEntry
+            left={<Lock size={20} color={theme.colors.onSurfaceVariant} />}
+            accessibilityHint="Enter your password"
+            required
+            testID="password-input"
+            style={styles.textField}
           />
-          {errors.password && (
-            <Text style={[styles.errorText, { color: theme.colors.error }]}>
-              {errors.password.message}
-            </Text>
-          )}
           
-          <View style={styles.optionsContainer}>
+          {/* Remember me & Forgot Password */}
+          <View style={styles.rememberForgotContainer}>
             <View style={styles.checkboxContainer}>
               <Checkbox
                 status={rememberMe ? 'checked' : 'unchecked'}
                 onPress={() => setRememberMe(!rememberMe)}
                 color={theme.colors.primary}
+                testID="remember-checkbox"
               />
-              <Text style={[styles.checkboxLabel, { color: isDarkMode ? '#cccccc' : '#666666' }]}>
-                Remember me
-              </Text>
+              <TouchableOpacity 
+                onPress={() => setRememberMe(!rememberMe)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: rememberMe }}
+                accessibilityLabel="Remember me"
+              >
+                <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                  Remember me
+                </Text>
+              </TouchableOpacity>
             </View>
             
-            {isBiometricsAvailable && (
-              <View style={styles.checkboxContainer}>
-                <Checkbox
-                  status={useBiometrics ? 'checked' : 'unchecked'}
-                  onPress={() => setUseBiometrics(!useBiometrics)}
-                  color={theme.colors.primary}
-                />
-                <Text style={[styles.checkboxLabel, { color: isDarkMode ? '#cccccc' : '#666666' }]}>
-                  Use biometrics
-                </Text>
-              </View>
-            )}
-          </View>
-          
-          {/* Login as selected role button */}
-          <Button
-            mode="contained"
-            onPress={handleSubmit(onSubmit)}
-            loading={loading}
-            disabled={loading}
-            style={[styles.loginButton, { backgroundColor: theme.colors.primary }]}
-            contentStyle={{ height: 48 }}
-            labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
-          >
-            {`Login as ${selectedRole === 'business_manager' ? 'Business Manager' : 'Administrator'}`}
-          </Button>
-          
-          {/* Biometric login button */}
-          {isBiometricsAvailable && (
-            <Button
-              mode="outlined"
-              onPress={handleBiometricAuth}
-              disabled={loading}
-              style={styles.biometricButton}
-              contentStyle={{ height: 48 }}
-              icon={() => <Fingerprint size={20} color={theme.colors.primary} />}
+            <TouchableOpacity 
+              onPress={handleForgotPassword}
+              accessibilityRole="button"
+              accessibilityLabel="Forgot password"
+              accessibilityHint="Navigate to password recovery"
             >
-              Login with Biometrics
-            </Button>
-          )}
-          
-          <View style={styles.linksContainer}>
-            <TouchableOpacity onPress={handleForgotPassword}>
-              <Text style={[styles.linkText, { color: theme.colors.primary }]}>
+              <Text 
+                variant="bodyMedium" 
+                style={{ color: theme.colors.primary, fontWeight: '600' }}
+              >
                 Forgot Password?
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleRegister}>
-              <Text style={[styles.linkText, { color: theme.colors.primary }]}>
-                Create Account
+          </View>
+          
+          {/* Login button */}
+          <Button
+            mode="contained"
+            onPress={handleSubmit(onSubmit)}
+            disabled={loading}
+            loading={loading}
+            width="full"
+            style={styles.loginButton}
+            testID="login-button"
+            accessibilityLabel="Login"
+            accessibilityHint="Sign in to your account"
+          >
+            Sign In
+          </Button>
+          
+          {/* Biometric authentication */}
+          {isBiometricsAvailable && (
+            <TouchableOpacity
+              style={[
+                styles.biometricButton,
+                { borderColor: theme.colors.outline }
+              ]}
+              onPress={handleBiometricAuth}
+              disabled={loading}
+              accessibilityRole="button"
+              accessibilityLabel="Use biometric authentication"
+              accessibilityHint="Sign in using fingerprint or face recognition"
+            >
+              <Fingerprint size={22} color={theme.colors.primary} style={{ marginRight: 10 }} />
+              <Text variant="labelLarge" style={{ color: theme.colors.onSurface }}>
+                Use Biometric Authentication
+              </Text>
+            </TouchableOpacity>
+          )}
+          
+          {/* Register link */}
+          <View style={styles.registerContainer}>
+            <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+              Don't have an account?
+            </Text>
+            <TouchableOpacity 
+              onPress={handleRegister}
+              accessibilityRole="button"
+              accessibilityLabel="Create new account"
+              accessibilityHint="Navigate to registration screen"
+            >
+              <Text 
+                variant="bodyMedium" 
+                style={{ color: theme.colors.primary, fontWeight: '600', marginLeft: 4 }}
+              >
+                Register
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
-        
-        <Text style={[styles.footerText, { color: isDarkMode ? '#999999' : '#999999' }]}>
-          © 2025 Komuniteti. All rights reserved.
-        </Text>
-      </View>
-    </ScrollView>
+        </Surface>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-  },
   container: {
     flex: 1,
-    padding: 24,
+  },
+  scrollContainer: {
+    flexGrow: 1,
     justifyContent: 'center',
+    padding: 20,
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   logoCircle: {
     width: 80,
@@ -332,76 +396,80 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   appName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   appSubtitle: {
-    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 4,
   },
   formContainer: {
+    padding: 24,
+    borderRadius: 16,
+  },
+  welcomeText: {
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  subtitleText: {
+    textAlign: 'center',
     marginBottom: 24,
   },
   roleSelectionContainer: {
     flexDirection: 'row',
     marginBottom: 24,
-    gap: 12,
+    justifyContent: 'space-between',
   },
   roleButton: {
     flex: 1,
-    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    marginHorizontal: 4,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    padding: 12,
+    borderColor: 'transparent',
+  },
+  selectedRoleButton: {
+    borderColor: 'transparent',
   },
   roleButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  roleButtonText: {
-    fontWeight: '500',
+  roleIcon: {
+    marginRight: 8,
   },
-  textInput: {
-    marginBottom: 12,
+  textField: {
+    marginBottom: 16,
   },
-  errorText: {
-    fontSize: 12,
-    marginBottom: 8,
-    marginTop: -8,
-    marginLeft: 8,
-  },
-  optionsContainer: {
+  rememberForgotContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 24,
   },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  checkboxLabel: {
-    marginLeft: 4,
-    fontSize: 14,
-  },
   loginButton: {
-    marginBottom: 12,
-    borderRadius: 8,
+    marginBottom: 16,
   },
   biometricButton: {
-    marginBottom: 24,
-    borderRadius: 8,
-  },
-  linksContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 16,
   },
-  linkText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  footerText: {
-    textAlign: 'center',
-    fontSize: 12,
+  registerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
   },
 });
