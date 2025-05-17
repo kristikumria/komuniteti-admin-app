@@ -46,11 +46,6 @@ import { BusinessAccountDetails } from '../screens/business-manager/BusinessAcco
 import { BusinessAccountDocumentsScreen } from '../screens/business-manager/BusinessAccounts/BusinessAccountDocumentsScreen';
 import { BusinessAccountFinancialReportsScreen } from '../screens/business-manager/BusinessAccounts/BusinessAccountFinancialReportsScreen';
 import { BuildingsComparisonScreen } from '../screens/business-manager/Buildings/BuildingsComparisonScreen';
-import { MD3ElevationShowcase } from '../screens/dev/MD3ElevationShowcase';
-import { ComponentShowcase } from '../screens/dev/ComponentShowcase';
-import { ThemeShowcase } from '../screens/dev/ThemeShowcase';
-import { ResponsiveLayoutShowcase } from '../screens/dev/ResponsiveLayoutShowcase';
-import { FormShowcase } from '../screens/dev/FormShowcase';
 import { MaintenanceList, MaintenanceDetail, MaintenanceForm, MaintenanceWorkers, MaintenanceWorkerDetail, MaintenanceAnalytics } from '../screens/business-manager/Maintenance';
 
 const Tab = createBottomTabNavigator<BusinessManagerTabParamList>();
@@ -114,7 +109,6 @@ const MoreStack = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MoreMain" component={MoreScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
-      <Stack.Screen name="AccountSettings" component={AccountSettingsScreen} />
       <Stack.Screen name="InfoPointsScreen" component={InfoPointsScreen} />
       <Stack.Screen name="NotificationsTab" component={NotificationsScreen} />
       <Stack.Screen name="Messages" component={ChatListScreen} />
@@ -138,11 +132,6 @@ const MoreStack = () => {
       <Stack.Screen name="MaintenanceWorkers" component={MaintenanceWorkers} />
       <Stack.Screen name="MaintenanceWorkerDetail" component={MaintenanceWorkerDetail} />
       <Stack.Screen name="MaintenanceAnalytics" component={MaintenanceAnalytics} />
-      <Stack.Screen name="MD3ElevationShowcase" component={MD3ElevationShowcase} />
-      <Stack.Screen name="ComponentShowcase" component={ComponentShowcase} />
-      <Stack.Screen name="ThemeShowcase" component={ThemeShowcase} />
-      <Stack.Screen name="ResponsiveLayoutShowcase" component={ResponsiveLayoutShowcase} />
-      <Stack.Screen name="FormShowcase" component={FormShowcase} />
     </Stack.Navigator>
   );
 };

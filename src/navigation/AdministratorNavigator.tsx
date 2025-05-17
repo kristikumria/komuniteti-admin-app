@@ -57,10 +57,6 @@ import { ProfileTabletLayout } from '../screens/shared/ProfileTabletLayout';
 import { PaymentsTabletLayout } from '../screens/administrator/Payments/PaymentsTabletLayout';
 import { ReportsTabletLayout } from '../screens/administrator/Reports/ReportsTabletLayout';
 import { ChatTabletLayout } from '../screens/shared/Chat';
-// Import the MD3ElevationShowcase screen
-import { MD3ElevationShowcase } from '../screens/dev/MD3ElevationShowcase';
-// Import the ChatTestScreen
-import { ChatTestScreen } from '../screens/dev/ChatTestScreen';
 // Import the maintenance components but not MaintenanceList (removed duplicate)
 import { MaintenanceDetail, MaintenanceForm, MaintenanceWorkers, MaintenanceWorkerDetail, MaintenanceAnalyticsComponent as MaintenanceAnalytics } from '../screens/shared/Maintenance/MaintenanceComponents';
 // Import the unified MaintenanceReports screen
@@ -156,14 +152,12 @@ const MoreStack = () => {
       <Stack.Screen name="Messages" component={ChatListScreen} />
       <Stack.Screen name="ChatConversation" component={ChatConversationScreen} />
       <Stack.Screen name="NewConversation" component={NewConversationScreen} />
-      <Stack.Screen name="MaintenanceRequests" component={MaintenanceReports} />
+      <Stack.Screen name="MaintenanceReports" component={MaintenanceReports} />
       <Stack.Screen name="MaintenanceDetail" component={MaintenanceDetail} />
       <Stack.Screen name="MaintenanceForm" component={MaintenanceForm} />
       <Stack.Screen name="MaintenanceWorkers" component={MaintenanceWorkers} />
       <Stack.Screen name="MaintenanceWorkerDetail" component={MaintenanceWorkerDetail} />
       <Stack.Screen name="MaintenanceAnalytics" component={MaintenanceAnalytics} />
-      <Stack.Screen name="MD3ElevationShowcase" component={MD3ElevationShowcase} />
-      <Stack.Screen name="ChatTestScreen" component={ChatTestScreen} />
     </Stack.Navigator>
   );
 };

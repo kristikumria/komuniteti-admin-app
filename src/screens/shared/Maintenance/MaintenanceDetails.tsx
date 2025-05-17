@@ -205,6 +205,91 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
+  card: {
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  chips: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  statusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 24,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+  },
+  statusText: {
+    color: 'white',
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  priorityChip: {
+    borderRadius: 24,
+  },
+  priorityText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  divider: {
+    marginVertical: 16,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  infoIcon: {
+    marginRight: 8,
+  },
+  infoLabel: {
+    flex: 1,
+    fontSize: 14,
+  },
+  infoValue: {
+    flex: 2,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  description: {
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  imageContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 8,
+    marginHorizontal: -4,
+  },
+  image: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    margin: 4,
+    resizeMode: 'cover',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+    marginBottom: 32,
+  },
+  button: {
+    flex: 1,
+    marginHorizontal: 8,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -214,96 +299,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
-    gap: 16,
+    padding: 20,
   },
   errorText: {
+    marginTop: 12,
+    marginBottom: 24,
     fontSize: 16,
-    marginBottom: 16,
-  },
-  card: {
-    borderRadius: 12,
-    elevation: 2,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  chips: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  statusChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 8,
-  },
-  statusText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 12,
-    marginLeft: 6,
-  },
-  priorityChip: {
-    borderRadius: 16,
-  },
-  priorityText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  divider: {
-    marginVertical: 16,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  infoIcon: {
-    marginRight: 10,
-  },
-  infoLabel: {
-    width: 100,
-    fontSize: 14,
-  },
-  infoValue: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  description: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  imageContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 8,
-  },
-  image: {
-    width: '48%',
-    aspectRatio: 1.33,
-    borderRadius: 8,
-    margin: '1%',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 16,
-    marginBottom: 32,
-  },
-  button: {
-    flex: 1,
-    marginHorizontal: 8,
   },
 }); 

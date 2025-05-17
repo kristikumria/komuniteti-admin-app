@@ -1,15 +1,6 @@
 import { NavigatorScreenParams } from '@react-navigation/native';
 import { UserRole } from '../store/slices/authSlice';
 
-// Developer tools
-export type DevStackParamList = {
-  MD3ElevationShowcase: undefined;
-  ComponentShowcase: undefined;
-  ThemeShowcase: undefined;
-  ResponsiveLayoutShowcase: undefined;
-  FormShowcase: undefined;
-}
-
 // Auth Stack
 export type AuthStackParamList = {
   Login: undefined;
@@ -61,12 +52,6 @@ export type BusinessManagerStackParamList = {
   Services: undefined;
   MoreMain: undefined;
   MainTabs: undefined;
-  // Dev tools
-  MD3ElevationShowcase: undefined;
-  ComponentShowcase: undefined;
-  ThemeShowcase: undefined;
-  ResponsiveLayoutShowcase: undefined;
-  FormShowcase: undefined;
   Maintenance: undefined;
   MaintenanceRequests: undefined;
   MaintenanceDetail: { requestId: string };
@@ -128,8 +113,6 @@ export interface AdministratorStackParamList extends Record<string, object | und
   Messages: undefined;
   OrganizationChart: undefined;
   Profile: { userId: string };
-  MD3ElevationShowcase: undefined;
-  ChatTestScreen: undefined;
   Maintenance: undefined;
   MaintenanceRequests: undefined | { tab?: 'maintenance' | 'reports' };
   MaintenanceDetail: { requestId: string };

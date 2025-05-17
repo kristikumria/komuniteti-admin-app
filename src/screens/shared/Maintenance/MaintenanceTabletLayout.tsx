@@ -78,7 +78,6 @@ export const MaintenanceTabletLayout = () => {
           title="Maintenance Details"
           subtitle="Select a maintenance request from the list"
           centerTitle={true}
-          showBack={!isTablet}
         />
       </View>
     )
